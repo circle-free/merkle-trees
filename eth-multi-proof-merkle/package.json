@@ -1,0 +1,28 @@
+{
+  "name": "eth-merkle",
+  "version": "0.1.0",
+  "description": "",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "truffle test",
+    "ganache": "ganache-cli",
+    "lint": "solhint 'contracts/**/*.sol'",
+    "prettier": "prettier --write 'contracts/**/*.sol'"
+  },
+  "author": "Circle-Free",
+  "license": "MIT",
+  "dependencies": {
+    "truffle": "^5.1.36"
+  },
+  "devDependencies": {
+    "ganache-cli": "^6.9.1",
+    "prettier": "^2.0.5",
+    "prettier-plugin-solidity": "^1.0.0-alpha.54",
+    "solhint": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
