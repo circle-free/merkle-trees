@@ -50,16 +50,16 @@ const buildTree = (leafs) => {
   const leafCount = leafs.length;
   const depth = getDepthFromLeafs(leafs);
 
-  assert(leafCount == 1 << depth, `${leafCount} leafs will not produce a perfect Merkle Tree.`);
+  assert(leafCount === 1 << depth, `${leafCount} leafs will not produce a perfect Merkle Tree.`);
 
   const nodeCount = 2 * leafCount;
   const tree = Array(nodeCount).fill(null);
 
   for (let i = 0; i < leafCount; i++) {
-    tree[(1 << depth) + i] = leafs[i];
+    tree[leafCount + i] = leafs[i];
   }
 
-  for (let i = (1 << depth) - 1; i > 0; i--) {
+  for (let i = leafCount - 1; i > 0; i--) {
     tree[i] = hashNode(tree[2 * i], tree[2 * i + 1]);
   }
 
@@ -110,16 +110,83 @@ const verifyProof = (mixedRoot, root, leafCount, index, value, decommitments = [
   return hash.equals(root);
 };
 
-// TODO: create root update function taking mixedRoot, root, leafCount, index, value, and proof as input
-const updateRoot = () => {};
+const updateWithProof = (mixedRoot, root, leafCount, index, oldValue, newValue, decommitments = []) => {
+  assert(verifyMixedRoot(mixedRoot, root, leafCount), 'Invalid root parameters.');
 
-// TODO: create tree update function taking tree, indices, and values(s)
-const updateTree = () => {};
+  if (leafCount === 1 && oldValue.equals(root)) {
+    return {
+      mixedRoot: hashNode(to32ByteBuffer(leafCount), newValue),
+      root: newValue,
+    };
+  }
+
+  let oldHash = oldValue;
+  let newHash = newValue;
+
+  for (let i = decommitments.length - 1; i >= 0; i--) {
+    oldHash = index & 1 ? hashNode(decommitments[i], oldHash) : hashNode(oldHash, decommitments[i]);
+    newHash = index & 1 ? hashNode(decommitments[i], newHash) : hashNode(newHash, decommitments[i]);
+    index >>= 1; // integer divide index by 2
+  }
+
+  assert(oldHash.equals(root), 'Invalid proof.');
+
+  return {
+    mixedRoot: hashNode(to32ByteBuffer(leafCount), newHash),
+    root: newHash,
+  };
+};
+
+// NOTE: indices must be in order for max efficiency
+const updateTree = (tree, indices, values) => {
+  assert(indices.length > 0 && values.length > 0 && indices.length === values.length, 'Invalid indices or values.');
+  // TODO: check that largest index is within bounds
+
+  const leafCount = getLeafCountFromTree(tree);
+
+  let nodeUpdateIndices = indices.reduce((nodeIndices, leafIndex, i) => {
+    const treeIndex = leafCount + leafIndex;
+    tree[treeIndex] = values[i];
+    const nodeIndex = treeIndex >> 1;
+    const length = nodeIndices.length;
+
+    // push the node index if its a node, and the array is empty or the node is not already there
+    const pushNodeIndex = nodeIndex > 0 && (!length || nodeIndices[length - 1] !== nodeIndex);
+
+    return pushNodeIndex ? nodeIndices.concat([nodeIndex]) : nodeIndices;
+  }, []);
+
+  while (nodeUpdateIndices.length) {
+    nodeUpdateIndices = nodeUpdateIndices.reduce((nodeIndices, treeIndex) => {
+      tree[treeIndex] = hashNode(tree[2 * treeIndex], tree[2 * treeIndex + 1]);
+      const nodeIndex = treeIndex >> 1;
+      const length = nodeIndices.length;
+
+      // push the node index if its a node, and the array is empty or the node is not already there
+      const pushNodeIndex = nodeIndex > 0 && (!length || nodeIndices[length - 1] !== nodeIndex);
+
+      return pushNodeIndex ? nodeIndices.concat([nodeIndex]) : nodeIndices;
+    }, []);
+  }
+
+  tree[0] = hashNode(to32ByteBuffer(leafCount), tree[1]);
+
+  return {
+    tree,
+    mixedRoot: tree[0],
+    root: tree[1],
+    realLeafCount: leafCount,
+    leafCount,
+    depth: getDepthFromLeafCount(leafCount),
+  };
+};
 
 module.exports = {
   buildTree,
   generateProof,
   verifyProof,
+  updateWithProof,
+  updateTree,
   getDepthFromTree,
   getDepthFromLeafs,
   getDepthFromLeafCount,

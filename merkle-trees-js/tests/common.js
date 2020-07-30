@@ -2,11 +2,11 @@
 
 const chai = require('chai');
 const { expect } = chai;
-const { buildTree, generateProof, verifyProof } = require('../src/common');
+const { buildTree, generateProof, verifyProof, updateTree, updateWithProof } = require('../src/common');
 
 describe('Common Merkle-Tree', () => {
   describe('Build Merkle Tree', () => {
-    it('should deterministically build a Merkle Tree.', () => {
+    it('should deterministically build a Merkle Tree with 8 leafs.', () => {
       const items = [
         '0000000000000000000000000000000000000000000000000000000000000001',
         '0000000000000000000000000000000000000000000000000000000000000002',
@@ -46,6 +46,24 @@ describe('Common Merkle-Tree', () => {
       expect(realLeafCount).to.equal(items.length);
       expect(leafCount).to.equal(items.length);
       expect(depth).to.equal(3);
+    });
+
+    it('should deterministically build a Merkle Tree with 1 leaf.', () => {
+      const items = ['0000000000000000000000000000000000000000000000000000000000000001'];
+      const leafs = items.map((item) => Buffer.from(item, 'hex'));
+      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs);
+
+      const expectedNodes = [
+        'cc69885fda6bcc1a4ace058b4a62bf5e179ea78fd58a1ccd71c22cc9b688792f',
+        '0000000000000000000000000000000000000000000000000000000000000001',
+      ];
+
+      tree.forEach((node, i) => expect(node.toString('hex')).to.equal(expectedNodes[i]));
+      expect(mixedRoot.toString('hex')).to.equal(expectedNodes[0]);
+      expect(root.toString('hex')).to.equal(expectedNodes[1]);
+      expect(realLeafCount).to.equal(items.length);
+      expect(leafCount).to.equal(items.length);
+      expect(depth).to.equal(0);
     });
   });
 
@@ -298,6 +316,149 @@ describe('Common Merkle-Tree', () => {
       const proofValid = verifyProof(mixedRoot, root, leafCount, index, value, decommitments.slice(0, -1));
 
       expect(proofValid).to.equal(false);
+    });
+  });
+
+  describe('Update Merkle Tree', () => {
+    it('should deterministically update a Merkle Tree with 8 leafs.', () => {
+      const items = [
+        '0000000000000000000000000000000000000000000000000000000000000001',
+        '0000000000000000000000000000000000000000000000000000000000000002',
+        '0000000000000000000000000000000000000000000000000000000000000003',
+        '0000000000000000000000000000000000000000000000000000000000000004',
+        '0000000000000000000000000000000000000000000000000000000000000005',
+        '0000000000000000000000000000000000000000000000000000000000000006',
+        '0000000000000000000000000000000000000000000000000000000000000007',
+        '0000000000000000000000000000000000000000000000000000000000000008',
+      ];
+
+      const leafs = items.map((item) => Buffer.from(item, 'hex'));
+      const { tree, mixedRoot, root } = buildTree(leafs);
+
+      const updateIndices = [3, 6];
+      const updateItems = [
+        '0000000000000000000000000000000000000000000000000000000000000009',
+        '000000000000000000000000000000000000000000000000000000000000000a',
+      ];
+      const updateValues = updateItems.map((item) => Buffer.from(item, 'hex'));
+
+      const { tree: newTree, mixedRoot: newMixedRoot, root: newRoot } = updateTree(tree, updateIndices, updateValues);
+
+      const newItems = [
+        '0000000000000000000000000000000000000000000000000000000000000001',
+        '0000000000000000000000000000000000000000000000000000000000000002',
+        '0000000000000000000000000000000000000000000000000000000000000003',
+        '0000000000000000000000000000000000000000000000000000000000000009',
+        '0000000000000000000000000000000000000000000000000000000000000005',
+        '0000000000000000000000000000000000000000000000000000000000000006',
+        '000000000000000000000000000000000000000000000000000000000000000a',
+        '0000000000000000000000000000000000000000000000000000000000000008',
+      ];
+      const newLeafs = newItems.map((item) => Buffer.from(item, 'hex'));
+      const { tree: rebuiltTree } = buildTree(newLeafs);
+
+      newTree.forEach((node, i) => expect(node.equals(rebuiltTree[i])).to.equal(true));
+      expect(newMixedRoot.equals(mixedRoot)).to.equal(false);
+      expect(newRoot.equals(root)).to.equal(false);
+    });
+
+    it('should deterministically update a Merkle Tree with 1 leaf.', () => {
+      const items = ['0000000000000000000000000000000000000000000000000000000000000001'];
+      const leafs = items.map((item) => Buffer.from(item, 'hex'));
+      const { tree, mixedRoot, root } = buildTree(leafs);
+
+      const updateIndices = [0];
+      const updateItems = ['0000000000000000000000000000000000000000000000000000000000000009'];
+      const updateValues = updateItems.map((item) => Buffer.from(item, 'hex'));
+
+      const { tree: newTree, mixedRoot: newMixedRoot, root: newRoot } = updateTree(tree, updateIndices, updateValues);
+
+      const newItems = ['0000000000000000000000000000000000000000000000000000000000000009'];
+      const newLeafs = newItems.map((item) => Buffer.from(item, 'hex'));
+      const { tree: rebuiltTree } = buildTree(newLeafs);
+
+      newTree.forEach((node, i) => expect(node.equals(rebuiltTree[i])).to.equal(true));
+      expect(newMixedRoot.equals(mixedRoot)).to.equal(false);
+      expect(newRoot.equals(root)).to.equal(false);
+    });
+  });
+
+  describe('Update Merkle Root with Proof', () => {
+    it('should deterministically update an 8-leaf Merkle Root with a Proof.', () => {
+      const items = [
+        '0000000000000000000000000000000000000000000000000000000000000001',
+        '0000000000000000000000000000000000000000000000000000000000000002',
+        '0000000000000000000000000000000000000000000000000000000000000003',
+        '0000000000000000000000000000000000000000000000000000000000000004',
+        '0000000000000000000000000000000000000000000000000000000000000005',
+        '0000000000000000000000000000000000000000000000000000000000000006',
+        '0000000000000000000000000000000000000000000000000000000000000007',
+        '0000000000000000000000000000000000000000000000000000000000000008',
+      ];
+
+      const leafs = items.map((item) => Buffer.from(item, 'hex'));
+      const { tree } = buildTree(leafs);
+
+      const updateIndex = 3;
+      const updateValue = Buffer.from('0000000000000000000000000000000000000000000000000000000000000009', 'hex');
+
+      const { mixedRoot, root, leafCount, decommitments } = generateProof(tree, updateIndex);
+      const { mixedRoot: newMixedRoot, root: newRoot } = updateWithProof(
+        mixedRoot,
+        root,
+        leafCount,
+        updateIndex,
+        leafs[updateIndex],
+        updateValue,
+        decommitments
+      );
+
+      const newItems = [
+        '0000000000000000000000000000000000000000000000000000000000000001',
+        '0000000000000000000000000000000000000000000000000000000000000002',
+        '0000000000000000000000000000000000000000000000000000000000000003',
+        '0000000000000000000000000000000000000000000000000000000000000009',
+        '0000000000000000000000000000000000000000000000000000000000000005',
+        '0000000000000000000000000000000000000000000000000000000000000006',
+        '0000000000000000000000000000000000000000000000000000000000000007',
+        '0000000000000000000000000000000000000000000000000000000000000008',
+      ];
+      const newLeafs = newItems.map((item) => Buffer.from(item, 'hex'));
+      const { tree: rebuiltTree, mixedRoot: rebuiltMixedRoot, root: rebuiltRoot } = buildTree(newLeafs);
+
+      expect(newMixedRoot.equals(mixedRoot)).to.equal(false);
+      expect(newMixedRoot.equals(rebuiltMixedRoot)).to.equal(true);
+      expect(newRoot.equals(root)).to.equal(false);
+      expect(newRoot.equals(rebuiltRoot)).to.equal(true);
+    });
+
+    it('should deterministically update an 1-leaf Merkle Root with a Proof.', () => {
+      const items = ['0000000000000000000000000000000000000000000000000000000000000001'];
+      const leafs = items.map((item) => Buffer.from(item, 'hex'));
+      const { tree } = buildTree(leafs);
+
+      const updateIndex = 0;
+      const updateValue = Buffer.from('0000000000000000000000000000000000000000000000000000000000000009', 'hex');
+
+      const { mixedRoot, root, leafCount, decommitments } = generateProof(tree, updateIndex);
+      const { mixedRoot: newMixedRoot, root: newRoot } = updateWithProof(
+        mixedRoot,
+        root,
+        leafCount,
+        updateIndex,
+        leafs[updateIndex],
+        updateValue,
+        decommitments
+      );
+
+      const newItems = ['0000000000000000000000000000000000000000000000000000000000000009'];
+      const newLeafs = newItems.map((item) => Buffer.from(item, 'hex'));
+      const { tree: rebuiltTree, mixedRoot: rebuiltMixedRoot, root: rebuiltRoot } = buildTree(newLeafs);
+
+      expect(newMixedRoot.equals(mixedRoot)).to.equal(false);
+      expect(newMixedRoot.equals(rebuiltMixedRoot)).to.equal(true);
+      expect(newRoot.equals(root)).to.equal(false);
+      expect(newRoot.equals(rebuiltRoot)).to.equal(true);
     });
   });
 });
