@@ -20,6 +20,22 @@ const getMixedRoot = (tree) => {
   return tree[0];
 };
 
+const getLeafCountFromTree = (tree) => {
+  return tree.length >> 1;
+};
+
+const getRealLeafCountFromTree = (tree) => {
+  return tree.slice(tree.length >> 1, tree.length).reduce((count, leaf) => count + leaf, 0);
+};
+
+const getLeafCountFromLeafs = (leafs) => {
+  return 1 << Math.ceil(Math.log2(leafs.length));
+};
+
+const getLeafCountFromRealLeafCount = (leafCount) => {
+  return 1 << Math.ceil(Math.log2(leafCount));
+};
+
 const validateMixedRoot = (mixedRoot, root, leafCount) => {
   return hashNode(to32ByteBuffer(leafCount), root).equals(mixedRoot);
 };
@@ -36,4 +52,8 @@ module.exports = {
   getRoot,
   getMixedRoot,
   validateMixedRoot,
+  getLeafCountFromTree,
+  getRealLeafCountFromTree,
+  getLeafCountFromLeafs,
+  getLeafCountFromRealLeafCount,
 };

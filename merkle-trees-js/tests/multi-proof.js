@@ -250,8 +250,8 @@ describe('Multi-Proof', () => {
         mixedRoot,
         root,
         leafCount,
-        indices.slice(-1),
-        values.slice(-1),
+        indices.slice(0, -1),
+        values.slice(0, -1),
         decommitments
       );
 
@@ -284,6 +284,32 @@ describe('Multi-Proof', () => {
       const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indices, values, decommitments);
 
       expect(proofValid).to.equal(false);
+    });
+
+    it('should fail to verify an invalid Multi-Proof (incorrect decommitment count).', () => {
+      const items = [
+        '0000000000000000000000000000000000000000000000000000000000000001',
+        '0000000000000000000000000000000000000000000000000000000000000002',
+        '0000000000000000000000000000000000000000000000000000000000000003',
+        '0000000000000000000000000000000000000000000000000000000000000004',
+        '0000000000000000000000000000000000000000000000000000000000000005',
+        '0000000000000000000000000000000000000000000000000000000000000006',
+        '0000000000000000000000000000000000000000000000000000000000000007',
+        '0000000000000000000000000000000000000000000000000000000000000008',
+      ];
+
+      const leafs = items.map((item) => Buffer.from(item, 'hex'));
+      const treeObject = makeTree(leafs);
+
+      const expectedIndices = [7, 3, 1];
+      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
+        treeObject.tree,
+        expectedIndices
+      );
+
+      const verify = () => verifyMultiProof(mixedRoot, root, leafCount, indices, values, decommitments.slice(0, -1));
+
+      expect(verify).to.throw();
     });
   });
 });

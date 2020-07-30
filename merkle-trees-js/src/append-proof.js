@@ -3,7 +3,7 @@
 const { Keccak } = require('sha3');
 const assert = require('assert');
 const { to32ByteBuffer, bitCount32, hashNode } = require('./utils');
-const { getDepthFromLeafs, validateMixedRoot } = require('./common');
+const { getDepthFromLeafs, validateMixedRoot, getLeafCountFromRealLeafCount } = require('./common');
 
 // TODO: consider using zero-filled buffers as 'nulls'
 const makeTree = (leafs) => {
@@ -15,7 +15,7 @@ const makeTree = (leafs) => {
   const tree = Array(nodeCount).fill(null);
 
   for (let i = 0; i < effectiveLeafCount; i++) {
-    tree[(1 << depth) + i] = leafs[i];
+    tree[(1 << depth) + i] = leafs[i] || null;
   }
 
   for (let i = (1 << depth) - 1; i > 0; i--) {
@@ -34,11 +34,11 @@ const makeTree = (leafs) => {
   tree[0] = hashNode(to32ByteBuffer(realLeafCount), tree[1]);
 
   return {
-    realLeafCount,
-    leafCount: effectiveLeafCount,
     tree,
     mixedRoot: tree[0],
     root: tree[1],
+    realLeafCount,
+    leafCount: effectiveLeafCount,
   };
 };
 
@@ -123,17 +123,38 @@ const verifyMultiProof = (root, depth, indices, values, decommitments) => {};
 // NOTE: appending to a null tree/root is effectively going to create one
 // NOTE: decommitments need to be ordered from left to right
 const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, decommitments = []) => {
-  // NOTE: The number of decommitments (from the left) needed are equal to the number of set bits in the realLeafCount
-  assert(bitCount32(realLeafCount) === decommitments.length, 'Unexpected number of decommitments.');
+  // NOTE: The number of decommitments (from the left) needed to append to an imperfect tree
+  //       are equal to the number of set bits in the realLeafCount
+  const bitCount = bitCount32(realLeafCount);
+  assert(bitCount === 1 || bitCount === decommitments.length, 'Unexpected number of decommitments.');
+
   assert((mixedRoot && root && realLeafCount) || (!mixedRoot && !root && !realLeafCount), 'Tree parameter mismatch.');
   assert(validateMixedRoot(mixedRoot, root, realLeafCount), 'Mixed root mismatched.');
 
   // Appending to an empty Merkle Tree is trivial
-  if (!realLeafCount) return hashNode(to32ByteBuffer(1), value);
+  if (!realLeafCount) {
+    return {
+      mixedRoot: hashNode(to32ByteBuffer(1), value),
+      root: value,
+      realLeafCount: 1,
+      leafCount: 1,
+    };
+  }
+
+  let newRoot;
+  let newRealLeafCount = realLeafCount + 1;
+  let newLeafCount = getLeafCountFromRealLeafCount(newRealLeafCount);
 
   // Appending to a perfect Merkle Tree is equally trivial
-  if (realLeafCount & (realLeafCount - 1 === 0)) {
-    return hashNode(to32ByteBuffer(realLeafCount + 1), hashNode(root, value));
+  if ((realLeafCount & (realLeafCount - 1)) === 0) {
+    newRoot = hashNode(root, value);
+
+    return {
+      mixedRoot: hashNode(to32ByteBuffer(realLeafCount + 1), newRoot),
+      root: newRoot,
+      realLeafCount: newRealLeafCount,
+      leafCount: newLeafCount,
+    };
   }
 
   // Clone decommitments so we don't destroy/consume it
@@ -142,7 +163,7 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
 
   // As we verify the proof, we'll build the new root in parallel, since the
   // verification loop will consume the queue/stack
-  let newRoot = hashNode(queue[n], value);
+  newRoot = hashNode(queue[n], value);
 
   for (let i = n; i > 0; i--) {
     newRoot = hashNode(queue[i - 1], newRoot);
@@ -155,7 +176,8 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
       return {
         mixedRoot: hashNode(to32ByteBuffer(realLeafCount + 1), newRoot),
         root: newRoot,
-        realLeafCount: realLeafCount + 1,
+        realLeafCount: newRealLeafCount,
+        leafCount: newLeafCount,
       };
     }
   }
