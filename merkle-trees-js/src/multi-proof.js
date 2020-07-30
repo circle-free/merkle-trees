@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { hashNode } = require('./utils');
-const { getDepthFromTree, validateMixedRoot } = require('./common');
+const { getDepthFromTree, verifyMixedRoot } = require('./common');
 
 // NOTE: Assumes valid tree
 // NOTE: indices must be in descending order
@@ -43,7 +43,7 @@ const generateMultiProof = (tree, indices) => {
 
 // NOTE: indices must be in descending order
 const verifyMultiProof = (mixedRoot, root, leafCount, indices, values, decommitments) => {
-  if (!validateMixedRoot(mixedRoot, root, leafCount)) return false;
+  if (!verifyMixedRoot(mixedRoot, root, leafCount)) return false;
 
   // Clone decommitments so we don't destroy/consume it (when when shift the array)
   const decommits = decommitments.map((decommitment) => decommitment);
@@ -84,7 +84,7 @@ const verifyMultiProof = (mixedRoot, root, leafCount, indices, values, decommitm
 };
 
 // TODO: create root update function taking mixedRoot, root, leafCount, indices, values, and proof as input
-const updateRootMultiProof = () => {}
+const updateRootMultiProof = () => {};
 
 module.exports = {
   generateMultiProof,

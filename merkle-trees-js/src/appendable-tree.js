@@ -3,7 +3,12 @@
 const { Keccak } = require('sha3');
 const assert = require('assert');
 const { to32ByteBuffer, bitCount32, hashNode } = require('./utils');
-const { getDepthFromLeafs, getDepthFromLeafCount, validateMixedRoot, getLeafCountFromRealLeafCount } = require('./common');
+const {
+  getDepthFromLeafs,
+  getDepthFromLeafCount,
+  verifyMixedRoot,
+  getLeafCountFromRealLeafCount,
+} = require('./common');
 
 // TODO: consider using zero-filled buffers as 'nulls'
 const buildTree = (leafs) => {
@@ -130,7 +135,7 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
   assert(bitCount === 1 || bitCount === decommitments.length, 'Unexpected number of decommitments.');
 
   assert((mixedRoot && root && realLeafCount) || (!mixedRoot && !root && !realLeafCount), 'Tree parameter mismatch.');
-  assert(validateMixedRoot(mixedRoot, root, realLeafCount), 'Mixed root mismatched.');
+  assert(verifyMixedRoot(mixedRoot, root, realLeafCount), 'Mixed root mismatched.');
 
   // Appending to an empty Merkle Tree is trivial
   if (!realLeafCount) {
@@ -139,7 +144,7 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
       root: value,
       realLeafCount: 1,
       leafCount: 1,
-      depth: 0
+      depth: 0,
     };
   }
 

@@ -20,13 +20,10 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = buildTree(leafs);
+      const { tree } = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
-      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
-        treeObject.tree,
-        expectedIndices
-      );
+      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(tree, expectedIndices);
 
       const expectMixedRoot = '6bf98ce50fff09718e4801a2be1668fb47d70d065f7eef435c280e384d14d236';
       const expectRoot = '6f4feb766c4e9e71bf038b8df02f0966e2bf98fe1eaacfd96e5d036664ca1b3c';
@@ -61,13 +58,10 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = buildTree(leafs);
+      const { tree } = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
-      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
-        treeObject.tree,
-        expectedIndices
-      );
+      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(tree, expectedIndices);
 
       const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indices, values, decommitments);
 
@@ -87,13 +81,10 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = buildTree(leafs);
+      const { tree } = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
-      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
-        treeObject.tree,
-        expectedIndices
-      );
+      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(tree, expectedIndices);
 
       const randomHash = Buffer.from('000000000000000000000000000000000000000000000000000000000000000a', 'hex');
       const proofValid = verifyMultiProof(randomHash, root, leafCount, indices, values, decommitments);
@@ -114,13 +105,10 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = buildTree(leafs);
+      const { tree } = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
-      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
-        treeObject.tree,
-        expectedIndices
-      );
+      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(tree, expectedIndices);
 
       const randomHash = Buffer.from('000000000000000000000000000000000000000000000000000000000000000a', 'hex');
       const proofValid = verifyMultiProof(mixedRoot, randomHash, leafCount, indices, values, decommitments);
@@ -141,13 +129,10 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = buildTree(leafs);
+      const { tree } = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
-      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
-        treeObject.tree,
-        expectedIndices
-      );
+      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(tree, expectedIndices);
 
       const proofValid = verifyMultiProof(mixedRoot, root, items.length + 1, indices, values, decommitments);
 
@@ -167,13 +152,10 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = buildTree(leafs);
+      const { tree } = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
-      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
-        treeObject.tree,
-        expectedIndices
-      );
+      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(tree, expectedIndices);
 
       const incorrectIndices = [7, 3, 2];
       const incorrectValues = incorrectIndices.map((i) => leafs[i]);
@@ -195,13 +177,10 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = buildTree(leafs);
+      const { tree } = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
-      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
-        treeObject.tree,
-        expectedIndices
-      );
+      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(tree, expectedIndices);
 
       const proofValid = verifyMultiProof(
         mixedRoot,
@@ -228,13 +207,10 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = buildTree(leafs);
+      const { tree } = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
-      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
-        treeObject.tree,
-        expectedIndices
-      );
+      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(tree, expectedIndices);
 
       const randomHash = Buffer.from('000000000000000000000000000000000000000000000000000000000000000a', 'hex');
       decommitments[0] = randomHash;
@@ -256,13 +232,10 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = buildTree(leafs);
+      const { tree } = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
-      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
-        treeObject.tree,
-        expectedIndices
-      );
+      const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(tree, expectedIndices);
 
       const verify = () => verifyMultiProof(mixedRoot, root, leafCount, indices, values, decommitments.slice(0, -1));
 

@@ -41,7 +41,7 @@ const getLeafCountFromRealLeafCount = (leafCount) => {
   return 1 << Math.ceil(Math.log2(leafCount));
 };
 
-const validateMixedRoot = (mixedRoot, root, leafCount) => {
+const verifyMixedRoot = (mixedRoot, root, leafCount) => {
   return hashNode(to32ByteBuffer(leafCount), root).equals(mixedRoot);
 };
 
@@ -77,6 +77,39 @@ const buildTree = (leafs) => {
   };
 };
 
+const generateProof = (tree, index) => {
+  const leafCount = tree.length >> 1;
+
+  assert(index < leafCount, 'Leaf index does not exist.');
+
+  if (leafCount === 1) {
+    return { mixedRoot: tree[0], root: tree[1], leafCount, index, value: tree[1], decommitments: [] };
+  }
+
+  const decommitments = [];
+
+  for (let i = leafCount + index; i > 1; i = i >> 1) {
+    decommitments.unshift(i & 1 ? tree[i - 1] : tree[i + 1]);
+  }
+
+  return { mixedRoot: tree[0], root: tree[1], leafCount, index, value: tree[leafCount + index], decommitments };
+};
+
+const verifyProof = (mixedRoot, root, leafCount, index, value, decommitments = []) => {
+  if (!verifyMixedRoot(mixedRoot, root, leafCount)) return false;
+
+  if (leafCount === 1 && value.equals(root)) return true;
+
+  let hash = value;
+
+  for (let i = decommitments.length - 1; i >= 0; i--) {
+    hash = index & 1 ? hashNode(decommitments[i], hash) : hashNode(hash, decommitments[i]);
+    index >>= 1; // integer divide index by 2
+  }
+
+  return hash.equals(root);
+};
+
 // TODO: create root update function taking mixedRoot, root, leafCount, index, value, and proof as input
 const updateRoot = () => {};
 
@@ -85,12 +118,14 @@ const updateTree = () => {};
 
 module.exports = {
   buildTree,
+  generateProof,
+  verifyProof,
   getDepthFromTree,
   getDepthFromLeafs,
   getDepthFromLeafCount,
   getRoot,
   getMixedRoot,
-  validateMixedRoot,
+  verifyMixedRoot,
   getLeafCountFromTree,
   getRealLeafCountFromTree,
   getLeafCountFromLeafs,
