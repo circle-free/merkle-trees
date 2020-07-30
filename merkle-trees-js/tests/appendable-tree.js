@@ -2,7 +2,6 @@
 
 const chai = require('chai');
 const { expect } = chai;
-const { generateRandomLeaf, generateRandomLeafs } = require('./helpers');
 const { buildTree, generateAppendProof, appendLeaf } = require('../src/appendable-tree');
 
 describe('Append-Tree', () => {

@@ -116,6 +116,9 @@ const verifyMultiProof = (mixedRoot, root, leafCount, indices, values, decommitm
   }
 };
 
+// TODO: implement
+const updateWithMultiProof = () => {}
+
 module.exports = {
   buildTree,
   generateMultiProof,

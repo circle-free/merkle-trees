@@ -1,14 +1,21 @@
 'use strict';
 
+const crypto = require('crypto');
+const { hashNode, to32ByteBuffer } = require('../../src/utils');
+
 const generateRandomLeaf = () => {
   return crypto.randomBytes(32);
 };
 
-const generateRandomLeafs = (leafCount) => {
+const generateLeafs = (leafCount, options = {}) => {
+  let { seed, random = false } = options;
   const leafs = [];
+  let leaf = seed;
 
-  for (i = 0; i < leafCount; i++) {
-    leafs.push(generateRandomLeaf());
+  for (let i = 0; i < leafCount; i++) {
+    leaf = random ? generateRandomLeaf() : seed ? hashNode(seed, leaf) : to32ByteBuffer(i);
+    seed = leaf;
+    leafs.push(leaf);
   }
 
   return leafs;
@@ -16,5 +23,5 @@ const generateRandomLeafs = (leafCount) => {
 
 module.exports = {
   generateRandomLeaf,
-  generateRandomLeafs,
+  generateLeafs,
 };

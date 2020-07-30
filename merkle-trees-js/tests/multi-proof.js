@@ -2,7 +2,6 @@
 
 const chai = require('chai');
 const { expect } = chai;
-const { generateRandomLeaf, generateRandomLeafs } = require('./helpers');
 const { buildTree, generateMultiProof, verifyMultiProof } = require('../src/multi-proof');
 
 describe('Multi-Proof', () => {
