@@ -3,11 +3,11 @@
 const chai = require('chai');
 const { expect } = chai;
 const { generateRandomLeaf, generateRandomLeafs } = require('./helpers');
-const { buildTree, generateAppendProof, appendLeaf } = require('../src/append-proof');
+const { buildTree, generateAppendProof, appendLeaf } = require('../src/appendable-tree');
 
-describe('Append-Proof', () => {
-  describe('Build Merkle Tree', () => {
-    it('should deterministically build a perfect Merkle Tree.', () => {
+describe('Append-Tree', () => {
+  describe('Build Appendable Merkle Tree', () => {
+    it('should deterministically build a perfect Appendable Merkle Tree.', () => {
       const items = [
         '0000000000000000000000000000000000000000000000000000000000000001',
         '0000000000000000000000000000000000000000000000000000000000000002',
@@ -49,7 +49,7 @@ describe('Append-Proof', () => {
       expect(depth).to.equal(3);
     });
 
-    it('should deterministically build an imperfect Merkle Tree.', () => {
+    it('should deterministically build an imperfect Appendable Merkle Tree.', () => {
       const items = [
         '0000000000000000000000000000000000000000000000000000000000000001',
         '0000000000000000000000000000000000000000000000000000000000000002',
@@ -112,7 +112,7 @@ describe('Append-Proof', () => {
   });
 
   describe('Generate Append-Proof', () => {
-    it('should deterministically generate an Append-Proof for a perfect Merkle Tree.', () => {
+    it('should deterministically generate an Append-Proof for a perfect Appendable Merkle Tree.', () => {
       const items = [
         '0000000000000000000000000000000000000000000000000000000000000001',
         '0000000000000000000000000000000000000000000000000000000000000002',
@@ -141,7 +141,7 @@ describe('Append-Proof', () => {
       decommitments.forEach((value, i) => expect(value.toString('hex')).to.equal(expectedDecommitments[i]));
     });
 
-    it('should deterministically generate an Append-Proof for an imperfect Merkle Tree.', () => {
+    it('should deterministically generate an Append-Proof for an imperfect Appendable Merkle Tree.', () => {
       const items = [
         '0000000000000000000000000000000000000000000000000000000000000001',
         '0000000000000000000000000000000000000000000000000000000000000002',
@@ -177,7 +177,7 @@ describe('Append-Proof', () => {
   });
 
   describe('Verify Append-Proof', () => {
-    it('should append a leaf given a valid Append-Proof for a perfect Merkle Tree.', () => {
+    it('should append a leaf given a valid Append-Proof for a perfect Appendable Merkle Tree.', () => {
       const items = [
         '0000000000000000000000000000000000000000000000000000000000000001',
         '0000000000000000000000000000000000000000000000000000000000000002',
@@ -216,7 +216,7 @@ describe('Append-Proof', () => {
       expect(newDepth).to.equal(4);
     });
 
-    it('should append a leaf given a valid Append-Proof for an imperfect Merkle Tree.', () => {
+    it('should append a leaf given a valid Append-Proof for an imperfect Appendable Merkle Tree.', () => {
       const items = [
         '0000000000000000000000000000000000000000000000000000000000000001',
         '0000000000000000000000000000000000000000000000000000000000000002',
