@@ -12,6 +12,10 @@ const getDepthFromLeafs = (leafs) => {
   return Math.ceil(Math.log2(leafs.length));
 };
 
+const getDepthFromLeafCount = (leafCount) => {
+  return Math.ceil(Math.log2(leafCount));
+};
+
 const getRoot = (tree) => {
   return tree[1];
 };
@@ -49,6 +53,7 @@ const updateTree = () => {};
 module.exports = {
   getDepthFromTree,
   getDepthFromLeafs,
+  getDepthFromLeafCount,
   getRoot,
   getMixedRoot,
   validateMixedRoot,

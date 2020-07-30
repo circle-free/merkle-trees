@@ -3,7 +3,7 @@
 const chai = require('chai');
 const { expect } = chai;
 const { generateRandomLeaf, generateRandomLeafs } = require('./helpers');
-const { makeTree, generateMultiProof, verifyMultiProof } = require('../src/multi-proof');
+const { buildTree, generateMultiProof, verifyMultiProof } = require('../src/multi-proof');
 
 describe('Multi-Proof', () => {
   describe('Build Merkle Tree', () => {
@@ -20,7 +20,7 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = makeTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs);
 
       const expectedNodes = [
         '6bf98ce50fff09718e4801a2be1668fb47d70d065f7eef435c280e384d14d236',
@@ -46,6 +46,7 @@ describe('Multi-Proof', () => {
       expect(root.toString('hex')).to.equal(expectedNodes[1]);
       expect(realLeafCount).to.equal(items.length);
       expect(leafCount).to.equal(items.length);
+      expect(depth).to.equal(3);
     });
   });
 
@@ -63,7 +64,7 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = makeTree(leafs);
+      const treeObject = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
       const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
@@ -104,7 +105,7 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = makeTree(leafs);
+      const treeObject = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
       const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
@@ -130,7 +131,7 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = makeTree(leafs);
+      const treeObject = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
       const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
@@ -157,7 +158,7 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = makeTree(leafs);
+      const treeObject = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
       const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
@@ -184,7 +185,7 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = makeTree(leafs);
+      const treeObject = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
       const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
@@ -210,7 +211,7 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = makeTree(leafs);
+      const treeObject = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
       const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
@@ -238,7 +239,7 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = makeTree(leafs);
+      const treeObject = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
       const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
@@ -271,7 +272,7 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = makeTree(leafs);
+      const treeObject = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
       const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(
@@ -299,7 +300,7 @@ describe('Multi-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = makeTree(leafs);
+      const treeObject = buildTree(leafs);
 
       const expectedIndices = [7, 3, 1];
       const { mixedRoot, root, leafCount, indices, values, decommitments } = generateMultiProof(

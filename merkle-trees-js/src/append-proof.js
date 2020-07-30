@@ -3,10 +3,10 @@
 const { Keccak } = require('sha3');
 const assert = require('assert');
 const { to32ByteBuffer, bitCount32, hashNode } = require('./utils');
-const { getDepthFromLeafs, validateMixedRoot, getLeafCountFromRealLeafCount } = require('./common');
+const { getDepthFromLeafs, getDepthFromLeafCount, validateMixedRoot, getLeafCountFromRealLeafCount } = require('./common');
 
 // TODO: consider using zero-filled buffers as 'nulls'
-const makeTree = (leafs) => {
+const buildTree = (leafs) => {
   const realLeafCount = leafs.length;
   const depth = getDepthFromLeafs(leafs); // This will be an effective depth
   const effectiveLeafs = leafs.concat(Array((1 << depth) - realLeafCount).fill(null));
@@ -39,6 +39,7 @@ const makeTree = (leafs) => {
     root: tree[1],
     realLeafCount,
     leafCount: effectiveLeafCount,
+    depth,
   };
 };
 
@@ -138,6 +139,7 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
       root: value,
       realLeafCount: 1,
       leafCount: 1,
+      depth: 0
     };
   }
 
@@ -154,6 +156,7 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
       root: newRoot,
       realLeafCount: newRealLeafCount,
       leafCount: newLeafCount,
+      depth: getDepthFromLeafCount(newLeafCount),
     };
   }
 
@@ -178,16 +181,25 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
         root: newRoot,
         realLeafCount: newRealLeafCount,
         leafCount: newLeafCount,
+        depth: getDepthFromLeafCount(newLeafCount),
       };
     }
   }
 };
 
-// TODO: create function to append several leafs in batch (should be trivial)
-const appendLeafs = () => {};
+// TODO: create function to append several leafs in batch.
+//       1) Use the decommitments to recover "normal" nodes and starting depth (as done in single-append).
+//       2) Build a serialized tree filling in the known nodes and the appending right leafs.
+//       3) Run through the first half of the serialized tree in reverse order (as done in buildTree),
+//          but skip computing known nodes (i.e. if (!tree[i]) { tree[i] = hashNode(tree[2 * i], tree[2 * i + 1])) }
+//          and skip computing nodes for with unknown children (any leaf or node to the left of the append index)
+//       4) This process should result in a new valid root and mixed root, and interestingly, a partially filled
+//          serialized tree that contains enough data to build subsequent append proofs
+//       Not going to build this yet as it is outside the scope of the current needs
+const appendLeafs = (values, mixedRoot = null, root = null, realLeafCount = 0, decommitments = []) => {};
 
 module.exports = {
-  makeTree,
+  buildTree,
   generateAppendProof,
   appendLeaf,
 };

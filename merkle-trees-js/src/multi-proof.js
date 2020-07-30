@@ -6,7 +6,7 @@ const { hashNode, to32ByteBuffer } = require('./utils');
 const { getDepthFromTree, getDepthFromLeafs, validateMixedRoot } = require('./common');
 
 // NOTE: leafs must already be buffers, preferably 32 bytes
-const makeTree = (leafs) => {
+const buildTree = (leafs) => {
   const leafCount = leafs.length;
   const depth = getDepthFromLeafs(leafs);
 
@@ -27,14 +27,13 @@ const makeTree = (leafs) => {
   // This means the true Merkle Root is the Mixed Root at tree[0]
   tree[0] = hashNode(to32ByteBuffer(leafCount), tree[1]);
 
-  // TODO: return object with depth, leafCount, root, and mixed root
-
   return {
     tree,
     mixedRoot: tree[0],
     root: tree[1],
     realLeafCount: leafCount,
     leafCount,
+    depth,
   };
 };
 
@@ -118,7 +117,7 @@ const verifyMultiProof = (mixedRoot, root, leafCount, indices, values, decommitm
 };
 
 module.exports = {
-  makeTree,
+  buildTree,
   generateMultiProof,
   verifyMultiProof,
 };

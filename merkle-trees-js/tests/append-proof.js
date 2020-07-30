@@ -3,7 +3,7 @@
 const chai = require('chai');
 const { expect } = chai;
 const { generateRandomLeaf, generateRandomLeafs } = require('./helpers');
-const { makeTree, generateAppendProof, appendLeaf } = require('../src/append-proof');
+const { buildTree, generateAppendProof, appendLeaf } = require('../src/append-proof');
 
 describe('Append-Proof', () => {
   describe('Build Merkle Tree', () => {
@@ -20,7 +20,7 @@ describe('Append-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = makeTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs);
 
       const expectedNodes = [
         '6bf98ce50fff09718e4801a2be1668fb47d70d065f7eef435c280e384d14d236',
@@ -46,6 +46,7 @@ describe('Append-Proof', () => {
       expect(root.toString('hex')).to.equal(expectedNodes[1]);
       expect(realLeafCount).to.equal(items.length);
       expect(leafCount).to.equal(items.length);
+      expect(depth).to.equal(3);
     });
 
     it('should deterministically build an imperfect Merkle Tree.', () => {
@@ -62,7 +63,7 @@ describe('Append-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = makeTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs);
 
       const expectedNodes = [
         'ee313c2bba3814191d06acf5ce954c9a96ca757b6d071852c7a6ec64479d6e9d',
@@ -106,6 +107,7 @@ describe('Append-Proof', () => {
       expect(root.toString('hex')).to.equal(expectedNodes[1]);
       expect(realLeafCount).to.equal(items.length);
       expect(leafCount).to.equal(expectedLeafCount);
+      expect(depth).to.equal(4);
     });
   });
 
@@ -123,7 +125,7 @@ describe('Append-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = makeTree(leafs);
+      const treeObject = buildTree(leafs);
       const { mixedRoot, root, realLeafCount, decommitments } = generateAppendProof(
         treeObject.tree,
         treeObject.realLeafCount
@@ -153,7 +155,7 @@ describe('Append-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = makeTree(leafs);
+      const treeObject = buildTree(leafs);
       const { mixedRoot, root, realLeafCount, decommitments } = generateAppendProof(
         treeObject.tree,
         treeObject.realLeafCount
@@ -188,7 +190,7 @@ describe('Append-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = makeTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000008', 'hex');
@@ -199,6 +201,7 @@ describe('Append-Proof', () => {
         root: newRoot,
         realLeafCount: newRealLeafCount,
         leafCount: newLeafCount,
+        depth: newDepth,
       } = newTreeData;
 
       const expectedNewMixedRoot = '03923e99e91058307177f5335906c5b77a149af42057ca43c5f45bb772695034';
@@ -210,6 +213,7 @@ describe('Append-Proof', () => {
       expect(newRoot.toString('hex')).to.equal(expectedNewRoot);
       expect(newRealLeafCount).to.equal(expectedNewRealLeafCount);
       expect(newLeafCount).to.equal(expectedNewLeafCount);
+      expect(newDepth).to.equal(4);
     });
 
     it('should append a leaf given a valid Append-Proof for an imperfect Merkle Tree.', () => {
@@ -232,7 +236,7 @@ describe('Append-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = makeTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000010', 'hex');
@@ -243,6 +247,7 @@ describe('Append-Proof', () => {
         root: newRoot,
         realLeafCount: newRealLeafCount,
         leafCount: newLeafCount,
+        depth: newDepth,
       } = newTreeData;
 
       const expectedNewMixedRoot = '197ef4c2d6d83db577e9907c320aef9991a926ba060a718c0694d35efb4ae031';
@@ -254,6 +259,7 @@ describe('Append-Proof', () => {
       expect(newRoot.toString('hex')).to.equal(expectedNewRoot);
       expect(newRealLeafCount).to.equal(expectedNewRealLeafCount);
       expect(newLeafCount).to.equal(expectedNewLeafCount);
+      expect(newDepth).to.equal(4);
     });
 
     it('should fail to verify an invalid Append-Proof (incorrect mixedRoot).', () => {
@@ -276,7 +282,7 @@ describe('Append-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = makeTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000010', 'hex');
@@ -306,7 +312,7 @@ describe('Append-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = makeTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000010', 'hex');
@@ -336,7 +342,7 @@ describe('Append-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = makeTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000010', 'hex');
@@ -365,7 +371,7 @@ describe('Append-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = makeTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000010', 'hex');
@@ -396,7 +402,7 @@ describe('Append-Proof', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = makeTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000010', 'hex');
