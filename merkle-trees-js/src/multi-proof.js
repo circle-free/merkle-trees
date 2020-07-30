@@ -1,41 +1,8 @@
 'use strict';
 
-const { Keccak } = require('sha3');
 const assert = require('assert');
-const { hashNode, to32ByteBuffer } = require('./utils');
-const { getDepthFromTree, getDepthFromLeafs, validateMixedRoot } = require('./common');
-
-// NOTE: leafs must already be buffers, preferably 32 bytes
-const buildTree = (leafs) => {
-  const leafCount = leafs.length;
-  const depth = getDepthFromLeafs(leafs);
-
-  assert(leafCount == 1 << depth, `${leafCount} leafs will not produce a perfect Merkle Tree.`);
-
-  const nodeCount = 2 * leafCount;
-  const tree = Array(nodeCount).fill(null);
-
-  for (let i = 0; i < leafCount; i++) {
-    tree[(1 << depth) + i] = leafs[i];
-  }
-
-  for (let i = (1 << depth) - 1; i > 0; i--) {
-    tree[i] = hashNode(tree[2 * i], tree[2 * i + 1]);
-  }
-
-  // Mix in leaf count to prevent second pre-image attack
-  // This means the true Merkle Root is the Mixed Root at tree[0]
-  tree[0] = hashNode(to32ByteBuffer(leafCount), tree[1]);
-
-  return {
-    tree,
-    mixedRoot: tree[0],
-    root: tree[1],
-    realLeafCount: leafCount,
-    leafCount,
-    depth,
-  };
-};
+const { hashNode } = require('./utils');
+const { getDepthFromTree, validateMixedRoot } = require('./common');
 
 // NOTE: Assumes valid tree
 // NOTE: indices must be in descending order
@@ -116,11 +83,10 @@ const verifyMultiProof = (mixedRoot, root, leafCount, indices, values, decommitm
   }
 };
 
-// TODO: implement
-const updateWithMultiProof = () => {}
+// TODO: create root update function taking mixedRoot, root, leafCount, indices, values, and proof as input
+const updateRootMultiProof = () => {}
 
 module.exports = {
-  buildTree,
   generateMultiProof,
   verifyMultiProof,
 };

@@ -3,7 +3,8 @@
 const chai = require('chai');
 const { expect } = chai;
 const { generateLeafs, generateRandomLeaf } = require('./helpers');
-const { buildTree, generateMultiProof, verifyMultiProof } = require('../src/multi-proof');
+const { buildTree } = require('../src/common');
+const { generateMultiProof, verifyMultiProof } = require('../src/multi-proof');
 const { buildTree: buildAppendableTree, generateAppendProof, appendLeaf } = require('../src/appendable-tree');
 
 describe('Multi-Proof Cases', () => {
