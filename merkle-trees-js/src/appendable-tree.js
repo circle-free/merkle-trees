@@ -1,18 +1,22 @@
 'use strict';
 
-// TODO: move buildTree with unbalanced option to common
-
-const { Keccak } = require('sha3');
 const assert = require('assert');
 const { to32ByteBuffer, bitCount32, hashNode } = require('./utils');
-const { getDepthFromLeafCount, verifyMixedRoot, getLeafCountFromRealLeafCount } = require('./common');
+const {
+  getDepthFromLeafCount,
+  verifyMixedRoot,
+  getLeafCountFromRealLeafCount,
+  computeMixedRoot,
+  getMixedRoot,
+  getRoot,
+} = require('./common');
 
 const generateAppendProofRecursivelyWith = (tree, leafCount, decommitments = []) => {
-  const depth = Math.ceil(Math.log2(leafCount));
+  const depth = getDepthFromLeafCount(leafCount);
 
   if (depth <= 1) return decommitments;
 
-  const newDecommitments = leafCount % 2 === 1 ? [tree[Math.pow(2, depth) + leafCount - 1]] : [];
+  const newDecommitments = leafCount & 1 ? [tree[Math.pow(2, depth) + leafCount - 1]] : [];
 
   return generateAppendProofRecursivelyWith(
     tree,
@@ -25,8 +29,8 @@ const generateAppendProofRecursively = (tree, realLeafCount) => {
   const decommitments = generateAppendProofRecursivelyWith(tree, realLeafCount);
 
   return {
-    mixedRoot: tree[0],
-    root: tree[1],
+    mixedRoot: getMixedRoot(tree),
+    root: getRoot(tree),
     realLeafCount,
     decommitments: decommitments.length === 0 ? [] : [2, ...decommitments],
   };
@@ -42,7 +46,7 @@ const generateAppendProofLoop = (tree, realLeafCount) => {
   // level. Note that when we move down a level, the offset doubles.
   const decommitments = [];
 
-  let numBranchesOnNodes = 1 << Math.ceil(Math.log2(realLeafCount));
+  let numBranchesOnNodes = getLeafCountFromRealLeafCount(realLeafCount);
   let appendIndex = realLeafCount;
   let level = 1;
   let offset = 0;
@@ -55,8 +59,8 @@ const generateAppendProofLoop = (tree, realLeafCount) => {
 
     if (numBranchesOnNodes === 0) {
       return {
-        mixedRoot: tree[0],
-        root: tree[1],
+        mixedRoot: getMixedRoot(tree),
+        root: getRoot(tree),
         realLeafCount,
         decommitments,
       };
@@ -64,7 +68,7 @@ const generateAppendProofLoop = (tree, realLeafCount) => {
 
     if (appendIndex >= numBranchesOnNodes) {
       // appendIndex is in the right subtree
-      decommitments.push(tree[Math.pow(2, level) + offset]);
+      decommitments.push(tree[(1 << level) + offset]);
       offset += 1;
     }
 
@@ -99,7 +103,7 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
   // Appending to an empty Merkle Tree is trivial
   if (!realLeafCount) {
     return {
-      mixedRoot: hashNode(to32ByteBuffer(1), value),
+      mixedRoot: computeMixedRoot(value, 1),
       root: value,
       realLeafCount: 1,
       leafCount: 1,
@@ -116,7 +120,7 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
     newRoot = hashNode(root, value);
 
     return {
-      mixedRoot: hashNode(to32ByteBuffer(realLeafCount + 1), newRoot),
+      mixedRoot: computeMixedRoot(newRoot, realLeafCount + 1),
       root: newRoot,
       realLeafCount: newRealLeafCount,
       leafCount: newLeafCount,
@@ -137,11 +141,10 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
     queue[i - 1] = hashNode(queue[i - 1], queue[i]);
 
     if (i === 1) {
-      // Must compare against mixed root, not root
-      assert(hashNode(to32ByteBuffer(realLeafCount), queue[0]).equals(mixedRoot), 'Invalid Decommitments');
+      assert(queue[0].equals(root), 'Invalid Decommitments');
 
       return {
-        mixedRoot: hashNode(to32ByteBuffer(realLeafCount + 1), newRoot),
+        mixedRoot: computeMixedRoot(newRoot, realLeafCount + 1),
         root: newRoot,
         realLeafCount: newRealLeafCount,
         leafCount: newLeafCount,

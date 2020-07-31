@@ -34,24 +34,39 @@ const getLeaf = (tree, index) => {
   return tree[leafCount + index];
 };
 
+const getLeafs = (tree, indices) => {
+  const leafCount = getLeafCountFromTree(tree);
+
+  return indices.map((index) => tree[leafCount + index]);
+};
+
 const getLeafCountFromTree = (tree) => {
   return tree.length >> 1;
 };
 
 const getRealLeafCountFromTree = (tree) => {
-  return tree.slice(tree.length >> 1, tree.length).reduce((count, leaf) => count + leaf, 0);
+  const leafCount = getLeafCountFromTree(tree);
+
+  // TODO: this will ne incorrect if there are holes in the unbalanced tree
+  return tree.slice(leafCount, tree.length).reduce((count, leaf) => count + leaf, 0);
 };
 
 const getLeafCountFromLeafs = (leafs) => {
-  return 1 << Math.ceil(Math.log2(leafs.length));
+  return 1 << getDepthFromLeafs(leafs);
 };
 
 const getLeafCountFromRealLeafCount = (leafCount) => {
-  return 1 << Math.ceil(Math.log2(leafCount));
+  return 1 << getDepthFromLeafCount(leafCount);
 };
 
-const verifyMixedRoot = (mixedRoot, root, leafCount) => {
-  return hashNode(to32ByteBuffer(leafCount), root).equals(mixedRoot);
+const computeMixedRoot = (root, realLeafCount, options = {}) => {
+  const { sortedHash = false } = options;
+  const hashPair = sortedHash ? sortHashNode : hashNode;
+  return hashPair(to32ByteBuffer(realLeafCount), root);
+};
+
+const verifyMixedRoot = (mixedRoot, root, leafCount, options = {}) => {
+  return computeMixedRoot(root, leafCount, options).equals(mixedRoot);
 };
 
 // NOTE: leafs must already be buffers, preferably 32 bytes
@@ -92,7 +107,7 @@ const buildTree = (leafs, options = {}) => {
 
   // Mix in leaf count to prevent second pre-image attack
   // This means the true Merkle Root is the Mixed Root at tree[0]
-  tree[0] = hashPair(to32ByteBuffer(realLeafCount), tree[1]);
+  tree[0] = computeMixedRoot(tree[1], realLeafCount);
 
   return {
     tree,
@@ -105,12 +120,14 @@ const buildTree = (leafs, options = {}) => {
 };
 
 const generateProof = (tree, index) => {
-  const leafCount = tree.length >> 1;
-
+  const leafCount = getLeafCountFromTree(tree);
   assert(index < leafCount, 'Leaf index does not exist.');
 
+  const mixedRoot = getMixedRoot(tree);
+  const root = getRoot(tree);
+
   if (leafCount === 1) {
-    return { mixedRoot: tree[0], root: tree[1], leafCount, index, value: tree[1], decommitments: [] };
+    return { mixedRoot, root, leafCount, index, value: tree[1], decommitments: [] };
   }
 
   const decommitments = [];
@@ -119,7 +136,7 @@ const generateProof = (tree, index) => {
     decommitments.unshift(i & 1 ? tree[i - 1] : tree[i + 1]);
   }
 
-  return { mixedRoot: tree[0], root: tree[1], leafCount, index, value: tree[leafCount + index], decommitments };
+  return { mixedRoot, root, leafCount, index, value: tree[leafCount + index], decommitments };
 };
 
 const verifyProof = (mixedRoot, root, leafCount, index, value, decommitments = [], options = {}) => {
@@ -147,10 +164,7 @@ const updateWithProof = (mixedRoot, root, leafCount, index, oldValue, newValue, 
   assert(verifyMixedRoot(mixedRoot, root, leafCount), 'Invalid root parameters.');
 
   if (leafCount === 1 && oldValue.equals(root)) {
-    return {
-      mixedRoot: hashNode(to32ByteBuffer(leafCount), newValue),
-      root: newValue,
-    };
+    return { mixedRoot: computeMixedRoot(newValue, leafCount), root: newValue };
   }
 
   let oldHash = oldValue;
@@ -164,10 +178,7 @@ const updateWithProof = (mixedRoot, root, leafCount, index, oldValue, newValue, 
 
   assert(oldHash.equals(root), 'Invalid proof.');
 
-  return {
-    mixedRoot: hashNode(to32ByteBuffer(leafCount), newHash),
-    root: newHash,
-  };
+  return { mixedRoot: computeMixedRoot(newHash, leafCount), root: newHash };
 };
 
 // NOTE: indices must be in order for max efficiency
@@ -205,7 +216,7 @@ const updateTree = (tree, indices, values, options = {}) => {
     }, []);
   }
 
-  tree[0] = hashNode(to32ByteBuffer(leafCount), tree[1]);
+  tree[0] = computeMixedRoot(tree[1], leafCount);
 
   return {
     tree,
@@ -230,6 +241,8 @@ module.exports = {
   getRoot,
   getMixedRoot,
   getLeaf,
+  getLeafs,
+  computeMixedRoot,
   verifyMixedRoot,
   getLeafCountFromTree,
   getRealLeafCountFromTree,

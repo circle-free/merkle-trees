@@ -1,12 +1,12 @@
 'use strict';
 
-// TODO: rename stuff to be consistent with project nomenclature
+// TODO: rename stuff (like proofs, leafs, elements) to be consistent with project nomenclature
 
 const assert = require('assert');
-const { hashNode, sortHashNode, to32ByteBuffer } = require('./utils');
-const { getDepthFromTree, verifyMixedRoot } = require('./common');
+const { sortHashNode } = require('./utils');
+const { getDepthFromTree, verifyMixedRoot, computeMixedRoot, getMixedRoot, getRoot } = require('./common');
 
-// Indices must be sorted in ascending order
+// Note: Indices must be sorted in ascending order
 const generateMultiProof = (tree, indices) => {
   let ids = indices.map((i) => i);
   const hashes = [];
@@ -51,8 +51,8 @@ const generateMultiProof = (tree, indices) => {
   }
 
   return {
-    mixedRoot: tree[0],
-    root: tree[1],
+    mixedRoot: getMixedRoot(tree),
+    root: getRoot(tree),
     leafCount: tree.length >> 1,
     values: indices.map((i) => tree[(1 << treeDepth) + i]),
     decommitments: proofs,
@@ -114,7 +114,7 @@ const updateRootMultiProof = (mixedRoot, root, leafCount, oldValues, newValues, 
   assert(oldHashes[totalHashes - 1].equals(root), 'Invalid proof.');
 
   return {
-    mixedRoot: hashNode(to32ByteBuffer(leafCount), newHashes[totalHashes - 1]),
+    mixedRoot: computeMixedRoot(newHashes[totalHashes - 1], leafCount),
     root: newHashes[totalHashes - 1],
   };
 };

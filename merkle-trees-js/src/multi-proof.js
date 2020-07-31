@@ -1,15 +1,22 @@
 'use strict';
 
 const assert = require('assert');
-const { hashNode, to32ByteBuffer } = require('./utils');
-const { getDepthFromTree, verifyMixedRoot, getLeafCountFromTree } = require('./common');
+const { hashNode } = require('./utils');
+const {
+  getDepthFromTree,
+  verifyMixedRoot,
+  getLeafCountFromTree,
+  getMixedRoot,
+  getRoot,
+  computeMixedRoot,
+} = require('./common');
 
 // NOTE: Assumes valid tree
 // NOTE: indices must be in descending order
 const generateMultiProof = (tree, indices) => {
   const depth = getDepthFromTree(tree);
   const leafCount = getLeafCountFromTree(tree);
-  const nodeCount = 2 * leafCount;
+  const nodeCount = leafCount << 1;
   const known = Array(nodeCount).fill(false);
   const values = [];
   const decommitments = [];
@@ -30,8 +37,8 @@ const generateMultiProof = (tree, indices) => {
   }
 
   return {
-    mixedRoot: tree[0],
-    root: tree[1],
+    mixedRoot: getMixedRoot(tree),
+    root: getRoot(tree),
     leafCount,
     indices,
     values,
@@ -89,7 +96,7 @@ const updateRootMultiProof = (mixedRoot, root, leafCount, indices, oldValues, ne
       // tree index 1, so check against the root
       assert(oldValue.equals(root), 'Invalid proof.');
 
-      return { mixedRoot: hashNode(to32ByteBuffer(leafCount), newValue), root: newValue };
+      return { mixedRoot: computeMixedRoot(newValue, leafCount), root: newValue };
     } else if ((index & 1) === 0) {
       // Even nodes hashed with decommitment on right
       oldQueue.push({ index: index >> 1, value: hashNode(oldValue, decommits.shift()) });
