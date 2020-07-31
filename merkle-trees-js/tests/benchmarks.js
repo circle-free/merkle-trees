@@ -3,9 +3,9 @@
 const chai = require('chai');
 const { expect } = chai;
 const { generateLeafs, generateRandomLeaf } = require('./helpers');
-const { buildTree } = require('../src/common');
+const { buildTree } = require('../src/merkle-tree');
 const { generateMultiProof, verifyMultiProof } = require('../src/multi-proof');
-const { generateAppendProof, appendLeaf } = require('../src/appendable-tree');
+const { generateAppendProof, appendLeaf } = require('../src/append-proof');
 
 describe('Some Samples and Benchmarking', () => {
   describe('Indexed Multi-Proof Cases', () => {

@@ -2,8 +2,8 @@
 
 const chai = require('chai');
 const { expect } = chai;
-const { buildTree } = require('../src/common');
-const { generateAppendProof, appendLeaf } = require('../src/appendable-tree');
+const { buildTree } = require('../src/merkle-tree');
+const { generateAppendProof, appendLeaf } = require('../src/append-proof');
 
 describe('Append-Tree', () => {
   const options = { unbalanced: true };

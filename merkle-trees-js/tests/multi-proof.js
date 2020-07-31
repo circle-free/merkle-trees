@@ -3,7 +3,7 @@
 const chai = require('chai');
 const { expect } = chai;
 const { generateLeafs, swap } = require('./helpers');
-const { buildTree } = require('../src/common');
+const { buildTree } = require('../src/merkle-tree');
 const { generateMultiProof, verifyMultiProof } = require('../src/multi-proof');
 
 describe('Multi-Proofs', () => {

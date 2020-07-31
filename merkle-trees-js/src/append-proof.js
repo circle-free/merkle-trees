@@ -10,7 +10,7 @@ const {
   getMixedRoot,
   getRoot,
   getRealLeafCountFromTree,
-} = require('./common');
+} = require('./merkle-tree');
 
 const generateAppendProofRecursivelyWith = (tree, leafCount, decommitments = []) => {
   const depth = getDepthFromLeafCount(leafCount);

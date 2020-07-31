@@ -9,7 +9,7 @@ const {
   getMixedRoot,
   getRoot,
   computeMixedRoot,
-} = require('./common');
+} = require('./merkle-tree');
 
 // Note: Indices must be sorted in ascending order
 const generateFlagMultiProof = (tree, indices) => {

@@ -3,7 +3,7 @@
 const chai = require('chai');
 const { expect } = chai;
 const { generateLeafs } = require('./helpers');
-const { buildTree, generateProof, verifyProof, updateTree, updateWithProof } = require('../src/common');
+const { buildTree, generateProof, verifyProof, updateTree, updateWithProof } = require('../src/merkle-tree');
 
 describe('Common Merkle-Tree', () => {
   describe('Build Merkle Tree', () => {
