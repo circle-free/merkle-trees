@@ -17,6 +17,10 @@ const getDepthFromLeafCount = (leafCount) => {
   return Math.ceil(Math.log2(leafCount));
 };
 
+const getLeafCountFromDepth = (depth) => {
+  return 1 << depth;
+};
+
 const getRoot = (tree) => {
   return tree[1];
 };
@@ -52,34 +56,49 @@ const verifyMixedRoot = (mixedRoot, root, leafCount) => {
 
 // NOTE: leafs must already be buffers, preferably 32 bytes
 const buildTree = (leafs, options = {}) => {
-  const { sortedHash = false } = options;
+  const { sortedHash = false, unbalanced = false } = options;
   const hashPair = sortedHash ? sortHashNode : hashNode;
 
-  const leafCount = leafs.length;
+  const realLeafCount = leafs.length;
   const depth = getDepthFromLeafs(leafs);
+  const leafCount = getLeafCountFromDepth(depth);
 
-  assert(leafCount === 1 << depth, `${leafCount} leafs will not produce a perfect Merkle Tree.`);
+  assert(unbalanced || realLeafCount === leafCount, 'Cannot create unbalanced tree by default');
 
   const nodeCount = 2 * leafCount;
   const tree = Array(nodeCount).fill(null);
 
-  for (let i = 0; i < leafCount; i++) {
+  for (let i = 0; i < realLeafCount; i++) {
+    // Unless explicit, do not allow a leaf to be null
+    // TODO: maybe we can. likely we could.
+    assert(leafs[i], 'Cannot holes between leafs.');
     tree[leafCount + i] = leafs[i];
   }
 
   for (let i = leafCount - 1; i > 0; i--) {
-    tree[i] = hashPair(tree[2 * i], tree[2 * i + 1]);
+    if (tree[2 * i] && tree[2 * i + 1]) {
+      // Only bother hashing if left and right are real leafs
+      tree[i] = hashPair(tree[2 * i], tree[2 * i + 1]);
+      continue;
+    }
+
+    if (tree[2 * i]) {
+      // NOTE: If a leaf is real, all leafs to the left are real
+      // Don't bother hashing (i.e. H(A,B)=A where B is 0)
+      tree[i] = tree[2 * i];
+      continue;
+    }
   }
 
   // Mix in leaf count to prevent second pre-image attack
   // This means the true Merkle Root is the Mixed Root at tree[0]
-  tree[0] = hashPair(to32ByteBuffer(leafCount), tree[1]);
+  tree[0] = hashPair(to32ByteBuffer(realLeafCount), tree[1]);
 
   return {
     tree,
     mixedRoot: tree[0],
     root: tree[1],
-    realLeafCount: leafCount,
+    realLeafCount,
     leafCount,
     depth,
   };
@@ -207,6 +226,7 @@ module.exports = {
   getDepthFromTree,
   getDepthFromLeafs,
   getDepthFromLeafCount,
+  getLeafCountFromDepth,
   getRoot,
   getMixedRoot,
   getLeaf,

@@ -2,7 +2,8 @@
 
 const chai = require('chai');
 const { expect } = chai;
-const { buildTree, generateAppendProof, appendLeaf } = require('../src/appendable-tree');
+const { buildTree } = require('../src/common');
+const { generateAppendProof, appendLeaf } = require('../src/appendable-tree');
 
 describe('Append-Tree', () => {
   describe('Build Appendable Merkle Tree', () => {
@@ -19,7 +20,7 @@ describe('Append-Tree', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs, { unbalanced: true });
 
       const expectedNodes = [
         '6bf98ce50fff09718e4801a2be1668fb47d70d065f7eef435c280e384d14d236',
@@ -62,7 +63,7 @@ describe('Append-Tree', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs, { unbalanced: true });
 
       const expectedNodes = [
         'ee313c2bba3814191d06acf5ce954c9a96ca757b6d071852c7a6ec64479d6e9d',
@@ -124,7 +125,7 @@ describe('Append-Tree', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = buildTree(leafs);
+      const treeObject = buildTree(leafs, { unbalanced: true });
       const { mixedRoot, root, realLeafCount, decommitments } = generateAppendProof(
         treeObject.tree,
         treeObject.realLeafCount
@@ -154,7 +155,7 @@ describe('Append-Tree', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const treeObject = buildTree(leafs);
+      const treeObject = buildTree(leafs, { unbalanced: true });
       const { mixedRoot, root, realLeafCount, decommitments } = generateAppendProof(
         treeObject.tree,
         treeObject.realLeafCount
@@ -189,7 +190,7 @@ describe('Append-Tree', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs, { unbalanced: true });
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000008', 'hex');
@@ -235,7 +236,7 @@ describe('Append-Tree', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs, { unbalanced: true });
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000010', 'hex');
@@ -281,7 +282,7 @@ describe('Append-Tree', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs, { unbalanced: true });
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000010', 'hex');
@@ -311,7 +312,7 @@ describe('Append-Tree', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs, { unbalanced: true });
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000010', 'hex');
@@ -341,7 +342,7 @@ describe('Append-Tree', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs, { unbalanced: true });
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000010', 'hex');
@@ -370,7 +371,7 @@ describe('Append-Tree', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs, { unbalanced: true });
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000010', 'hex');
@@ -401,7 +402,7 @@ describe('Append-Tree', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs);
+      const { tree, mixedRoot, root, realLeafCount, leafCount } = buildTree(leafs, { unbalanced: true });
       const { decommitments } = generateAppendProof(tree, realLeafCount);
 
       const newLeaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000010', 'hex');

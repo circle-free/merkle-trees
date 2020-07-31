@@ -1,14 +1,14 @@
 'use strict';
 
 const assert = require('assert');
-const { hashNode } = require('./utils');
-const { getDepthFromTree, verifyMixedRoot } = require('./common');
+const { hashNode, to32ByteBuffer } = require('./utils');
+const { getDepthFromTree, verifyMixedRoot, getLeafCountFromTree } = require('./common');
 
 // NOTE: Assumes valid tree
 // NOTE: indices must be in descending order
 const generateMultiProof = (tree, indices) => {
   const depth = getDepthFromTree(tree);
-  const leafCount = 1 << depth;
+  const leafCount = getLeafCountFromTree(tree);
   const nodeCount = 2 * leafCount;
   const known = Array(nodeCount).fill(false);
   const values = [];
@@ -16,17 +16,15 @@ const generateMultiProof = (tree, indices) => {
 
   for (let i = 0; i < indices.length; i++) {
     assert(i === 0 || indices[i - 1] > indices[i], 'indices must be in descending order');
-    known[(1 << depth) + indices[i]] = true;
-    values.push(tree[(1 << depth) + indices[i]]);
+    known[leafCount + indices[i]] = true;
+    values.push(tree[leafCount + indices[i]]);
   }
 
-  for (let i = (1 << depth) - 1; i > 0; i--) {
+  for (let i = leafCount - 1; i > 0; i--) {
     const left = known[2 * i];
     const right = known[2 * i + 1];
 
-    if (left && !right) decommitments.push(tree[2 * i + 1]);
-
-    if (right && !left) decommitments.push(tree[2 * i]);
+    if (left ^ right) decommitments.push(tree[2 * i + left]);
 
     known[i] = left || right;
   }
@@ -48,10 +46,7 @@ const verifyMultiProof = (mixedRoot, root, leafCount, indices, values, decommitm
   // Clone decommitments so we don't destroy/consume it (when when shift the array)
   const decommits = decommitments.map((decommitment) => decommitment);
 
-  const queue = [];
-  values.forEach((value, i) => {
-    queue.push({ index: leafCount + indices[i], value });
-  });
+  const queue = values.map((value, i) => ({ index: leafCount + indices[i], value }));
 
   while (true) {
     assert(queue.length >= 1, 'Something went wrong.');
@@ -59,34 +54,60 @@ const verifyMultiProof = (mixedRoot, root, leafCount, indices, values, decommitm
     const { index, value } = queue.shift();
 
     if (index === 1) {
-      // This Merkle root has tree index 1, so check against the root
+      // tree index 1, so check against the root
       return value.equals(root);
-    } else if (index % 2 === 0) {
-      // Merge even nodes with a decommitment hash on right
-      queue.push({
-        index: index >> 1,
-        value: hashNode(value, decommits.shift()),
-      });
+    } else if ((index & 1) === 0) {
+      // Even nodes hashed with decommitment on right
+      queue.push({ index: index >> 1, value: hashNode(value, decommits.shift()) });
     } else if (queue.length > 0 && queue[0].index === index - 1) {
-      // If relevant, merge odd nodes with their neighbor on left (from the scratch stack)
-      queue.push({
-        index: index >> 1,
-        value: hashNode(queue.shift().value, value),
-      });
+      // Odd nodes can ne hashed with neighbor on left (hash stack)
+      queue.push({ index: index >> 1, value: hashNode(queue.shift().value, value) });
     } else {
-      // Remaining odd nodes are merged with decommitment on the left
-      queue.push({
-        index: index >> 1,
-        value: hashNode(decommits.shift(), value),
-      });
+      // Remaining odd nodes hashed with decommitment on the left
+      queue.push({ index: index >> 1, value: hashNode(decommits.shift(), value) });
     }
   }
 };
 
-// TODO: create root update function taking mixedRoot, root, leafCount, indices, values, and proof as input
-const updateRootMultiProof = () => {};
+// TODO: test this function
+const updateRootMultiProof = (mixedRoot, root, leafCount, indices, oldValues, newValues, decommitments) => {
+  assert(verifyMixedRoot(mixedRoot, root, leafCount), 'Invalid root parameters');
+
+  // Clone decommitments so we don't destroy/consume it (when when shift the array)
+  const decommits = decommitments.map((decommitment) => decommitment);
+
+  const oldQueue = oldValues.map((value, i) => ({ index: leafCount + indices[i], value }));
+  const newQueue = newValues.map((value, i) => ({ index: leafCount + indices[i], value }));
+
+  while (true) {
+    assert(oldQueue.length >= 1, 'Something went wrong.');
+
+    const { index, value: oldValue } = oldQueue.shift();
+    const { value: newValue } = newQueue.shift();
+
+    if (index === 1) {
+      // tree index 1, so check against the root
+      assert(oldValue.equals(root), 'Invalid proof.');
+
+      return { mixedRoot: hashNode(to32ByteBuffer(leafCount), newValue), root: newValue };
+    } else if ((index & 1) === 0) {
+      // Even nodes hashed with decommitment on right
+      oldQueue.push({ index: index >> 1, value: hashNode(oldValue, decommits.shift()) });
+      newQueue.push({ index: index >> 1, value: hashNode(newValue, decommits.shift()) });
+    } else if (oldQueue.length > 0 && oldQueue[0].index === index - 1) {
+      // Odd nodes can ne hashed with neighbor on left (hash stack)
+      oldQueue.push({ index: index >> 1, value: hashNode(oldQueue.shift().value, oldValue) });
+      newQueue.push({ index: index >> 1, value: hashNode(newQueue.shift().value, newValue) });
+    } else {
+      // Remaining odd nodes hashed with decommitment on the left
+      oldQueue.push({ index: index >> 1, value: hashNode(decommits.shift(), oldValue) });
+      newQueue.push({ index: index >> 1, value: hashNode(decommits.shift(), newValue) });
+    }
+  }
+};
 
 module.exports = {
   generateMultiProof,
   verifyMultiProof,
+  updateRootMultiProof,
 };

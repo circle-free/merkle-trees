@@ -5,50 +5,7 @@
 const { Keccak } = require('sha3');
 const assert = require('assert');
 const { to32ByteBuffer, bitCount32, hashNode } = require('./utils');
-const {
-  getDepthFromLeafs,
-  getDepthFromLeafCount,
-  verifyMixedRoot,
-  getLeafCountFromRealLeafCount,
-} = require('./common');
-
-// TODO: consider using zero-filled buffers as 'nulls'
-const buildTree = (leafs) => {
-  const realLeafCount = leafs.length;
-  const depth = getDepthFromLeafs(leafs); // This will be an effective depth
-  const effectiveLeafs = leafs.concat(Array((1 << depth) - realLeafCount).fill(null));
-  const effectiveLeafCount = effectiveLeafs.length;
-  const nodeCount = 2 * effectiveLeafCount;
-  const tree = Array(nodeCount).fill(null);
-
-  for (let i = 0; i < effectiveLeafCount; i++) {
-    tree[(1 << depth) + i] = leafs[i] || null;
-  }
-
-  for (let i = (1 << depth) - 1; i > 0; i--) {
-    if (tree[2 * i] && tree[2 * i + 1]) {
-      // Only bother hashing if left and right are real leafs
-      tree[i] = hashNode(tree[2 * i], tree[2 * i + 1]);
-    } else if (tree[2 * i]) {
-      // NOTE: If a leaf is real, all leafs to the left are real
-      // Don't bother hashing (i.e. H(A,B)=A where B is 0)
-      tree[i] = tree[2 * i];
-    }
-  }
-
-  // Mix in real leaf count to prevent second pre-image attack
-  // This means the true Merkle Root is the Mixed Root at tree[0]
-  tree[0] = hashNode(to32ByteBuffer(realLeafCount), tree[1]);
-
-  return {
-    tree,
-    mixedRoot: tree[0],
-    root: tree[1],
-    realLeafCount,
-    leafCount: effectiveLeafCount,
-    depth,
-  };
-};
+const { getDepthFromLeafCount, verifyMixedRoot, getLeafCountFromRealLeafCount } = require('./common');
 
 const generateAppendProofRecursivelyWith = (tree, leafCount, decommitments = []) => {
   const depth = Math.ceil(Math.log2(leafCount));
@@ -206,7 +163,6 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
 const appendLeafs = (values, mixedRoot = null, root = null, realLeafCount = 0, decommitments = []) => {};
 
 module.exports = {
-  buildTree,
   generateAppendProof,
   appendLeaf,
 };

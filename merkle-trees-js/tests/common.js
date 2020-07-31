@@ -65,6 +65,9 @@ describe('Common Merkle-Tree', () => {
       expect(leafCount).to.equal(items.length);
       expect(depth).to.equal(0);
     });
+
+    // TODO: test with sortedHash option
+    // TODO: test with unbalanced option
   });
 
   describe('Generate Proof', () => {

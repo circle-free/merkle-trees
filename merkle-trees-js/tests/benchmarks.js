@@ -9,114 +9,62 @@ const {
   generateMultiProof: generateFlagMultiProof,
   verifyMultiProof: verifyFlagMultiProof,
 } = require('../src/flag-multi-proof');
-const { buildTree: buildAppendableTree, generateAppendProof, appendLeaf } = require('../src/appendable-tree');
+const { generateAppendProof, appendLeaf } = require('../src/appendable-tree');
 
-describe('Multi-Proof Cases', () => {
-  it('Multi-Proof for the first 12 sequential leafs, out of 512', () => {
-    const leafs = generateLeafs(512, { seed: Buffer.from('ff', 'hex') });
-    const { tree } = buildTree(leafs);
-    const indices = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
-    const { mixedRoot, root, leafCount, values, decommitments } = generateMultiProof(tree, indices);
-    const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indices, values, decommitments);
-    console.log(`      Multi-Proof for first 12/512 sequential leafs, contains ${decommitments.length} decommitments.`);
+describe('Some Samples and Benchmarking', () => {
+  describe('Multi-Proof Cases', () => {
+    it('Multi-Proof for the first 12 sequential leafs, out of 512', () => {
+      const leafs = generateLeafs(512, { seed: Buffer.from('ff', 'hex') });
+      const { tree } = buildTree(leafs);
+      const indices = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+      const { mixedRoot, root, leafCount, values, decommitments } = generateMultiProof(tree, indices);
+      const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indices, values, decommitments);
+      console.log(
+        `      Multi-Proof for first 12/512 sequential leafs, contains ${decommitments.length} decommitments.`
+      );
 
-    expect(proofValid).to.equal(true);
+      expect(proofValid).to.equal(true);
+    });
+
+    it('Multi-Proof for 12 arbitrary leafs, out of 512', () => {
+      const leafs = generateLeafs(512, { seed: Buffer.from('ff', 'hex') });
+      const { tree } = buildTree(leafs);
+      const indices = [485, 423, 362, 350, 230, 175, 125, 98, 83, 50, 32, 12];
+      const { mixedRoot, root, leafCount, values, decommitments } = generateMultiProof(tree, indices);
+      const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indices, values, decommitments);
+      console.log(`      Multi-Proof for 12/512 arbitrary leafs, contains ${decommitments.length} decommitments.`);
+
+      expect(proofValid).to.equal(true);
+    });
+
+    it('Multi-Proof for all 16 leafs, out of 16', () => {
+      const leafs = generateLeafs(16, { seed: Buffer.from('ff', 'hex') });
+      const { tree } = buildTree(leafs);
+      const indices = [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+      const { mixedRoot, root, leafCount, values, decommitments } = generateMultiProof(tree, indices);
+      const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indices, values, decommitments);
+      console.log(`      Multi-Proof for all 16/26 arbitrary leafs, contains ${decommitments.length} decommitments.`);
+
+      expect(proofValid).to.equal(true);
+    });
+
+    it('Multi-Proof for 6 arbitrary leafs, out of 4096', () => {
+      const leafs = generateLeafs(4096, { seed: Buffer.from('ff', 'hex') });
+      const { tree } = buildTree(leafs);
+      const indices = [4000, 3471, 2510, 1789, 922, 46];
+      const { mixedRoot, root, leafCount, values, decommitments } = generateMultiProof(tree, indices);
+      const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indices, values, decommitments);
+      console.log(`      Multi-Proof for 6/4096 arbitrary leafs, contains ${decommitments.length} decommitments.`);
+
+      expect(proofValid).to.equal(true);
+    });
   });
 
-  it('Multi-Proof for 12 arbitrary leafs, out of 512', () => {
-    const leafs = generateLeafs(512, { seed: Buffer.from('ff', 'hex') });
-    const { tree } = buildTree(leafs);
-    const indices = [485, 423, 362, 350, 230, 175, 125, 98, 83, 50, 32, 12];
-    const { mixedRoot, root, leafCount, values, decommitments } = generateMultiProof(tree, indices);
-    const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indices, values, decommitments);
-    console.log(`      Multi-Proof for 12/512 arbitrary leafs, contains ${decommitments.length} decommitments.`);
-
-    expect(proofValid).to.equal(true);
-  });
-
-  it('Multi-Proof for all 16 leafs, out of 16', () => {
-    const leafs = generateLeafs(16, { seed: Buffer.from('ff', 'hex') });
-    const { tree } = buildTree(leafs);
-    const indices = [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
-    const { mixedRoot, root, leafCount, values, decommitments } = generateMultiProof(tree, indices);
-    const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indices, values, decommitments);
-    console.log(`      Multi-Proof for all 16/26 arbitrary leafs, contains ${decommitments.length} decommitments.`);
-
-    expect(proofValid).to.equal(true);
-  });
-
-  it('Multi-Proof for 6 arbitrary leafs, out of 4096', () => {
-    const leafs = generateLeafs(4096, { seed: Buffer.from('ff', 'hex') });
-    const { tree } = buildTree(leafs);
-    const indices = [4000, 3471, 2510, 1789, 922, 46];
-    const { mixedRoot, root, leafCount, values, decommitments } = generateMultiProof(tree, indices);
-    const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indices, values, decommitments);
-    console.log(`      Multi-Proof for 6/4096 arbitrary leafs, contains ${decommitments.length} decommitments.`);
-
-    expect(proofValid).to.equal(true);
-  });
-});
-
-describe('Append-Proof Cases', () => {
-  it('Append-Proof for tree with 500 leafs', () => {
-    const leafs = generateLeafs(500, { seed: Buffer.from('ff', 'hex') });
-    const { tree } = buildAppendableTree(leafs);
-    const { mixedRoot, root, realLeafCount, decommitments } = generateAppendProof(tree, 500);
-    const { mixedRoot: newMixedRoot, root: newRoot, realLeafCount: newRealLeafCount } = appendLeaf(
-      generateRandomLeaf(),
-      mixedRoot,
-      root,
-      realLeafCount,
-      decommitments
-    );
-    console.log(`      Append-Proof for 500-leaf tree, contains ${decommitments.length} decommitments.`);
-
-    expect(newMixedRoot.equals(mixedRoot)).to.equal(false);
-    expect(newRoot.equals(root)).to.equal(false);
-    expect(newRealLeafCount).to.not.equal(realLeafCount);
-  });
-
-  it('Append-Proof for tree with 1000 leafs', () => {
-    const leafs = generateLeafs(1000, { seed: Buffer.from('ff', 'hex') });
-    const { tree } = buildAppendableTree(leafs);
-    const { mixedRoot, root, realLeafCount, decommitments } = generateAppendProof(tree, 1000);
-    const { mixedRoot: newMixedRoot, root: newRoot, realLeafCount: newRealLeafCount } = appendLeaf(
-      generateRandomLeaf(),
-      mixedRoot,
-      root,
-      realLeafCount,
-      decommitments
-    );
-    console.log(`      Append-Proof for 1000-leaf tree, contains ${decommitments.length} decommitments.`);
-
-    expect(newMixedRoot.equals(mixedRoot)).to.equal(false);
-    expect(newRoot.equals(root)).to.equal(false);
-    expect(newRealLeafCount).to.not.equal(realLeafCount);
-  });
-
-  it('Append-Proof for tree with 4000 leafs', () => {
-    const leafs = generateLeafs(4000, { seed: Buffer.from('ff', 'hex') });
-    const { tree } = buildAppendableTree(leafs);
-    const { mixedRoot, root, realLeafCount, decommitments } = generateAppendProof(tree, 4000);
-    const { mixedRoot: newMixedRoot, root: newRoot, realLeafCount: newRealLeafCount } = appendLeaf(
-      generateRandomLeaf(),
-      mixedRoot,
-      root,
-      realLeafCount,
-      decommitments
-    );
-    console.log(`      Append-Proof for 4000-leaf tree, contains ${decommitments.length} decommitments.`);
-
-    expect(newMixedRoot.equals(mixedRoot)).to.equal(false);
-    expect(newRoot.equals(root)).to.equal(false);
-    expect(newRealLeafCount).to.not.equal(realLeafCount);
-  });
-
-  for (let i = 8180; i <= 8192; i++) {
-    it(`Append-Proof for tree with ${i} leafs`, () => {
-      const leafs = generateLeafs(i, { seed: Buffer.from('ff', 'hex') });
-      const { tree } = buildAppendableTree(leafs);
-      const { mixedRoot, root, realLeafCount, decommitments } = generateAppendProof(tree, i);
+  describe('Append-Proof Cases', () => {
+    it('Append-Proof for tree with 500 leafs', () => {
+      const leafs = generateLeafs(500, { seed: Buffer.from('ff', 'hex') });
+      const { tree } = buildTree(leafs, { unbalanced: true });
+      const { mixedRoot, root, realLeafCount, decommitments } = generateAppendProof(tree, 500);
       const { mixedRoot: newMixedRoot, root: newRoot, realLeafCount: newRealLeafCount } = appendLeaf(
         generateRandomLeaf(),
         mixedRoot,
@@ -124,83 +72,139 @@ describe('Append-Proof Cases', () => {
         realLeafCount,
         decommitments
       );
-      console.log(`      Append-Proof for ${i}-leaf tree, contains ${decommitments.length} decommitments.`);
+      console.log(`      Append-Proof for 500-leaf tree, contains ${decommitments.length} decommitments.`);
 
       expect(newMixedRoot.equals(mixedRoot)).to.equal(false);
       expect(newRoot.equals(root)).to.equal(false);
       expect(newRealLeafCount).to.not.equal(realLeafCount);
     });
-  }
-});
 
-describe('Flag vs Index Multi-Proof', () => {
-  it('Some samples of 12 out of 512', () => {
-    const leafs = generateLeafs(512, { seed: Buffer.from('ff', 'hex') });
+    it('Append-Proof for tree with 1000 leafs', () => {
+      const leafs = generateLeafs(1000, { seed: Buffer.from('ff', 'hex') });
+      const { tree } = buildTree(leafs, { unbalanced: true });
+      const { mixedRoot, root, realLeafCount, decommitments } = generateAppendProof(tree, 1000);
+      const { mixedRoot: newMixedRoot, root: newRoot, realLeafCount: newRealLeafCount } = appendLeaf(
+        generateRandomLeaf(),
+        mixedRoot,
+        root,
+        realLeafCount,
+        decommitments
+      );
+      console.log(`      Append-Proof for 1000-leaf tree, contains ${decommitments.length} decommitments.`);
 
-    const { tree, depth } = buildTree(leafs);
-    const indicesDesc = [485, 423, 362, 350, 230, 175, 125, 98, 83, 50, 32, 12];
-    const { mixedRoot, root, leafCount, values, decommitments } = generateMultiProof(tree, indicesDesc);
-    const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indicesDesc, values, decommitments);
+      expect(newMixedRoot.equals(mixedRoot)).to.equal(false);
+      expect(newRoot.equals(root)).to.equal(false);
+      expect(newRealLeafCount).to.not.equal(realLeafCount);
+    });
 
-    // console.log(`"0x${root.toString('hex')}"`);
-    // console.log(depth);
-    // console.log(`[${indicesDesc.join(', ')}]`);
-    // console.log(`[${values.map(v => `"0x${v.toString('hex')}"`).join(', ')}]`);
-    // console.log(`[${decommitments.map(d => `"0x${d.toString('hex')}"`).join(', ')}]`);
+    it('Append-Proof for tree with 4000 leafs', () => {
+      const leafs = generateLeafs(4000, { seed: Buffer.from('ff', 'hex') });
+      const { tree } = buildTree(leafs, { unbalanced: true });
+      const { mixedRoot, root, realLeafCount, decommitments } = generateAppendProof(tree, 4000);
+      const { mixedRoot: newMixedRoot, root: newRoot, realLeafCount: newRealLeafCount } = appendLeaf(
+        generateRandomLeaf(),
+        mixedRoot,
+        root,
+        realLeafCount,
+        decommitments
+      );
+      console.log(`      Append-Proof for 4000-leaf tree, contains ${decommitments.length} decommitments.`);
 
-    expect(proofValid).to.equal(true);
+      expect(newMixedRoot.equals(mixedRoot)).to.equal(false);
+      expect(newRoot.equals(root)).to.equal(false);
+      expect(newRealLeafCount).to.not.equal(realLeafCount);
+    });
 
-    const { tree: newTree } = buildTree(leafs, { sortedHash: true });
-    const indicesAsc = indicesDesc.reverse();
-    const {
-      mixedRoot: newMixedRoot,
-      root: newRoot,
-      values: newValues,
-      decommitments: newDecommitments,
-      flags,
-    } = generateFlagMultiProof(newTree, indicesAsc);
-    const flagProofValid = verifyFlagMultiProof(newMixedRoot, newRoot, leafCount, newValues, newDecommitments, flags);
+    for (let i = 8180; i <= 8192; i++) {
+      it(`Append-Proof for tree with ${i} leafs`, () => {
+        const leafs = generateLeafs(i, { seed: Buffer.from('ff', 'hex') });
+        const { tree } = buildTree(leafs, { unbalanced: true });
+        const { mixedRoot, root, realLeafCount, decommitments } = generateAppendProof(tree, i);
+        const { mixedRoot: newMixedRoot, root: newRoot, realLeafCount: newRealLeafCount } = appendLeaf(
+          generateRandomLeaf(),
+          mixedRoot,
+          root,
+          realLeafCount,
+          decommitments
+        );
+        console.log(`      Append-Proof for ${i}-leaf tree, contains ${decommitments.length} decommitments.`);
 
-    expect(flagProofValid).to.equal(true);
-
-    // console.log(`"0x${newRoot.toString('hex')}"`);
-    // console.log(`[${newValues.map(v => `"0x${v.toString('hex')}"`).join(', ')}]`);
-    // console.log(`[${newDecommitments.map(d => `"0x${d.toString('hex')}"`).join(', ')}]`);
-    // console.log(`[${flags.join(', ')}]`);
+        expect(newMixedRoot.equals(mixedRoot)).to.equal(false);
+        expect(newRoot.equals(root)).to.equal(false);
+        expect(newRealLeafCount).to.not.equal(realLeafCount);
+      });
+    }
   });
 
-  it('Some samples of 6 out of 1024', () => {
-    const leafs = generateLeafs(1024, { seed: Buffer.from('ff', 'hex') });
+  describe('Flag vs Index Multi-Proof', () => {
+    it('Some samples of 12 out of 512', () => {
+      const leafs = generateLeafs(512, { seed: Buffer.from('ff', 'hex') });
 
-    const { tree, depth } = buildTree(leafs);
-    const indicesDesc = [100, 80, 50, 32, 11, 2];
-    const { mixedRoot, root, leafCount, values, decommitments } = generateMultiProof(tree, indicesDesc);
-    const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indicesDesc, values, decommitments);
+      const { tree, depth } = buildTree(leafs);
+      const indicesDesc = [485, 423, 362, 350, 230, 175, 125, 98, 83, 50, 32, 12];
+      const { mixedRoot, root, leafCount, values, decommitments } = generateMultiProof(tree, indicesDesc);
+      const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indicesDesc, values, decommitments);
 
-    // console.log(`"0x${root.toString('hex')}"`);
-    // console.log(depth);
-    // console.log(`[${indicesDesc.join(', ')}]`);
-    // console.log(`[${values.map(v => `"0x${v.toString('hex')}"`).join(', ')}]`);
-    // console.log(`[${decommitments.map(d => `"0x${d.toString('hex')}"`).join(', ')}]`);
+      // console.log(`"0x${root.toString('hex')}"`);
+      // console.log(depth);
+      // console.log(`[${indicesDesc.join(', ')}]`);
+      // console.log(`[${values.map(v => `"0x${v.toString('hex')}"`).join(', ')}]`);
+      // console.log(`[${decommitments.map(d => `"0x${d.toString('hex')}"`).join(', ')}]`);
 
-    expect(proofValid).to.equal(true);
+      expect(proofValid).to.equal(true);
 
-    const { tree: newTree } = buildTree(leafs, { sortedHash: true });
-    const indicesAsc = indicesDesc.reverse();
-    const {
-      mixedRoot: newMixedRoot,
-      root: newRoot,
-      values: newValues,
-      decommitments: newDecommitments,
-      flags,
-    } = generateFlagMultiProof(newTree, indicesAsc);
-    const flagProofValid = verifyFlagMultiProof(newMixedRoot, newRoot, leafCount, newValues, newDecommitments, flags);
+      const { tree: newTree } = buildTree(leafs, { sortedHash: true });
+      const indicesAsc = indicesDesc.reverse();
+      const {
+        mixedRoot: newMixedRoot,
+        root: newRoot,
+        values: newValues,
+        decommitments: newDecommitments,
+        flags,
+      } = generateFlagMultiProof(newTree, indicesAsc);
+      const flagProofValid = verifyFlagMultiProof(newMixedRoot, newRoot, leafCount, newValues, newDecommitments, flags);
 
-    expect(flagProofValid).to.equal(true);
+      expect(flagProofValid).to.equal(true);
 
-    // console.log(`"0x${newRoot.toString('hex')}"`);
-    // console.log(`[${newValues.map(v => `"0x${v.toString('hex')}"`).join(', ')}]`);
-    // console.log(`[${newDecommitments.map(d => `"0x${d.toString('hex')}"`).join(', ')}]`);
-    // console.log(`[${flags.join(', ')}]`);
+      // console.log(`"0x${newRoot.toString('hex')}"`);
+      // console.log(`[${newValues.map(v => `"0x${v.toString('hex')}"`).join(', ')}]`);
+      // console.log(`[${newDecommitments.map(d => `"0x${d.toString('hex')}"`).join(', ')}]`);
+      // console.log(`[${flags.join(', ')}]`);
+    });
+
+    it('Some samples of 6 out of 1024', () => {
+      const leafs = generateLeafs(1024, { seed: Buffer.from('ff', 'hex') });
+
+      const { tree, depth } = buildTree(leafs);
+      const indicesDesc = [100, 80, 50, 32, 11, 2];
+      const { mixedRoot, root, leafCount, values, decommitments } = generateMultiProof(tree, indicesDesc);
+      const proofValid = verifyMultiProof(mixedRoot, root, leafCount, indicesDesc, values, decommitments);
+
+      // console.log(`"0x${root.toString('hex')}"`);
+      // console.log(depth);
+      // console.log(`[${indicesDesc.join(', ')}]`);
+      // console.log(`[${values.map(v => `"0x${v.toString('hex')}"`).join(', ')}]`);
+      // console.log(`[${decommitments.map(d => `"0x${d.toString('hex')}"`).join(', ')}]`);
+
+      expect(proofValid).to.equal(true);
+
+      const { tree: newTree } = buildTree(leafs, { sortedHash: true });
+      const indicesAsc = indicesDesc.reverse();
+      const {
+        mixedRoot: newMixedRoot,
+        root: newRoot,
+        values: newValues,
+        decommitments: newDecommitments,
+        flags,
+      } = generateFlagMultiProof(newTree, indicesAsc);
+      const flagProofValid = verifyFlagMultiProof(newMixedRoot, newRoot, leafCount, newValues, newDecommitments, flags);
+
+      expect(flagProofValid).to.equal(true);
+
+      // console.log(`"0x${newRoot.toString('hex')}"`);
+      // console.log(`[${newValues.map(v => `"0x${v.toString('hex')}"`).join(', ')}]`);
+      // console.log(`[${newDecommitments.map(d => `"0x${d.toString('hex')}"`).join(', ')}]`);
+      // console.log(`[${flags.join(', ')}]`);
+    });
   });
 });
