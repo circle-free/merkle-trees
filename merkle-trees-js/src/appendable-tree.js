@@ -1,5 +1,7 @@
 'use strict';
 
+// TODO: move buildTree with unbalanced option to common
+
 const { Keccak } = require('sha3');
 const assert = require('assert');
 const { to32ByteBuffer, bitCount32, hashNode } = require('./utils');

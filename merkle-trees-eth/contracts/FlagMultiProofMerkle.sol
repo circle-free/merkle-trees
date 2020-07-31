@@ -10,11 +10,11 @@ contract FlagMultiProofMerkle {
     root = _root;
   }
 
-  function hash_pair(bytes32 a, bytes32 b) internal pure returns(bytes32){
+  function hash_pair(bytes32 a, bytes32 b) internal pure returns (bytes32){
     return a < b ? hash_node(a, b) : hash_node(b, a);
   }
 
-  function hash_node(bytes32 left, bytes32 right) internal pure returns(bytes32 hash) {
+  function hash_node(bytes32 left, bytes32 right) internal pure returns (bytes32 hash) {
     assembly {
       mstore(0x00, left)
       mstore(0x20, right)
