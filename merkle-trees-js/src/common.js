@@ -25,6 +25,11 @@ const getMixedRoot = (tree) => {
   return tree[0];
 };
 
+const getLeaf = (tree, index) => {
+  const leafCount = getLeafCountFromTree(tree);
+  return tree[leafCount + index];
+};
+
 const getLeafCountFromTree = (tree) => {
   return tree.length >> 1;
 };
@@ -192,6 +197,7 @@ module.exports = {
   getDepthFromLeafCount,
   getRoot,
   getMixedRoot,
+  getLeaf,
   verifyMixedRoot,
   getLeafCountFromTree,
   getRealLeafCountFromTree,

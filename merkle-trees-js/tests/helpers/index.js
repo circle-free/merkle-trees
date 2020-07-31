@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const xor = require('buffer-xor');
 const { hashNode, to32ByteBuffer } = require('../../src/utils');
 
 const generateRandomLeaf = () => {
@@ -14,14 +15,31 @@ const generateLeafs = (leafCount, options = {}) => {
 
   for (let i = 0; i < leafCount; i++) {
     leaf = random ? generateRandomLeaf() : seed ? hashNode(seed, leaf) : to32ByteBuffer(i);
-    seed = leaf;
+    seed = seed ? leaf : seed;
     leafs.push(leaf);
   }
 
   return leafs;
 };
 
+const shuffle = (array) => {
+  for (let i = array.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+
+  return array;
+};
+
+const swap = (array, i, j) => {
+  array[i] = xor(array[i], array[j]);
+  array[j] = xor(array[j], array[i]);
+  array[i] = xor(array[i], array[j]);
+};
+
 module.exports = {
   generateRandomLeaf,
   generateLeafs,
+  shuffle,
+  swap,
 };

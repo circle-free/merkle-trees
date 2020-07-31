@@ -20,15 +20,31 @@ const bitCount32 = (n) => {
   return (((m + (m >> 4)) & 0xf0f0f0f) * 0x1010101) >> 24;
 };
 
+// NOTE: arguments must already be buffer, preferably 32 bytes
+const hash = (buffer) => {
+  const hash = new Keccak(256);
+  return hash.update(buffer).digest();
+};
+
 // NOTE: arguments must already be buffers, preferably 32 bytes
 const hashNode = (leftHash, rightHash) => {
-  const hash = new Keccak(256);
-  return hash.update(Buffer.concat([leftHash, rightHash])).digest();
+  return hash(Buffer.concat([leftHash, rightHash]));
+};
+
+// NOTE: arguments must already be buffers, preferably 32 bytes
+const sortHashNode = (leftHash, rightHash) => {
+  if (!leftHash) return rightHash;
+
+  if (!rightHash) return leftHash;
+
+  return hash(Buffer.concat([leftHash, rightHash].sort(Buffer.compare)));
 };
 
 module.exports = {
   leftPad,
   to32ByteBuffer,
   bitCount32,
+  hash,
   hashNode,
+  sortHashNode,
 };
