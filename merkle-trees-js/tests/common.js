@@ -81,7 +81,8 @@ describe('Common Merkle-Tree', () => {
       ];
 
       const leafs = items.map((item) => Buffer.from(item, 'hex'));
-      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs, { unbalanced: true });
+      const options = { unbalanced: true };
+      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs, options);
 
       const expectedNodes = [
         'ee313c2bba3814191d06acf5ce954c9a96ca757b6d071852c7a6ec64479d6e9d',
@@ -136,8 +137,129 @@ describe('Common Merkle-Tree', () => {
       tree1.forEach((node, i) => expect(node.equals(tree2[i])).to.equal(true));
     });
 
-    // TODO: test with sortedHash option
-    // TODO: test with unbalanced option
+    it('should deterministically build a balanced sorted-hash Merkle Tree with 8 leafs.', () => {
+      const items = [
+        '0000000000000000000000000000000000000000000000000000000000000001',
+        '0000000000000000000000000000000000000000000000000000000000000002',
+        '0000000000000000000000000000000000000000000000000000000000000003',
+        '0000000000000000000000000000000000000000000000000000000000000004',
+        '0000000000000000000000000000000000000000000000000000000000000005',
+        '0000000000000000000000000000000000000000000000000000000000000006',
+        '0000000000000000000000000000000000000000000000000000000000000007',
+        '0000000000000000000000000000000000000000000000000000000000000008',
+      ];
+
+      const leafs = items.map((item) => Buffer.from(item, 'hex'));
+      const options = { sortedHash: true };
+      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs, options);
+
+      const expectedNodes = [
+        '767ab2360f4575b58ee1fe14242f2149ee9aa5e64ed38a20ac35b1c42b647c0d',
+        'ca06f8324669a77a3ef9a7bcf15421d7bb5618a79dbe5590117ba5f5a4e72bc1',
+        '0c48ddc2b8d6d066c52fc608d4d0254f418bea6cd8424fe95390ac87323f9c9f',
+        '027d4202008bf9d080d976936bdbedf33e9934bc0b1745fd5712497536a83bd9',
+        'e90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e0',
+        '2e174c10e159ea99b867ce3205125c24a42d128804e4070ed6fcc8cc98166aa0',
+        'bfd358e93f18da3ed276c3afdbdba00b8f0b6008a03476a6a86bd6320ee6938b',
+        '24cd397636bedc6cf9b490d0edd57c769c19b367fb7d5c2344ae1ddc7d21c144',
+        '0000000000000000000000000000000000000000000000000000000000000001',
+        '0000000000000000000000000000000000000000000000000000000000000002',
+        '0000000000000000000000000000000000000000000000000000000000000003',
+        '0000000000000000000000000000000000000000000000000000000000000004',
+        '0000000000000000000000000000000000000000000000000000000000000005',
+        '0000000000000000000000000000000000000000000000000000000000000006',
+        '0000000000000000000000000000000000000000000000000000000000000007',
+        '0000000000000000000000000000000000000000000000000000000000000008',
+      ];
+
+      tree.forEach((node, i) => expect(node.toString('hex')).to.equal(expectedNodes[i]));
+      expect(mixedRoot.toString('hex')).to.equal(expectedNodes[0]);
+      expect(root.toString('hex')).to.equal(expectedNodes[1]);
+      expect(realLeafCount).to.equal(items.length);
+      expect(leafCount).to.equal(items.length);
+      expect(depth).to.equal(3);
+    });
+
+    it('should deterministically build a balanced sorted-hash Merkle Tree with 1 leaf.', () => {
+      const items = ['0000000000000000000000000000000000000000000000000000000000000001'];
+      const leafs = items.map((item) => Buffer.from(item, 'hex'));
+      const options = { sortedHash: true };
+      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs, options);
+
+      const expectedNodes = [
+        'cc69885fda6bcc1a4ace058b4a62bf5e179ea78fd58a1ccd71c22cc9b688792f',
+        '0000000000000000000000000000000000000000000000000000000000000001',
+      ];
+
+      tree.forEach((node, i) => expect(node.toString('hex')).to.equal(expectedNodes[i]));
+      expect(mixedRoot.toString('hex')).to.equal(expectedNodes[0]);
+      expect(root.toString('hex')).to.equal(expectedNodes[1]);
+      expect(realLeafCount).to.equal(items.length);
+      expect(leafCount).to.equal(items.length);
+      expect(depth).to.equal(0);
+    });
+
+    it('should deterministically build an unbalanced sorted-hash Merkle Tree with 8 leafs.', () => {
+      const items = [
+        '0000000000000000000000000000000000000000000000000000000000000001',
+        '0000000000000000000000000000000000000000000000000000000000000002',
+        '0000000000000000000000000000000000000000000000000000000000000003',
+        '0000000000000000000000000000000000000000000000000000000000000004',
+        '0000000000000000000000000000000000000000000000000000000000000005',
+        '0000000000000000000000000000000000000000000000000000000000000006',
+        '0000000000000000000000000000000000000000000000000000000000000007',
+        '0000000000000000000000000000000000000000000000000000000000000008',
+        '0000000000000000000000000000000000000000000000000000000000000009',
+      ];
+
+      const leafs = items.map((item) => Buffer.from(item, 'hex'));
+      const options = { unbalanced: true, sortedHash: true };
+      const { tree, mixedRoot, root, realLeafCount, leafCount, depth } = buildTree(leafs, options);
+
+      const expectedNodes = [
+        '9f5f1560ba5533967ed4cfd17961ea392c4098fc5632f508a415cb224cf62732',
+        'eaa579846af71a39e8280f33a4528ccc7030237aa05632dc6f644e220da4fd16',
+        'ca06f8324669a77a3ef9a7bcf15421d7bb5618a79dbe5590117ba5f5a4e72bc1',
+        '0000000000000000000000000000000000000000000000000000000000000009',
+        '0c48ddc2b8d6d066c52fc608d4d0254f418bea6cd8424fe95390ac87323f9c9f',
+        '027d4202008bf9d080d976936bdbedf33e9934bc0b1745fd5712497536a83bd9',
+        '0000000000000000000000000000000000000000000000000000000000000009',
+        null,
+        'e90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e0',
+        '2e174c10e159ea99b867ce3205125c24a42d128804e4070ed6fcc8cc98166aa0',
+        'bfd358e93f18da3ed276c3afdbdba00b8f0b6008a03476a6a86bd6320ee6938b',
+        '24cd397636bedc6cf9b490d0edd57c769c19b367fb7d5c2344ae1ddc7d21c144',
+        '0000000000000000000000000000000000000000000000000000000000000009',
+        null,
+        null,
+        null,
+        '0000000000000000000000000000000000000000000000000000000000000001',
+        '0000000000000000000000000000000000000000000000000000000000000002',
+        '0000000000000000000000000000000000000000000000000000000000000003',
+        '0000000000000000000000000000000000000000000000000000000000000004',
+        '0000000000000000000000000000000000000000000000000000000000000005',
+        '0000000000000000000000000000000000000000000000000000000000000006',
+        '0000000000000000000000000000000000000000000000000000000000000007',
+        '0000000000000000000000000000000000000000000000000000000000000008',
+        '0000000000000000000000000000000000000000000000000000000000000009',
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ];
+
+      const expectedLeafCount = 1 << Math.ceil(Math.log2(items.length));
+
+      tree.forEach((node, i) => expect(node ? node.toString('hex') : node).to.equal(expectedNodes[i]));
+      expect(mixedRoot.toString('hex')).to.equal(expectedNodes[0]);
+      expect(root.toString('hex')).to.equal(expectedNodes[1]);
+      expect(realLeafCount).to.equal(items.length);
+      expect(leafCount).to.equal(expectedLeafCount);
+      expect(depth).to.equal(4);
+    });
   });
 
   describe('Generate Proof', () => {

@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { bitCount32, hashNode } = require('./utils');
+const { bitCount32, hashNode, sortHashNode } = require('./utils');
 const {
   getDepthFromLeafCount,
   verifyMixedRoot,
@@ -81,15 +81,18 @@ const generateAppendProofLoop = (tree) => {
 
 // Option available to use the recursive algorithm
 const generateAppendProof = (tree, options = {}) => {
-  const { recursively = false } = options;
-
-  return recursively ? generateAppendProofRecursively(tree) : generateAppendProofLoop(tree);
+  const { recursively = false, sortedHash = false } = options;
+  const generate = recursively ? generateAppendProofRecursively : generateAppendProofLoop;
+  return generate(tree);
 };
 
 // NOTE: appending to a null tree/root is effectively going to create one
 // NOTE: decommitments need to be ordered from left to right
-const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, decommitments = []) => {
-  // NOTE: The number of decommitments (from the left) needed to append to an imperfect tree
+const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, decommitments = [], options = {}) => {
+  const { sortedHash = false } = options;
+  const hashPair = sortedHash ? sortHashNode : hashNode;
+
+  // NOTE: The number of decommitments (from the left) needed to append to an unbalanced, appendable tree
   //       are equal to the number of set bits in the realLeafCount
   const bitCount = bitCount32(realLeafCount);
   assert(bitCount === 1 || bitCount === decommitments.length, 'Unexpected number of decommitments.');
@@ -112,9 +115,9 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
   let newRealLeafCount = realLeafCount + 1;
   let newLeafCount = getLeafCountFromRealLeafCount(newRealLeafCount);
 
-  // Appending to a perfect Merkle Tree is equally trivial
+  // Appending to a unbalanced, appendable Merkle Tree is equally trivial
   if ((realLeafCount & (realLeafCount - 1)) === 0) {
-    newRoot = hashNode(root, value);
+    newRoot = hashPair(root, value);
 
     return {
       mixedRoot: computeMixedRoot(newRoot, realLeafCount + 1),
@@ -131,11 +134,11 @@ const appendLeaf = (value, mixedRoot = null, root = null, realLeafCount = 0, dec
 
   // As we verify the proof, we'll build the new root in parallel, since the
   // verification loop will consume the queue/stack
-  newRoot = hashNode(queue[n], value);
+  newRoot = hashPair(queue[n], value);
 
   for (let i = n; i > 0; i--) {
-    newRoot = hashNode(queue[i - 1], newRoot);
-    queue[i - 1] = hashNode(queue[i - 1], queue[i]);
+    newRoot = hashPair(queue[i - 1], newRoot);
+    queue[i - 1] = hashPair(queue[i - 1], queue[i]);
 
     if (i === 1) {
       assert(queue[0].equals(root), 'Invalid Decommitments');

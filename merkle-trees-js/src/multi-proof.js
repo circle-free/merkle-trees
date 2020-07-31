@@ -14,14 +14,17 @@ const {
 // Note: Indices must be sorted in ascending order
 const generateFlagMultiProof = (tree, indices) => {
   let ids = indices.map((i) => i);
-  const hashes = [];
+  const values = [];
   const tested = [];
   const flags = [];
-  let proofs = [];
+  let decommitments = [];
   let nextIds = [];
   const treeDepth = getDepthFromTree(tree);
 
   for (let depth = treeDepth; depth > 0; depth--) {
+    // For each node we're interested in proving, add it to the list of values and
+    // add it's sibling/pair to list of decommitments. Push half the node's index
+    // to the list of next ids, for the next (higher) depth iteration
     for (let j = 0; j < ids.length; j++) {
       const id = ids[j];
       const nodeIndex = (1 << depth) + id;
@@ -29,28 +32,32 @@ const generateFlagMultiProof = (tree, indices) => {
       const pairIndex = nodeIndex + (id & 1 ? -1 : 1);
       const pairNode = tree[pairIndex];
 
-      hashes.push(node);
-      proofs.push(pairNode);
+      values.push(node);
+      decommitments.push(pairNode);
       nextIds.push(id >> 1);
     }
 
-    proofs = proofs.filter((value) => !hashes.includes(value));
+    // Filter out decommitments that are themselves being proved
+    decommitments = decommitments.filter((decommitment) => !values.includes(decommitment));
 
+    // For each node we're interested in proving, check if its sibling/pair is in the
+    // list of decommitments, and push the flag (proof NOT used) to the list of flags.
+    // Also, keep track of indices already tested (and its pairs), so we can skip over them.
     for (let j = 0; j < ids.length; j++) {
       const id = ids[j];
       const nodeIndex = (1 << depth) + id;
-      const node = tree[nodeIndex];
 
       if (tested.includes(nodeIndex)) continue;
 
       const pairIndex = nodeIndex + (id & 1 ? -1 : 1);
       const pairNode = tree[pairIndex];
-      const proofUsed = proofs.includes(pairNode);
+      const proofUsed = decommitments.includes(pairNode);
       flags.push(!proofUsed);
       tested.push(nodeIndex);
       tested.push(pairIndex);
     }
 
+    // Filter out duplicate ids (since 3 >> 1 and 4 >> 1 are redundant)
     ids = nextIds.filter((value, i) => nextIds.indexOf(value) === i);
     nextIds = [];
   }
@@ -60,25 +67,31 @@ const generateFlagMultiProof = (tree, indices) => {
     root: getRoot(tree),
     leafCount: tree.length >> 1,
     values: indices.map((i) => tree[(1 << treeDepth) + i]),
-    decommitments: proofs,
+    decommitments,
     flags,
   };
 };
 
-const verifyFlagMultiProof = (mixedRoot, root, leafCount, flags, values, proofs) => {
+const verifyFlagMultiProof = (mixedRoot, root, leafCount, flags, values, decommitments) => {
   if (!verifyMixedRoot(mixedRoot, root, leafCount)) return false;
 
   const totalValues = values.length;
   const totalHashes = flags.length;
   const hashes = new Array(totalHashes);
-  let leafPosition = 0;
-  let hashPosition = 0;
-  let proofPosition = 0;
+  let leafIndex = 0;
+  let hashIndex = 0;
+  let decommitmentIndex = 0;
 
   for (let i = 0; i < totalHashes; i++) {
-    const useValues = leafPosition < totalValues;
-    const left = flags[i] ? (useValues ? values[leafPosition++] : hashes[hashPosition++]) : proofs[proofPosition++];
-    const right = useValues ? values[leafPosition++] : hashes[hashPosition++];
+    const useValues = leafIndex < totalValues;
+
+    const left = flags[i]
+      ? useValues
+        ? values[leafIndex++]
+        : hashes[hashIndex++]
+      : decommitments[decommitmentIndex++];
+
+    const right = useValues ? values[leafIndex++] : hashes[hashIndex++];
     hashes[i] = sortHashNode(left, right);
   }
 
@@ -86,34 +99,36 @@ const verifyFlagMultiProof = (mixedRoot, root, leafCount, flags, values, proofs)
 };
 
 // TODO: test this function
-const updateRootWithFlagMultiProof = (mixedRoot, root, leafCount, flags, oldValues, newValues, proofs) => {
+const updateRootWithFlagMultiProof = (mixedRoot, root, leafCount, flags, oldValues, newValues, decommitments) => {
   assert(verifyMixedRoot(mixedRoot, root, leafCount), 'Invalid root parameters.');
 
   const totalValues = oldValues.length;
   const totalHashes = flags.length;
   const oldHashes = new Array(totalHashes);
   const newHashes = new Array(totalHashes);
-  let leafPosition = 0;
-  let hashPosition = 0;
-  let proofPosition = 0;
+  let leafIndex = 0;
+  let hashIndex = 0;
+  let decommitmentIndex = 0;
 
   for (let i = 0; i < totalHashes; i++) {
-    const useValues = leafPosition < totalValues;
+    const useValues = leafIndex < totalValues;
 
     const oldLeft = flags[i]
       ? useValues
-        ? oldValues[leafPosition++]
-        : oldHashes[hashPosition++]
-      : proofs[proofPosition++];
-    const oldRight = useValues ? oldValues[leafPosition++] : oldHashes[hashPosition++];
+        ? oldValues[leafIndex]
+        : oldHashes[hashIndex]
+      : decommitments[decommitmentIndex];
+
+    const oldRight = useValues ? oldValues[leafIndex] : oldHashes[hashIndex];
     oldHashes[i] = sortHashNode(oldLeft, oldRight);
 
     const newLeft = flags[i]
       ? useValues
-        ? newValues[leafPosition++]
-        : newHashes[hashPosition++]
-      : proofs[proofPosition++];
-    const newRight = useValues ? newValues[leafPosition++] : newHashes[hashPosition++];
+        ? newValues[leafIndex++]
+        : newHashes[hashIndex++]
+      : decommitments[decommitmentIndex++];
+
+    const newRight = useValues ? newValues[leafIndex++] : newHashes[hashIndex++];
     newHashes[i] = sortHashNode(newLeft, newRight);
   }
 

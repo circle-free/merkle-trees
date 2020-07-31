@@ -3,12 +3,12 @@
 const assert = require('assert');
 const { hashNode, to32ByteBuffer, sortHashNode, findLastIndex } = require('./utils');
 
-// NOTE: This is still valid since an imperfect Merkle Tree will still be serialized normally
+// NOTE: This is still valid since an unbalanced Merkle Tree will still be serialized normally
 const getDepthFromTree = (tree) => {
   return Math.log2(tree.length) - 1;
 };
 
-// NOTE: Given an imperfect Merkle Tree (leaf count is not power of 2)
+// NOTE: Given an unbalanced Merkle Tree (leaf count is not power of 2)
 const getDepthFromLeafs = (leafs) => {
   return Math.ceil(Math.log2(leafs.length));
 };
