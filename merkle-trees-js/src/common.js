@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { hashNode, to32ByteBuffer } = require('./utils');
+const { hashNode, to32ByteBuffer, sortHashNode } = require('./utils');
 
 // NOTE: This is still valid since an imperfect Merkle Tree will still be serialized normally
 const getDepthFromTree = (tree) => {
@@ -51,7 +51,10 @@ const verifyMixedRoot = (mixedRoot, root, leafCount) => {
 };
 
 // NOTE: leafs must already be buffers, preferably 32 bytes
-const buildTree = (leafs) => {
+const buildTree = (leafs, options = {}) => {
+  const { sortedHash = false } = options;
+  const hashPair = sortedHash ? sortHashNode : hashNode;
+
   const leafCount = leafs.length;
   const depth = getDepthFromLeafs(leafs);
 
@@ -65,12 +68,12 @@ const buildTree = (leafs) => {
   }
 
   for (let i = leafCount - 1; i > 0; i--) {
-    tree[i] = hashNode(tree[2 * i], tree[2 * i + 1]);
+    tree[i] = hashPair(tree[2 * i], tree[2 * i + 1]);
   }
 
   // Mix in leaf count to prevent second pre-image attack
   // This means the true Merkle Root is the Mixed Root at tree[0]
-  tree[0] = hashNode(to32ByteBuffer(leafCount), tree[1]);
+  tree[0] = hashPair(to32ByteBuffer(leafCount), tree[1]);
 
   return {
     tree,
@@ -100,7 +103,10 @@ const generateProof = (tree, index) => {
   return { mixedRoot: tree[0], root: tree[1], leafCount, index, value: tree[leafCount + index], decommitments };
 };
 
-const verifyProof = (mixedRoot, root, leafCount, index, value, decommitments = []) => {
+const verifyProof = (mixedRoot, root, leafCount, index, value, decommitments = [], options = {}) => {
+  const { sortedHash = false } = options;
+  const hashPair = sortedHash ? sortHashNode : hashNode;
+
   if (!verifyMixedRoot(mixedRoot, root, leafCount)) return false;
 
   if (leafCount === 1 && value.equals(root)) return true;
@@ -108,14 +114,17 @@ const verifyProof = (mixedRoot, root, leafCount, index, value, decommitments = [
   let hash = value;
 
   for (let i = decommitments.length - 1; i >= 0; i--) {
-    hash = index & 1 ? hashNode(decommitments[i], hash) : hashNode(hash, decommitments[i]);
+    hash = index & 1 ? hashPair(decommitments[i], hash) : hashPair(hash, decommitments[i]);
     index >>= 1; // integer divide index by 2
   }
 
   return hash.equals(root);
 };
 
-const updateWithProof = (mixedRoot, root, leafCount, index, oldValue, newValue, decommitments = []) => {
+const updateWithProof = (mixedRoot, root, leafCount, index, oldValue, newValue, decommitments = [], options = {}) => {
+  const { sortedHash = false } = options;
+  const hashPair = sortedHash ? sortHashNode : hashNode;
+
   assert(verifyMixedRoot(mixedRoot, root, leafCount), 'Invalid root parameters.');
 
   if (leafCount === 1 && oldValue.equals(root)) {
@@ -129,8 +138,8 @@ const updateWithProof = (mixedRoot, root, leafCount, index, oldValue, newValue, 
   let newHash = newValue;
 
   for (let i = decommitments.length - 1; i >= 0; i--) {
-    oldHash = index & 1 ? hashNode(decommitments[i], oldHash) : hashNode(oldHash, decommitments[i]);
-    newHash = index & 1 ? hashNode(decommitments[i], newHash) : hashNode(newHash, decommitments[i]);
+    oldHash = index & 1 ? hashPair(decommitments[i], oldHash) : hashPair(oldHash, decommitments[i]);
+    newHash = index & 1 ? hashPair(decommitments[i], newHash) : hashPair(newHash, decommitments[i]);
     index >>= 1; // integer divide index by 2
   }
 
@@ -143,7 +152,10 @@ const updateWithProof = (mixedRoot, root, leafCount, index, oldValue, newValue, 
 };
 
 // NOTE: indices must be in order for max efficiency
-const updateTree = (tree, indices, values) => {
+const updateTree = (tree, indices, values, options = {}) => {
+  const { sortedHash = false } = options;
+  const hashPair = sortedHash ? sortHashNode : hashNode;
+
   assert(indices.length > 0 && values.length > 0 && indices.length === values.length, 'Invalid indices or values.');
   // TODO: check that largest index is within bounds
 
@@ -163,7 +175,7 @@ const updateTree = (tree, indices, values) => {
 
   while (nodeUpdateIndices.length) {
     nodeUpdateIndices = nodeUpdateIndices.reduce((nodeIndices, treeIndex) => {
-      tree[treeIndex] = hashNode(tree[2 * treeIndex], tree[2 * treeIndex + 1]);
+      tree[treeIndex] = hashPair(tree[2 * treeIndex], tree[2 * treeIndex + 1]);
       const nodeIndex = treeIndex >> 1;
       const length = nodeIndices.length;
 

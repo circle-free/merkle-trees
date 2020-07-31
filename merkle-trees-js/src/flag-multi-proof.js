@@ -3,40 +3,8 @@
 // TODO: rename stuff to be consistent with project nomenclature
 
 const assert = require('assert');
-const { sortHashNode, to32ByteBuffer } = require('./utils');
-const { getDepthFromTree, getDepthFromLeafs, verifyMixedRoot } = require('./common');
-
-// NOTE: leafs must already be buffers, preferably 32 bytes
-const buildTree = (leafs) => {
-  const leafCount = leafs.length;
-  const depth = getDepthFromLeafs(leafs);
-
-  assert(leafCount === 1 << depth, `${leafCount} leafs will not produce a perfect Merkle Tree.`);
-
-  const nodeCount = 2 * leafCount;
-  const tree = Array(nodeCount).fill(null);
-
-  for (let i = 0; i < leafCount; i++) {
-    tree[leafCount + i] = leafs[i];
-  }
-
-  for (let i = leafCount - 1; i > 0; i--) {
-    tree[i] = sortHashNode(tree[2 * i], tree[2 * i + 1]);
-  }
-
-  // Mix in leaf count to prevent second pre-image attack
-  // This means the true Merkle Root is the Mixed Root at tree[0]
-  tree[0] = sortHashNode(to32ByteBuffer(leafCount), tree[1]);
-
-  return {
-    tree,
-    mixedRoot: tree[0],
-    root: tree[1],
-    realLeafCount: leafCount,
-    leafCount,
-    depth,
-  };
-};
+const { hashNode, sortHashNode, to32ByteBuffer } = require('./utils');
+const { getDepthFromTree, verifyMixedRoot } = require('./common');
 
 // Indices must be sorted in ascending order
 const generateMultiProof = (tree, indices) => {
@@ -152,7 +120,6 @@ const updateRootMultiProof = (mixedRoot, root, leafCount, oldValues, newValues, 
 };
 
 module.exports = {
-  buildTree,
   generateMultiProof,
   verifyMultiProof,
   updateRootMultiProof,
