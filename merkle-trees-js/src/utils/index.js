@@ -40,6 +40,16 @@ const sortHashNode = (leftHash, rightHash) => {
   return hash(Buffer.concat([leftHash, rightHash].sort(Buffer.compare)));
 };
 
+const findLastIndex = (array, predicate) => {
+  let i = array.length;
+
+  while (i--) {
+    if (predicate(array[i], i, array)) return i;
+  }
+
+  return -1;
+};
+
 module.exports = {
   leftPad,
   to32ByteBuffer,
@@ -47,4 +57,5 @@ module.exports = {
   hash,
   hashNode,
   sortHashNode,
+  findLastIndex,
 };

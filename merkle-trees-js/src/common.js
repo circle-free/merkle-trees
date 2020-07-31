@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { hashNode, to32ByteBuffer, sortHashNode } = require('./utils');
+const { hashNode, to32ByteBuffer, sortHashNode, findLastIndex } = require('./utils');
 
 // NOTE: This is still valid since an imperfect Merkle Tree will still be serialized normally
 const getDepthFromTree = (tree) => {
@@ -45,10 +45,7 @@ const getLeafCountFromTree = (tree) => {
 };
 
 const getRealLeafCountFromTree = (tree) => {
-  const leafCount = getLeafCountFromTree(tree);
-
-  // TODO: this will ne incorrect if there are holes in the unbalanced tree
-  return tree.slice(leafCount, tree.length).reduce((count, leaf) => count + leaf, 0);
+  return findLastIndex(tree.slice(getLeafCountFromTree(tree), tree.length), (v) => v) + 1;
 };
 
 const getLeafCountFromLeafs = (leafs) => {

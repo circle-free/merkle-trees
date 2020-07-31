@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { to32ByteBuffer, bitCount32, hashNode } = require('./utils');
+const { bitCount32, hashNode } = require('./utils');
 const {
   getDepthFromLeafCount,
   verifyMixedRoot,
@@ -9,6 +9,7 @@ const {
   computeMixedRoot,
   getMixedRoot,
   getRoot,
+  getRealLeafCountFromTree,
 } = require('./common');
 
 const generateAppendProofRecursivelyWith = (tree, leafCount, decommitments = []) => {
@@ -25,18 +26,19 @@ const generateAppendProofRecursivelyWith = (tree, leafCount, decommitments = [])
   );
 };
 
-const generateAppendProofRecursively = (tree, realLeafCount) => {
+const generateAppendProofRecursively = (tree) => {
+  const realLeafCount = getRealLeafCountFromTree(tree);
   const decommitments = generateAppendProofRecursivelyWith(tree, realLeafCount);
 
   return {
     mixedRoot: getMixedRoot(tree),
     root: getRoot(tree),
     realLeafCount,
-    decommitments: decommitments.length === 0 ? [] : [2, ...decommitments],
+    decommitments: decommitments.length === 0 ? [] : [tree[2], ...decommitments],
   };
 };
 
-const generateAppendProofLoop = (tree, realLeafCount) => {
+const generateAppendProofLoop = (tree) => {
   // The idea here is that we only need nodes/proof from the left of the append index
   // since there are no real nodes/leafs to the right of the append index
   // (i.e. a lone rightmost 9th leafs is its parent, grandparent, and great grandparent)
@@ -44,6 +46,7 @@ const generateAppendProofLoop = (tree, realLeafCount) => {
   // If it is on the right (hint, at level 1 it always is, by definition) then we pull in the
   // left subtrees hash, track the offset in the serialized tree structure, and move down a
   // level. Note that when we move down a level, the offset doubles.
+  const realLeafCount = getRealLeafCountFromTree(tree);
   const decommitments = [];
 
   let numBranchesOnNodes = getLeafCountFromRealLeafCount(realLeafCount);
@@ -77,17 +80,11 @@ const generateAppendProofLoop = (tree, realLeafCount) => {
 };
 
 // Option available to use the recursive algorithm
-const generateAppendProof = (tree, realLeafCount, options = {}) => {
+const generateAppendProof = (tree, options = {}) => {
   const { recursively = false } = options;
 
-  return recursively
-    ? generateAppendProofRecursively(tree, realLeafCount)
-    : generateAppendProofLoop(tree, realLeafCount);
+  return recursively ? generateAppendProofRecursively(tree) : generateAppendProofLoop(tree);
 };
-
-// TODO: test if this needs to be unique
-// NOTE: indices must be in descending order
-const verifyMultiProof = (root, depth, indices, values, decommitments) => {};
 
 // NOTE: appending to a null tree/root is effectively going to create one
 // NOTE: decommitments need to be ordered from left to right
