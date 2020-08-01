@@ -1,7 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const xor = require('buffer-xor');
+const { xor } = require('bitwise-buffer');
 const { hashNode, to32ByteBuffer } = require('../../src/utils');
 
 const generateRandomLeaf = () => {

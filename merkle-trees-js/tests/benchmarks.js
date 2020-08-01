@@ -196,6 +196,8 @@ describe('Some Samples and Benchmarking', () => {
         values: newValues,
         decommitments: newDecommitments,
         flags,
+        hexFlags,
+        flagCount,
       } = generateMultiProof(newTree, indicesAsc);
       const flagProofValid = verifyMultiProof(newMixedRoot, newRoot, leafCount, flags, newValues, newDecommitments);
 
@@ -205,6 +207,8 @@ describe('Some Samples and Benchmarking', () => {
       // console.log(`[${newValues.map(v => `"0x${v.toString('hex')}"`).join(', ')}]`);
       // console.log(`[${newDecommitments.map(d => `"0x${d.toString('hex')}"`).join(', ')}]`);
       // console.log(`[${flags.join(', ')}]`);
+      // console.log(`"0x${hexFlags.toString(('hex'))}"`);
+      // console.log(flagCount);
     });
   });
 });

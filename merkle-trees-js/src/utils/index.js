@@ -50,9 +50,19 @@ const findLastIndex = (array, predicate) => {
   return -1;
 };
 
+const to32ByteBoolBuffer = (booleans) => {
+  return booleans.length < 257
+    ? booleans.reduce(
+        (booleanBuffer, bool, i) => or(booleanBuffer, leftShift(to32ByteBuffer(bool ? '1' : '0'), i)),
+        Buffer.alloc(32)
+      )
+    : null;
+};
+
 module.exports = {
   leftPad,
   to32ByteBuffer,
+  to32ByteBoolBuffer,
   bitCount32,
   hash,
   hashNode,

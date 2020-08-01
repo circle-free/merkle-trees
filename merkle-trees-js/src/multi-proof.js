@@ -1,7 +1,8 @@
 'use strict';
 
 const assert = require('assert');
-const { hashNode, sortHashNode } = require('./utils');
+const { hashNode, sortHashNode, to32ByteBuffer, to32ByteBoolBuffer } = require('./utils');
+const { leftShift, rightShift, or, and } = require('bitwise-buffer');
 const {
   getDepthFromTree,
   verifyMixedRoot,
@@ -9,36 +10,44 @@ const {
   getMixedRoot,
   getRoot,
   computeMixedRoot,
+  getRealLeafCountFromTree,
 } = require('./merkle-tree');
 
 // Note: Indices must be sorted in ascending order
-const generateFlagMultiProof = (tree, indices) => {
+const generateFlagMultiProof = (tree, indices, options = {}) => {
+  const { unbalanced = false } = options;
+
+  const realLeafCount = getRealLeafCountFromTree(tree);
+  assert(indices.every((i) => i < realLeafCount));
+
   let ids = indices.map((i) => i);
   const values = [];
   const tested = [];
   const flags = [];
-  let decommitments = [];
+  const skips = [];
+  let decommitmentIndices = [];
   let nextIds = [];
   const treeDepth = getDepthFromTree(tree);
 
   for (let depth = treeDepth; depth > 0; depth--) {
     // For each node we're interested in proving, add it to the list of values and
-    // add it's sibling/pair to list of decommitments. Push half the node's index
-    // to the list of next ids, for the next (higher) depth iteration
+    // add it's sibling/pair to list of decommitments. Push half the node's level
+    // index to the list of next ids, for the next (higher) depth iteration
     for (let j = 0; j < ids.length; j++) {
       const id = ids[j];
       const nodeIndex = (1 << depth) + id;
-      const node = tree[nodeIndex];
       const pairIndex = nodeIndex + (id & 1 ? -1 : 1);
       const pairNode = tree[pairIndex];
 
-      values.push(node);
-      decommitments.push(pairNode);
+      assert(unbalanced || pairNode, 'Cannot create proof for unbalanced tree by default');
+
+      values.push(nodeIndex);
+      decommitmentIndices.push(pairIndex);
       nextIds.push(id >> 1);
     }
 
     // Filter out decommitments that are themselves being proved
-    decommitments = decommitments.filter((decommitment) => !values.includes(decommitment));
+    decommitmentIndices = decommitmentIndices.filter((decommitment) => !values.includes(decommitment));
 
     // For each node we're interested in proving, check if its sibling/pair is in the
     // list of decommitments, and push the flag (proof NOT used) to the list of flags.
@@ -50,9 +59,9 @@ const generateFlagMultiProof = (tree, indices) => {
       if (tested.includes(nodeIndex)) continue;
 
       const pairIndex = nodeIndex + (id & 1 ? -1 : 1);
-      const pairNode = tree[pairIndex];
-      const proofUsed = decommitments.includes(pairNode);
+      const proofUsed = decommitmentIndices.includes(pairIndex);
       flags.push(!proofUsed);
+      skips.push(!tree[pairIndex]);
       tested.push(nodeIndex);
       tested.push(pairIndex);
     }
@@ -65,37 +74,93 @@ const generateFlagMultiProof = (tree, indices) => {
   return {
     mixedRoot: getMixedRoot(tree),
     root: getRoot(tree),
-    leafCount: tree.length >> 1,
+    leafCount: realLeafCount,
     values: indices.map((i) => tree[(1 << treeDepth) + i]),
-    decommitments,
+    decommitments: decommitmentIndices.map((di) => tree[di]).filter((d) => d),
     flags,
+    hexFlags: to32ByteBoolBuffer(flags),
+    flagCount: flags.length,
+    skips,
+    hexSkips: to32ByteBoolBuffer(skips),
   };
 };
 
-const verifyFlagMultiProof = (mixedRoot, root, leafCount, flags, values, decommitments) => {
+const verifyFlagMultiProof = (mixedRoot, root, leafCount, flags, values, decommitments, skips) => {
   if (!verifyMixedRoot(mixedRoot, root, leafCount)) return false;
 
+  // Keep verification minimal by using circular hashes queue with separate read and write heads
+  const totalFlags = flags.length;
   const totalValues = values.length;
-  const totalHashes = flags.length;
-  const hashes = new Array(totalHashes);
-  let leafIndex = 0;
-  let hashIndex = 0;
+  const hashes = new Array(totalValues);
+  let valueIndex = 0;
+  let hashReadIndex = 0;
+  let hashWriteIndex = 0;
   let decommitmentIndex = 0;
 
-  for (let i = 0; i < totalHashes; i++) {
-    const useValues = leafIndex < totalValues;
+  for (let i = 0; i < totalFlags; i++) {
+    hashReadIndex %= totalValues;
+    hashWriteIndex %= totalValues;
+
+    const useValues = valueIndex < totalValues;
+
+    if (skips && skips[i]) {
+      hashes[hashWriteIndex++] = useValues ? values[valueIndex++] : hashes[hashReadIndex++];
+      continue;
+    }
 
     const left = flags[i]
       ? useValues
-        ? values[leafIndex++]
-        : hashes[hashIndex++]
+        ? values[valueIndex++]
+        : hashes[hashReadIndex++]
       : decommitments[decommitmentIndex++];
 
-    const right = useValues ? values[leafIndex++] : hashes[hashIndex++];
-    hashes[i] = sortHashNode(left, right);
+    hashReadIndex %= totalValues;
+    const right = useValues ? values[valueIndex++] : hashes[hashReadIndex++];
+    hashes[hashWriteIndex++] = sortHashNode(left, right);
   }
 
-  return hashes[totalHashes - 1].equals(root);
+  return hashes[(hashWriteIndex === 0 ? totalValues : hashWriteIndex) - 1].equals(root);
+};
+
+// TODO: expose one args become objects
+const verifyHexFlagMultiProof = (mixedRoot, root, leafCount, values, totalFlags, hexFlags, decommitments, hexSkips) => {
+  if (!verifyMixedRoot(mixedRoot, root, leafCount)) return false;
+
+  // Keep verification minimal by using circular hashes queue with separate read and write heads
+  const totalValues = values.length;
+  const hashes = new Array(totalValues);
+  let valueIndex = 0;
+  let hashReadIndex = 0;
+  let hashWriteIndex = 0;
+  let decommitmentIndex = 0;
+  const oneBuffer = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
+
+  for (let i = 0; i < totalFlags; i++) {
+    hashReadIndex %= totalValues;
+    hashWriteIndex %= totalValues;
+
+    const useValues = valueIndex < totalValues;
+    const skip = skips && and(rightShift(hexSkips, i), oneBuffer).equals(oneBuffer);
+
+    if (skip) {
+      hashes[hashWriteIndex++] = useValues ? values[valueIndex++] : hashes[hashReadIndex++];
+      continue;
+    }
+
+    const flag = and(rightShift(hexFlags, i), oneBuffer).equals(oneBuffer);
+
+    const left = flag
+      ? useValues
+        ? values[valueIndex++]
+        : hashes[hashReadIndex++]
+      : decommitments[decommitmentIndex++];
+
+    hashReadIndex %= totalValues;
+    const right = useValues ? values[valueIndex++] : hashes[hashReadIndex++];
+    hashes[hashWriteIndex++] = sortHashNode(left, right);
+  }
+
+  return hashes[(hashWriteIndex === 0 ? totalValues : hashWriteIndex) - 1].equals(root);
 };
 
 // TODO: test this function
@@ -106,29 +171,29 @@ const updateRootWithFlagMultiProof = (mixedRoot, root, leafCount, flags, oldValu
   const totalHashes = flags.length;
   const oldHashes = new Array(totalHashes);
   const newHashes = new Array(totalHashes);
-  let leafIndex = 0;
+  let valueIndex = 0;
   let hashIndex = 0;
   let decommitmentIndex = 0;
 
   for (let i = 0; i < totalHashes; i++) {
-    const useValues = leafIndex < totalValues;
+    const useValues = valueIndex < totalValues;
 
     const oldLeft = flags[i]
       ? useValues
-        ? oldValues[leafIndex]
+        ? oldValues[valueIndex]
         : oldHashes[hashIndex]
       : decommitments[decommitmentIndex];
 
-    const oldRight = useValues ? oldValues[leafIndex] : oldHashes[hashIndex];
+    const oldRight = useValues ? oldValues[valueIndex] : oldHashes[hashIndex];
     oldHashes[i] = sortHashNode(oldLeft, oldRight);
 
     const newLeft = flags[i]
       ? useValues
-        ? newValues[leafIndex++]
+        ? newValues[valueIndex++]
         : newHashes[hashIndex++]
       : decommitments[decommitmentIndex++];
 
-    const newRight = useValues ? newValues[leafIndex++] : newHashes[hashIndex++];
+    const newRight = useValues ? newValues[valueIndex++] : newHashes[hashIndex++];
     newHashes[i] = sortHashNode(newLeft, newRight);
   }
 
@@ -243,9 +308,9 @@ const updateRootWithIndexedMultiProof = (mixedRoot, root, leafCount, indices, ol
 };
 
 const generateMultiProof = (tree, indices, options = {}) => {
-  const { indexed = false } = options;
+  const { indexed = false, unbalanced = false } = options;
   const generate = indexed ? generateIndexedMultiProof : generateFlagMultiProof;
-  return generate(tree, indices);
+  return generate(tree, indices, { unbalanced });
 };
 
 const verifyMultiProof = (mixedRoot, root, leafCount, helpers, values, decommitments, options = {}) => {

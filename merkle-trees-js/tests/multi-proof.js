@@ -295,9 +295,11 @@ describe('Multi-Proofs', () => {
   });
 
   describe('Flag Multi-Proof', () => {
+    const options = { sortedHash: true };
+
     it('should work for 16 sorted leafs', () => {
       const leafs = generateLeafs(16);
-      const { tree } = buildTree(leafs, { sortedHash: true });
+      const { tree } = buildTree(leafs, options);
       const indices = [1, 4, 5, 10];
       const { mixedRoot, root, leafCount, values, decommitments, flags } = generateMultiProof(tree, indices);
       const proofValid = verifyMultiProof(mixedRoot, root, leafCount, flags, values, decommitments);
@@ -307,7 +309,7 @@ describe('Multi-Proofs', () => {
 
     it('should work for 16 unsorted leafs.', () => {
       const leafs = generateLeafs(16, { random: true });
-      const { tree } = buildTree(leafs, { sortedHash: true });
+      const { tree } = buildTree(leafs, options);
       const indices = [1, 4, 5, 10];
       const { mixedRoot, root, leafCount, values, decommitments, flags } = generateMultiProof(tree, indices);
       const proofValid = verifyMultiProof(mixedRoot, root, leafCount, flags, values, decommitments);
@@ -317,7 +319,7 @@ describe('Multi-Proofs', () => {
 
     it('should work for 128 sorted leafs', () => {
       const leafs = generateLeafs(128);
-      const { tree } = buildTree(leafs, { sortedHash: true });
+      const { tree } = buildTree(leafs, options);
       const indices = [0, 4, 5, 10, 72, 127];
       const { mixedRoot, root, leafCount, values, decommitments, flags } = generateMultiProof(tree, indices);
       const proofValid = verifyMultiProof(mixedRoot, root, leafCount, flags, values, decommitments);
@@ -327,7 +329,7 @@ describe('Multi-Proofs', () => {
 
     it('should work for 128 unsorted leafs', () => {
       const leafs = generateLeafs(128, { random: true });
-      const { tree } = buildTree(leafs, { sortedHash: true });
+      const { tree } = buildTree(leafs, options);
       const indices = [0, 4, 5, 10, 72, 127];
       const { mixedRoot, root, leafCount, values, decommitments, flags } = generateMultiProof(tree, indices);
       const proofValid = verifyMultiProof(mixedRoot, root, leafCount, flags, values, decommitments);
@@ -337,7 +339,7 @@ describe('Multi-Proofs', () => {
 
     it('should result in same valid proof, regardless of leaf-pair-ordering', () => {
       const leafs = generateLeafs(16, { random: true });
-      const { tree } = buildTree(leafs, { sortedHash: true });
+      const { tree } = buildTree(leafs, options);
       const indices = [1, 4, 5, 10];
       const { mixedRoot, root, leafCount, values, decommitments, flags } = generateMultiProof(tree, indices);
       const proofValid = verifyMultiProof(mixedRoot, root, leafCount, flags, values, decommitments);
@@ -348,7 +350,7 @@ describe('Multi-Proofs', () => {
       swap(newLeafs, 4, 5);
       swap(newLeafs, 10, 11);
 
-      const { tree: newTree } = buildTree(newLeafs, { sortedHash: true });
+      const { tree: newTree } = buildTree(newLeafs, options);
       const newIndices = [1, 4, 5, 11];
       const {
         mixedRoot: newMixedRoot,
@@ -367,7 +369,7 @@ describe('Multi-Proofs', () => {
 
     it('should result in same valid proof, regardless of node-ordering', () => {
       const leafs = generateLeafs(16, { random: true });
-      const { tree } = buildTree(leafs, { sortedHash: true });
+      const { tree } = buildTree(leafs, options);
       const indices = [1, 4, 5, 10];
       const { mixedRoot, root, leafCount, values, decommitments, flags } = generateMultiProof(tree, indices);
       const proofValid = verifyMultiProof(mixedRoot, root, leafCount, flags, values, decommitments);
@@ -378,7 +380,7 @@ describe('Multi-Proofs', () => {
       swap(newLeafs, 4, 6);
       swap(newLeafs, 5, 7);
 
-      const { tree: newTree } = buildTree(newLeafs, { sortedHash: true });
+      const { tree: newTree } = buildTree(newLeafs, options);
       const newIndices = [1, 6, 7, 10];
       const {
         mixedRoot: newMixedRoot,
@@ -393,6 +395,73 @@ describe('Multi-Proofs', () => {
 
       decommitments.forEach((decommitment, i) => expect(decommitment.equals(newDecommitments[i])).to.equal(true));
       flags.forEach((flag, i) => expect(flag).to.equal(newFlags[i]));
+    });
+
+    it('should work for 16 identical leafs.', () => {
+      const leaf = Buffer.from('0000000000000000000000000000000000000000000000000000000000000008', 'hex');
+      const leafs = Array(16).fill(leaf);
+      const { tree } = buildTree(leafs, options);
+      const indices = [1, 4, 5, 10];
+      const { mixedRoot, root, leafCount, values, decommitments, flags } = generateMultiProof(tree, indices);
+      const proofValid = verifyMultiProof(mixedRoot, root, leafCount, flags, values, decommitments);
+
+      expect(proofValid).to.equal(true);
+    });
+
+    it('should work for 8 repeated pairs of leafs.', () => {
+      const pair = [
+        Buffer.from('0000000000000000000000000000000000000000000000000000000000000004', 'hex'),
+        Buffer.from('0000000000000000000000000000000000000000000000000000000000000008', 'hex'),
+      ];
+      const leafs = Array(8).fill(pair).flat();
+      const { tree } = buildTree(leafs, options);
+      const indices = [1, 4, 5, 10];
+      const { mixedRoot, root, leafCount, values, decommitments, flags } = generateMultiProof(tree, indices);
+      const proofValid = verifyMultiProof(mixedRoot, root, leafCount, flags, values, decommitments);
+
+      expect(proofValid).to.equal(true);
+    });
+
+    it('should work for 8 alternating repeated pairs of leafs.', () => {
+      const pair = [
+        Buffer.from('0000000000000000000000000000000000000000000000000000000000000004', 'hex'),
+        Buffer.from('0000000000000000000000000000000000000000000000000000000000000008', 'hex'),
+        Buffer.from('0000000000000000000000000000000000000000000000000000000000000008', 'hex'),
+        Buffer.from('0000000000000000000000000000000000000000000000000000000000000004', 'hex'),
+      ];
+      const leafs = Array(4).fill(pair).flat();
+      const { tree } = buildTree(leafs, options);
+      const indices = [1, 4, 5, 10];
+      const { mixedRoot, root, leafCount, values, decommitments, flags } = generateMultiProof(tree, indices);
+      const proofValid = verifyMultiProof(mixedRoot, root, leafCount, flags, values, decommitments);
+
+      expect(proofValid).to.equal(true);
+    });
+
+    it('should work for an 11-leaf unbalanced tree, where no leafs are at the append pair.', () => {
+      const leafs = generateLeafs(11);
+      const { tree } = buildTree(leafs, Object.assign({ unbalanced: true }, options));
+      const indices = [1, 4, 5, 9];
+      const opts = { unbalanced: true };
+      const { mixedRoot, root, leafCount, values, decommitments, flags } = generateMultiProof(tree, indices, opts);
+      const proofValid = verifyMultiProof(mixedRoot, root, leafCount, flags, values, decommitments);
+
+      expect(proofValid).to.equal(true);
+    });
+
+    it('should work for an 11-leaf unbalanced tree, where one leaf is at the append pair.', () => {
+      const leafs = generateLeafs(11);
+      const { tree } = buildTree(leafs, Object.assign({ unbalanced: true }, options));
+      const indices = [1, 4, 5, 10];
+      const opts = { unbalanced: true };
+      const { mixedRoot, root, leafCount, values, decommitments, flags, skips } = generateMultiProof(
+        tree,
+        indices,
+        opts
+      );
+      const proofValid = verifyMultiProof(mixedRoot, root, leafCount, flags, values, decommitments, skips);
+
+      expect(proofValid).to.equal(true);
     });
   });
 });

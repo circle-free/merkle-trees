@@ -23,21 +23,33 @@ contract FlagMultiProofMerkle {
     return hash;
   }
 
-  function verify(bytes32[] memory values, bytes32[] memory decommitments, bool[] memory proofFlag) public view {
+  function verify(bytes32[] memory values, uint8 totalFlags, bytes32 flags, bytes32[] memory decommitments) public view {
     uint256 totalValues = values.length;
-    uint256 totalHashes = proofFlag.length;
-    bytes32[] memory hashes = new bytes32[](totalHashes);
-    uint valueIndex = 0;
-    uint hashIndex = 0;
-    uint proofIndex = 0;
+    bytes32[] memory hashes = new bytes32[](totalValues);
+    uint256 valueIndex = 0;
+    uint256 hashReadIndex = 0;
+    uint256 hashWriteIndex = 0;
+    uint256 decommitmentIndex = 0;
+    bytes32 one = bytes32(0x0000000000000000000000000000000000000000000000000000000000000001);
 
-    for(uint256 i = 0; i < totalHashes; i++) {
-      hashes[i] = hash_pair(
-        proofFlag[i] ? (valueIndex < totalValues ? values[valueIndex++] : hashes[hashIndex++]) : decommitments[proofIndex++],
-        valueIndex < totalValues ? values[valueIndex++] : hashes[hashIndex++]
-      );
+    for(uint256 i = 0; i < totalFlags; i++) {
+      hashReadIndex %= totalValues;
+      hashWriteIndex %= totalValues;
+
+      bool useValues = valueIndex < totalValues;
+      bool flag = ((flags >> i) & one) == one;
+
+      bytes32 left = flag
+        ? (useValues ? values[valueIndex++] : hashes[hashReadIndex++])
+        : decommitments[decommitmentIndex++];
+
+      hashReadIndex %= totalValues;
+
+      bytes32 right = useValues ? values[valueIndex++] : hashes[hashReadIndex++];
+
+      hashes[hashWriteIndex++] = hash_pair(left, right);
     }
 
-    require(hashes[totalHashes-1] == root, "INVALID_MERKLE_PROOF");
+    require(hashes[(hashWriteIndex == 0 ? totalValues : hashWriteIndex) - 1] == root, "INVALID_MERKLE_PROOF");
   }
 }
