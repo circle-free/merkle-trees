@@ -1,5 +1,6 @@
 'use strict';
 const { Keccak } = require('sha3');
+const { leftShift, or } = require('bitwise-buffer');
 
 const leftPad = (num, size, char = '0') => {
   let s = num + '';

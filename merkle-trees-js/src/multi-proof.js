@@ -320,10 +320,10 @@ const verifyMultiProof = (mixedRoot, root, leafCount, helpers, values, decommitm
 };
 
 // TODO: test this function
-const updateRootWithMultiProof = () => {
+const updateRootWithMultiProof = (mixedRoot, root, leafCount, helpers, oldValues, newValues, decommitments) => {
   const { indexed = false } = options;
-  const verify = indexed ? updateRootWithIndexedMultiProof : updateRootWithFlagMultiProof;
-  return verify(mixedRoot, root, leafCount, helpers, oldValues, newValues, decommitments);
+  const update = indexed ? updateRootWithIndexedMultiProof : updateRootWithFlagMultiProof;
+  return update(mixedRoot, root, leafCount, helpers, oldValues, newValues, decommitments);
 };
 
 module.exports = {
