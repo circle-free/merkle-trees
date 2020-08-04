@@ -8,6 +8,10 @@ const generateRandomLeaf = () => {
   return crypto.randomBytes(32);
 };
 
+const generateRandomElement = () => {
+  return crypto.randomBytes(32);
+};
+
 const generateLeafs = (leafCount, options = {}) => {
   let { seed, random = false } = options;
   const leafs = [];
@@ -20,6 +24,21 @@ const generateLeafs = (leafCount, options = {}) => {
   }
 
   return leafs;
+};
+
+const generateElements = (elementCount, options = {}) => {
+  const { seed, random = false } = options;
+  const elements = [];
+  let seedBuffer = seed ? Buffer.from(seed, 'hex') : null;
+  let element = seedBuffer;
+
+  for (let i = 0; i < elementCount; i++) {
+    element = random ? generateRandomElement() : seed ? hashNode(seedBuffer, element) : to32ByteBuffer(i);
+    seedBuffer = seed ? element : seedBuffer;
+    elements.push(element);
+  }
+
+  return elements;
 };
 
 const shuffle = (array) => {
@@ -40,6 +59,8 @@ const swap = (array, i, j) => {
 module.exports = {
   generateRandomLeaf,
   generateLeafs,
+  generateRandomElement,
+  generateElements,
   shuffle,
   swap,
 };

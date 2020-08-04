@@ -1,10 +1,10 @@
 {
   "name": "merkle-trees-js",
-  "version": "1.0.0",
-  "description": "Builds complete Merkle Trees, generate arbitrary multi-proofs, and verifies multi-proofs",
-  "main": "src/index.js",
+  "version": "2.0.0",
+  "description": "Builds complete Merkle Trees, generate and verify single-proofs, multi-proofs, and append proofs",
+  "main": "src/merkle.js",
   "repository": "https://github.com/circle-free/merkle-research",
-  "author": "Circle Free",
+  "author": "Circle-Free",
   "license": "MIT",
   "private": false,
   "scripts": {
