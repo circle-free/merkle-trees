@@ -1,28 +1,22 @@
 const assert = require('assert');
 const { rightShift, and } = require('bitwise-buffer');
-const { hashNode, sortHashNode, to32ByteBuffer, bitCount32, to32ByteBoolBuffer } = require('./utils');
+const { hashNode, sortHashNode, to32ByteBoolBuffer } = require('./utils');
 
 const generateAppendProofRecursivelyWith = (tree, leafCount, decommitments = []) => {
   const depth = getDepthFromLeafCount(leafCount);
 
   if (depth <= 1) return decommitments;
 
-  const newDecommitments = leafCount & 1 ? [tree[Math.pow(2, depth) + leafCount - 1]] : [];
+  const newDecommitments = leafCount & 1 ? [tree[(1 << depth) + leafCount - 1]] : [];
 
-  return generateAppendProofRecursivelyWith(
-    tree,
-    Math.ceil((leafCount + 1) / 2 - 1),
-    newDecommitments.concat(decommitments)
-  );
+  return generateAppendProofRecursivelyWith(tree, leafCount >> 1, newDecommitments.concat(decommitments));
 };
 
 const generateAppendProofRecursively = (tree, elementCount) => {
-  const decommitments = generateAppendProofRecursivelyWith(tree, elementCount);
+  const decommitments = generateAppendProofRecursivelyWith(tree, elementCount).map(Buffer.from);
 
   return {
-    mixedRoot: tree[0],
-    root: tree[1],
-    elementCount,
+    root: Buffer.from(tree[1]),
     decommitments: decommitments.length === 0 ? [] : [tree[2], ...decommitments],
   };
 };
@@ -48,14 +42,7 @@ const generateAppendProofLoop = (tree, elementCount) => {
     numBranchesOnNodes >>= 1; // divide by 2
     offset <<= 1; // multiply by 2
 
-    if (numBranchesOnNodes === 0) {
-      return {
-        mixedRoot: tree[0],
-        root: tree[1],
-        elementCount,
-        decommitments,
-      };
-    }
+    if (numBranchesOnNodes === 0) return { root: tree[1], decommitments };
 
     if (appendIndex >= numBranchesOnNodes) {
       // appendIndex is in the right subtree
@@ -67,20 +54,49 @@ const generateAppendProofLoop = (tree, elementCount) => {
   }
 };
 
+// TODO: implement and test for unbalanced trees
+// NOTE: indices must be in descending order
+const generateIndexedMultiProof = (tree, indices) => {
+  const leafCount = tree.length >> 1;
+  const depth = MerkleTree.getDepthFromElementCount(leafCount);
+  const known = Array(tree.length).fill(false);
+  const decommitments = [];
+
+  for (let i = 0; i < indices.length; i++) {
+    assert(i === 0 || indices[i - 1] > indices[i], 'Indices must be in descending order');
+    known[leafCount + indices[i]] = true;
+  }
+
+  for (let i = leafCount - 1; i > 0; i--) {
+    const left = known[2 * i];
+    const right = known[2 * i + 1];
+
+    if (left ^ right) decommitments.push(tree[2 * i + left]);
+
+    known[i] = left || right;
+  }
+
+  return {
+    root: Buffer.from(tree[1]),
+    depth,
+    indices,
+    decommitments: decommitments.map(Buffer.from),
+  };
+};
+
 // Note: Indices must be sorted in ascending order
-const generateFlagMultiProof = (tree, elementCount, indices, options = {}) => {
-  const { unbalanced = false, bitFLag = false } = options;
+const generateFlagMultiProof = (tree, indices, options = {}) => {
+  const { unbalanced = false, bitFlag = false } = options;
 
-  assert(indices.every((i) => i < elementCount));
-
-  let ids = indices.map((i) => i);
+  let ids = indices.slice();
   const nodes = [];
   const tested = [];
   const flags = [];
   const skips = [];
   let decommitmentIndices = [];
   let nextIds = [];
-  const treeDepth = MerkleTree.getDepthFromElementCount(elementCount);
+  const leafCount = tree.length >> 1;
+  const treeDepth = MerkleTree.getDepthFromLeafCount(leafCount);
 
   for (let depth = treeDepth; depth > 0; depth--) {
     // For each node we're interested in proving, add it to the list of nodes and
@@ -124,58 +140,62 @@ const generateFlagMultiProof = (tree, elementCount, indices, options = {}) => {
     nextIds = [];
   }
 
-  assert(!bitFLag || flags.length <= 256, 'Proof too large for bit flags.');
+  assert(!bitFlag || flags.length <= 256, 'Proof too large for bit flags.');
 
   return {
-    mixedRoot: tree[0],
     root: tree[1],
-    elementCount: elementCount,
-    elements: indices.map((i) => tree[(1 << treeDepth) + i]),
-    decommitments: decommitmentIndices.map((i) => tree[i]).filter((d) => d),
-    flags: bitFLag ? to32ByteBoolBuffer(flags) : flags,
+    decommitments: decommitmentIndices
+      .map((i) => tree[i])
+      .filter((d) => d)
+      .map(Buffer.from),
+    flags: bitFlag ? to32ByteBoolBuffer(flags) : flags,
     flagCount: flags.length,
-    skips: bitFLag ? to32ByteBoolBuffer(skips) : skips,
+    skips: bitFlag ? to32ByteBoolBuffer(skips) : skips,
   };
 };
 
-// TODO: implement and test for unbalanced trees
+// TODO: test if this works with sortedHash
 // NOTE: indices must be in descending order
-const generateIndexedMultiProof = (tree, elementCount, indices) => {
-  const leafCount = MerkleTree.getLeafCountFromElementCount(elementCount);
-  const nodeCount = leafCount << 1;
-  const known = Array(nodeCount).fill(false);
-  const elements = [];
-  const decommitments = [];
+const verifyIndexedMultiProof = ({ root, depth, indices, elements, decommitments = [] }, options = {}) => {
+  const { sortedHash = true, elementPrefix = '00' } = options;
+  const prefixBuffer = Buffer.from(elementPrefix, 'hex');
+  const hashPair = sortedHash ? sortHashNode : hashNode;
 
-  for (let i = 0; i < indices.length; i++) {
-    assert(i === 0 || indices[i - 1] > indices[i], 'indices must be in descending order');
-    known[leafCount + indices[i]] = true;
-    elements.push(tree[leafCount + indices[i]]);
+  // Clone decommitments so we don't destroy/consume it (when when shift the array)
+  const decommits = decommitments.map(Buffer.from);
+
+  const queue = elements.map((element, i) => ({
+    index: (1 << depth) + indices[i],
+    node: hashNode(prefixBuffer, element),
+  }));
+
+  while (true) {
+    assert(queue.length >= 1, 'Something went wrong.');
+
+    const { index, node } = queue.shift();
+
+    if (index === 1) {
+      // tree index 1, so check against the root
+      return node.equals(root);
+    } else if ((index & 1) === 0) {
+      // Even nodes hashed with decommitment on right
+      queue.push({ index: index >> 1, node: hashPair(node, decommits.shift()) });
+    } else if (queue.length > 0 && queue[0].index === index - 1) {
+      // Odd nodes can be hashed with neighbor on left (hash stack)
+      queue.push({ index: index >> 1, node: hashPair(queue.shift().node, node) });
+    } else {
+      // Remaining odd nodes hashed with decommitment on the left
+      queue.push({ index: index >> 1, node: hashPair(decommits.shift(), node) });
+    }
   }
-
-  for (let i = leafCount - 1; i > 0; i--) {
-    const left = known[2 * i];
-    const right = known[2 * i + 1];
-
-    if (left ^ right) decommitments.push(tree[2 * i + left]);
-
-    known[i] = left || right;
-  }
-
-  return {
-    mixedRoot: tree[0],
-    root: tree[1],
-    elementCount,
-    indices,
-    elements,
-    decommitments,
-  };
 };
 
-const verifyFlagMultiProof = ({ mixedRoot, root, elementCount, flags, elements, decommitments = [], skips }) => {
-  if (!MerkleTree.verifyMixedRoot({ mixedRoot, root, elementCount })) return false;
-
+// TODO: check if/how this is compatible with non-sorted-hash trees
+const verifyFlagMultiProof = ({ root, flags, elements, decommitments = [], skips }, options = {}) => {
   // Keep verification minimal by using circular hashes queue with separate read and write heads
+  const { elementPrefix = '00' } = options;
+  const prefixBuffer = Buffer.from(elementPrefix, 'hex');
+
   const totalFlags = flags.length;
   const totalElements = elements.length;
   const hashes = new Array(totalElements);
@@ -191,64 +211,30 @@ const verifyFlagMultiProof = ({ mixedRoot, root, elementCount, flags, elements, 
     const useElements = elementIndex < totalElements;
 
     if (skips && skips[i]) {
-      hashes[hashWriteIndex++] = useElements ? elements[elementIndex++] : hashes[hashReadIndex++];
+      hashes[hashWriteIndex++] = useElements
+        ? hashNode(prefixBuffer, elements[elementIndex++])
+        : hashes[hashReadIndex++];
       continue;
     }
 
     const left = flags[i]
       ? useElements
-        ? elements[elementIndex++]
+        ? hashNode(prefixBuffer, elements[elementIndex++])
         : hashes[hashReadIndex++]
       : decommitments[decommitmentIndex++];
 
     hashReadIndex %= totalElements;
-    const right = useElements ? elements[elementIndex++] : hashes[hashReadIndex++];
+    const right = useElements ? hashNode(prefixBuffer, elements[elementIndex++]) : hashes[hashReadIndex++];
     hashes[hashWriteIndex++] = sortHashNode(left, right);
   }
 
   return hashes[(hashWriteIndex === 0 ? totalElements : hashWriteIndex) - 1].equals(root);
 };
 
-// NOTE: indices must be in descending order
-const verifyIndexedMultiProof = ({ mixedRoot, root, elementCount, indices, elements, decommitments = [] }) => {
-  if (!MerkleTree.verifyMixedRoot({ mixedRoot, root, elementCount })) return false;
-
-  // Clone decommitments so we don't destroy/consume it (when when shift the array)
-  const decommits = decommitments.map((decommitment) => decommitment);
-  const queue = elements.map((element, i) => ({ index: elementCount + indices[i], element }));
-
-  while (true) {
-    assert(queue.length >= 1, 'Something went wrong.');
-
-    const { index, element } = queue.shift();
-
-    if (index === 1) {
-      // tree index 1, so check against the root
-      return element.equals(root);
-    } else if ((index & 1) === 0) {
-      // Even nodes hashed with decommitment on right
-      queue.push({ index: index >> 1, element: hashNode(element, decommits.shift()) });
-    } else if (queue.length > 0 && queue[0].index === index - 1) {
-      // Odd nodes can ne hashed with neighbor on left (hash stack)
-      queue.push({ index: index >> 1, element: hashNode(queue.shift().element, element) });
-    } else {
-      // Remaining odd nodes hashed with decommitment on the left
-      queue.push({ index: index >> 1, element: hashNode(decommits.shift(), element) });
-    }
-  }
-};
-
-const verifyBitFlagMultiProof = ({
-  mixedRoot,
-  root,
-  elementCount,
-  flags,
-  totalFlags,
-  elements,
-  decommitments = [],
-  skips,
-}) => {
-  if (!MerkleTree.verifyMixedRoot({ mixedRoot, root, elementCount })) return false;
+// TODO: check if/how this is compatible with non-sorted-hash trees
+const verifyBitFlagMultiProof = ({ root, flags, totalFlags, elements, decommitments = [], skips }, options = {}) => {
+  const { elementPrefix = '00' } = options;
+  const prefixBuffer = Buffer.from(elementPrefix, 'hex');
 
   // Keep verification minimal by using circular hashes queue with separate read and write heads
   const totalElements = elements.length;
@@ -267,7 +253,9 @@ const verifyBitFlagMultiProof = ({
     const skip = skips && and(rightShift(skips, i), oneBuffer).equals(oneBuffer);
 
     if (skip) {
-      hashes[hashWriteIndex++] = useElements ? elements[elementIndex++] : hashes[hashReadIndex++];
+      hashes[hashWriteIndex++] = useElements
+        ? hashNode(prefixBuffer, elements[elementIndex++])
+        : hashes[hashReadIndex++];
       continue;
     }
 
@@ -275,29 +263,75 @@ const verifyBitFlagMultiProof = ({
 
     const left = flag
       ? useElements
-        ? elements[elementIndex++]
+        ? hashNode(prefixBuffer, elements[elementIndex++])
         : hashes[hashReadIndex++]
       : decommitments[decommitmentIndex++];
 
     hashReadIndex %= totalElements;
-    const right = useElements ? elements[elementIndex++] : hashes[hashReadIndex++];
+    const right = useElements ? hashNode(prefixBuffer, elements[elementIndex++]) : hashes[hashReadIndex++];
     hashes[hashWriteIndex++] = sortHashNode(left, right);
   }
 
   return hashes[(hashWriteIndex === 0 ? totalElements : hashWriteIndex) - 1].equals(root);
 };
 
+// TODO: test if this works with sortedHash
+// NOTE: indices must be in descending order
+const updateRootWithIndexedMultiProof = (
+  { root, depth, indices, elements, newElements, decommitments = [] },
+  options = {}
+) => {
+  const { sortedHash = true, elementPrefix = '00' } = options;
+  const prefixBuffer = Buffer.from(elementPrefix, 'hex');
+  const hashPair = sortedHash ? sortHashNode : hashNode;
+
+  // Clone decommitments so we don't destroy/consume it (when when shift the array)
+  const decommits = decommitments.map(Buffer.from);
+
+  const queue = elements.map((element, i) => ({
+    index: (1 << depth) + indices[i],
+    node: hashNode(prefixBuffer, element),
+  }));
+
+  const newQueue = newElements.map((element, i) => ({
+    index: (1 << depth) + indices[i],
+    node: hashNode(prefixBuffer, element),
+  }));
+
+  while (true) {
+    assert(queue.length >= 1, 'Something went wrong.');
+
+    const { index, node } = queue.shift();
+    const { node: newNode } = newQueue.shift();
+
+    if (index === 1) {
+      // tree index 1, so check against the root
+      assert(node.equals(root), 'Invalid proof.');
+
+      return { root: newNode };
+    } else if ((index & 1) === 0) {
+      // Even nodes hashed with decommitment on right
+      const decommitment = decommits.shift();
+      queue.push({ index: index >> 1, node: hashPair(node, decommitment) });
+      newQueue.push({ index: index >> 1, node: hashPair(newNode, decommitment) });
+    } else if (queue.length > 0 && queue[0].index === index - 1) {
+      // Odd nodes can be hashed with neighbor on left (hash stack)
+      queue.push({ index: index >> 1, node: hashPair(queue.shift().node, node) });
+      newQueue.push({ index: index >> 1, node: hashPair(newQueue.shift().node, newNode) });
+    } else {
+      // Remaining odd nodes hashed with decommitment on the left
+      const decommitment = decommits.shift();
+      queue.push({ index: index >> 1, node: hashPair(decommitment, node) });
+      newQueue.push({ index: index >> 1, node: hashPair(decommitment, newNode) });
+    }
+  }
+};
+
 // TODO: test this function
-const updateRootWithFlagMultiProof = ({
-  mixedRoot,
-  root,
-  elementCount,
-  flags,
-  elements,
-  newElements,
-  decommitments = [],
-}) => {
-  assert(MerkleTree.verifyMixedRoot(mixedRoot, root, elementCount), 'Invalid root parameters.');
+// TODO: check if/how this is compatible with non-sorted-hash trees
+const updateRootWithFlagMultiProof = ({ root, flags, elements, newElements, decommitments = [] }, options = {}) => {
+  const { elementPrefix = '00' } = options;
+  const prefixBuffer = Buffer.from(elementPrefix, 'hex');
 
   const totalElements = elements.length;
   const totalHashes = flags.length;
@@ -310,117 +344,68 @@ const updateRootWithFlagMultiProof = ({
   for (let i = 0; i < totalHashes; i++) {
     const useElements = elementIndex < totalElements;
 
+    if (skips && skips[i]) {
+      hashes[hashWriteIndex] = useElements ? hashNode(prefixBuffer, elements[elementIndex]) : hashes[hashReadIndex];
+      newHashes[hashWriteIndex++] = useElements
+        ? hashNode(prefixBuffer, newElements[elementIndex++])
+        : hashes[hashReadIndex++];
+      continue;
+    }
+
     const left = flags[i]
       ? useElements
-        ? elements[elementIndex]
+        ? hashNode(prefixBuffer, elements[elementIndex])
         : hashes[hashIndex]
       : decommitments[decommitmentIndex];
 
-    const right = useElements ? elements[elementIndex] : hashes[hashIndex];
+    const right = useElements ? hashNode(prefixBuffer, elements[elementIndex]) : hashes[hashIndex];
     hashes[i] = sortHashNode(left, right);
 
     const newLeft = flags[i]
       ? useElements
-        ? newElements[elementIndex++]
+        ? hashNode(prefixBuffer, newElements[elementIndex])
         : newHashes[hashIndex++]
       : decommitments[decommitmentIndex++];
 
-    const newRight = useElements ? newElements[elementIndex++] : newHashes[hashIndex++];
+    const newRight = useElements ? hashNode(prefixBuffer, newElements[elementIndex]) : newHashes[hashIndex++];
     newHashes[i] = sortHashNode(newLeft, newRight);
   }
 
   assert(hashes[totalHashes - 1].equals(root), 'Invalid proof.');
 
-  return {
-    mixedRoot: computeMixedRoot({ root: newHashes[totalHashes - 1], elementCount }),
-    root: newHashes[totalHashes - 1],
-  };
+  return { root: newHashes[totalHashes - 1] };
 };
 
 // TODO: implement
-const updateRootWithBitFlagMultiProof = ({
-  mixedRoot,
-  root,
-  elementCount,
-  flags,
-  elements,
-  newElements,
-  decommitments = [],
-}) => {};
-
-// TODO: test this function
-// NOTE: indices must be in descending order
-const updateRootWithIndexedMultiProof = ({
-  mixedRoot,
-  root,
-  elementCount,
-  indices,
-  elements,
-  newElements,
-  decommitments = [],
-}) => {
-  assert(MerkleTree.verifyMixedRoot({ mixedRoot, root, elementCount }), 'Invalid root parameters');
-
-  // Clone decommitments so we don't destroy/consume it (when when shift the array)
-  const decommits = decommitments.map((decommitment) => decommitment);
-
-  const queue = elements.map((element, i) => ({ index: elementCount + indices[i], element }));
-  const newQueue = newElements.map((element, i) => ({ index: elementCount + indices[i], element }));
-
-  while (true) {
-    assert(queue.length >= 1, 'Something went wrong.');
-
-    const { index, element } = queue.shift();
-    const { element: newElement } = newQueue.shift();
-
-    if (index === 1) {
-      // tree index 1, so check against the root
-      assert(element.equals(root), 'Invalid proof.');
-
-      return {
-        mixedRoot: MerkleTree.computeMixedRoot({ root: newElement, elementCount }),
-        root: newElement,
-      };
-    } else if ((index & 1) === 0) {
-      // Even nodes hashed with decommitment on right
-      queue.push({ index: index >> 1, value: hashNode(element, decommits.shift()) });
-      newQueue.push({ index: index >> 1, value: hashNode(newElement, decommits.shift()) });
-    } else if (queue.length > 0 && queue[0].index === index - 1) {
-      // Odd nodes can ne hashed with neighbor on left (hash stack)
-      queue.push({ index: index >> 1, value: hashNode(queue.shift().value, element) });
-      newQueue.push({ index: index >> 1, value: hashNode(newQueue.shift().value, newElement) });
-    } else {
-      // Remaining odd nodes hashed with decommitment on the left
-      queue.push({ index: index >> 1, value: hashNode(decommits.shift(), element) });
-      newQueue.push({ index: index >> 1, value: hashNode(decommits.shift(), newElement) });
-    }
-  }
-};
+const updateRootWithBitFlagMultiProof = (
+  { root, flags, elements, newElements, decommitments = [] },
+  options = {}
+) => {};
 
 // TODO: consider a Proof class
 
 class MerkleTree {
   constructor(elements, options = {}) {
-    const { sortedHash = true, unbalanced = true } = options;
+    const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
     this._sortedHash = sortedHash;
     this._unbalanced = unbalanced;
-
+    this._elementPrefix = Buffer.from(elementPrefix, 'hex');
     const hashPair = this._sortedHash ? sortHashNode : hashNode;
 
-    this._elementCount = elements.length;
-    this._depth = MerkleTree.getDepthFromElements(elements);
+    this._elements = elements.map(Buffer.from);
+    this._depth = MerkleTree.getDepthFromElements(this._elements);
     this._leafCount = MerkleTree.getLeafCountFromDepth(this._depth);
 
-    assert(this._unbalanced || this._elementCount === this._leafCount, 'Incorrect element count for balanced tree');
+    assert(this._unbalanced || this._elements.length === this._leafCount, 'Incorrect element count for balanced tree');
 
     const nodeCount = 2 * this._leafCount;
     this._tree = Array(nodeCount).fill(null);
 
-    for (let i = 0; i < this._elementCount; i++) {
+    for (let i = 0; i < this._elements.length; i++) {
       // Unless explicit, do not allow a elements to be null
       // TODO: maybe we can. likely we could.
-      assert(elements[i], 'Cannot holes between elements.');
-      this._tree[this._leafCount + i] = elements[i];
+      assert(this._elements[i], 'Cannot have null elements.');
+      this._tree[this._leafCount + i] = hashNode(this._elementPrefix, this._elements[i]);
     }
 
     for (let i = this._leafCount - 1; i > 0; i--) {
@@ -437,13 +422,6 @@ class MerkleTree {
         continue;
       }
     }
-
-    // Mix in element count to prevent second pre-image attack
-    // This means the true Merkle Root is the Mixed Root at tree[0]
-    this._tree[0] = MerkleTree.computeMixedRoot({ root: this._tree[1], elementCount: this._elementCount });
-
-    this._mixedRoot = this._tree[0];
-    this._root = this._tree[1];
   }
 
   static getDepthFromElementCount(elementCount) {
@@ -466,27 +444,14 @@ class MerkleTree {
     return 1 << depth;
   }
 
-  static computeMixedRoot({ root, elementCount }, options = {}) {
-    const { sortedHash = false } = options;
-    const hashPair = sortedHash ? sortHashNode : hashNode;
-    return hashPair(to32ByteBuffer(elementCount), root);
-  }
-
-  static verifyMixedRoot({ mixedRoot, root, elementCount }, options = {}) {
-    return MerkleTree.computeMixedRoot({ root, elementCount }, options).equals(mixedRoot);
-  }
-
-  // TODO: test and make work with unbalanced trees
+  // TODO: make work with unbalanced trees
   // TODO: implement and test as flag method
-  static verifySingleProof({ mixedRoot, root, elementCount, index, element, decommitments = [] }, options = {}) {
-    const { sortedHash = false } = options;
+  static verifySingleProof({ root, index, element, decommitments = [] }, options = {}) {
+    const { sortedHash = false, elementPrefix = '00' } = options;
+    const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashPair = sortedHash ? sortHashNode : hashNode;
 
-    if (!MerkleTree.verifyMixedRoot({ mixedRoot, root, elementCount })) return false;
-
-    if (elementCount === 1 && element.equals(root)) return true;
-
-    let hash = element;
+    let hash = hashNode(prefixBuffer, element);
 
     for (let i = decommitments.length - 1; i >= 0; i--) {
       hash = index & 1 ? hashPair(decommitments[i], hash) : hashPair(hash, decommitments[i]);
@@ -496,26 +461,14 @@ class MerkleTree {
     return hash.equals(root);
   }
 
-  // TODO: test and make work with unbalanced trees
-  static updateWithSingleProof(
-    { mixedRoot, root, elementCount, index, element, newElement, decommitments = [] },
-    options = {}
-  ) {
-    const { sortedHash = false } = options;
+  // TODO: make work with unbalanced trees
+  static updateWithSingleProof({ root, index, element, newElement, decommitments = [] }, options = {}) {
+    const { sortedHash = false, elementPrefix = '00' } = options;
+    const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashPair = sortedHash ? sortHashNode : hashNode;
 
-    assert(MerkleTree.verifyMixedRoot({ mixedRoot, root, elementCount }), 'Invalid root parameters.');
-
-    if (elementCount === 1 && element.equals(root)) {
-      return {
-        mixedRoot: MerkleTree.computeMixedRoot({ root: newElement, elementCount }),
-        root: newElement,
-        elementCount,
-      };
-    }
-
-    let hash = element;
-    let newHash = newElement;
+    let hash = hashNode(prefixBuffer, element);
+    let newHash = hashNode(prefixBuffer, newElement);
 
     for (let i = decommitments.length - 1; i >= 0; i--) {
       hash = index & 1 ? hashPair(decommitments[i], hash) : hashPair(hash, decommitments[i]);
@@ -525,169 +478,119 @@ class MerkleTree {
 
     assert(hash.equals(root), 'Invalid proof.');
 
-    return {
-      mixedRoot: MerkleTree.computeMixedRoot({ root: newHash, elementCount }),
-      root: newHash,
-      elementCount,
-    };
+    return { root: newHash };
   }
 
-  static appendElementWithProof({ element, mixedRoot, root, elementCount, decommitments = [] }, options = {}) {
-    const { sortedHash = false } = options;
+  static appendElementWithProof({ element, root, decommitments = [] }, options = {}) {
+    assert(decommitments.length, 'Unexpected number of decommitments.');
+
+    const { sortedHash = false, elementPrefix = '00' } = options;
+    const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashPair = sortedHash ? sortHashNode : hashNode;
 
-    // NOTE: The number of decommitments (from the left) needed to append to an unbalanced, appendable tree
-    //       are equal to the number of set bits in the elementCount
-    const bitCount = bitCount32(elementCount);
-    assert(bitCount === 1 || bitCount === decommitments.length, 'Unexpected number of decommitments.');
-    assert(MerkleTree.verifyMixedRoot({ mixedRoot, root, elementCount }), 'Invalid root parameters.');
-
-    let newRoot;
-    let newElementCount = elementCount + 1;
-
-    // Appending to a unbalanced, appendable Merkle Tree is equally trivial
-    if ((elementCount & (elementCount - 1)) === 0) {
-      newRoot = hashPair(root, element);
-
-      return {
-        mixedRoot: MerkleTree.computeMixedRoot({ root: newRoot, elementCount: elementCount + 1 }),
-        root: newRoot,
-        elementCount: newElementCount,
-      };
-    }
-
     // Clone decommitments so we don't destroy/consume it
-    const queue = decommitments.map((decommitment) => decommitment);
+    const queue = decommitments.map(Buffer.from);
     const n = queue.length - 1;
 
     // As we verify the proof, we'll build the new root in parallel, since the
     // verification loop will consume the queue/stack
-    newRoot = hashPair(queue[n], element);
+    let newRoot = hashPair(queue[n], hashNode(prefixBuffer, element));
 
     for (let i = n; i > 0; i--) {
       newRoot = hashPair(queue[i - 1], newRoot);
       queue[i - 1] = hashPair(queue[i - 1], queue[i]);
-
-      if (i === 1) {
-        assert(queue[0].equals(root), 'Invalid Proof');
-
-        return {
-          mixedRoot: MerkleTree.computeMixedRoot({ root: newRoot, elementCount: elementCount + 1 }),
-          root: newRoot,
-          elementCount: newElementCount,
-        };
-      }
     }
+
+    assert(queue[0].equals(root), 'Invalid Proof');
+
+    return { root: newRoot };
+  }
+
+  static verifyAppendProof({ root, decommitments = [] }, options = {}) {
+    assert(decommitments.length, 'Unexpected number of decommitments.');
+
+    const { sortedHash = false } = options;
+    const hashPair = sortedHash ? sortHashNode : hashNode;
+
+    // Clone decommitments so we don't destroy/consume it
+    const queue = decommitments.map(Buffer.from);
+    const n = queue.length - 1;
+
+    for (let i = n; i > 0; i--) {
+      queue[i - 1] = hashPair(queue[i - 1], queue[i]);
+    }
+
+    return queue[0].equals(root);
   }
 
   // TODO: implement
-  static appendElementsWithProof({ elements, mixedRoot, root, elementCount, decommitments = [] }, options = {}) {}
+  static appendElementsWithProof({ elements, root, decommitments = [] }, options = {}) {}
 
   // TODO: test this with unbalanced trees
-  static verifyMultiProof(parameters) {
+  static verifyMultiProof(parameters, options = {}) {
     const verify = parameters.indices
       ? verifyIndexedMultiProof
       : Buffer.isBuffer(parameters.flags)
       ? verifyBitFlagMultiProof
       : verifyFlagMultiProof;
-    return verify(parameters);
+    return verify(parameters, options);
   }
 
-  // TODO: test this function
-  static updateWithMultiProof(parameters) {
+  static updateWithMultiProof(parameters, options = {}) {
     const update = parameters.indices
       ? updateRootWithIndexedMultiProof
       : Buffer.isBuffer(parameters.flags)
       ? updateRootWithBitFlagMultiProof
       : updateRootWithFlagMultiProof;
-    return update(parameters);
-  }
-
-  get mixedRoot() {
-    return this._mixedRoot;
+    return update(parameters, options);
   }
 
   get root() {
-    return this._root;
+    return Buffer.from(this._tree[1]);
   }
 
   get depth() {
     return this._depth;
   }
 
-  get leafs() {
-    return this._tree.slice(this._leafCount);
-  }
-
   get elements() {
-    return this._tree.slice(this._leafCount, this._leafCount + this._elementCount);
+    return this._elements.map(Buffer.from);
   }
 
-  // TODO: test and make work with unbalanced trees
+  // TODO: make work with unbalanced trees
   // TODO: consider splitting up proof method into
   //       - proving that an element in the set (flag based)
   //       - proving that an element exist at specific index (index based)
   generateSingleProof(index) {
-    assert(index < this._elementCount, 'Index out of range.');
+    assert(index < this._elements.length, 'Index out of range.');
 
     const decommitments = [];
-
-    if (this._elementCount === 1) {
-      return {
-        mixedRoot: this._mixedRoot,
-        root: this._root,
-        elementCount: this._elementCount,
-        index,
-        element: this._tree[1],
-        decommitments,
-      };
-    }
 
     for (let i = this._leafCount + index; i > 1; i = i >> 1) {
       decommitments.unshift(i & 1 ? this._tree[i - 1] : this._tree[i + 1]);
     }
 
     return {
-      mixedRoot: this._mixedRoot,
-      root: this._root,
-      elementCount: this._elementCount,
+      root: Buffer.from(this._tree[1]),
       index,
-      element: this._tree[this._leafCount + index],
-      decommitments,
+      element: Buffer.from(this._elements[index]),
+      decommitments: decommitments.map(Buffer.from),
     };
   }
 
-  generateUpdateProof(index, element) {
-    return Object.assign({ newElement: element }, this.generateSingleProof(index));
+  generateSingleUpdateProof(index, element) {
+    return Object.assign({ newElement: Buffer.from(element) }, this.generateSingleProof(index));
   }
 
-  updateOne(index, element) {
-    assert(index < this._elementCount, 'Index out of range.');
+  updateSingle(index, element) {
+    assert(index < this._elements.length, 'Index out of range.');
 
-    const newElements = this.elements.map((e, i) => (i === index ? element : e));
+    const newElements = this._elements.map((e, i) => (i === index ? element : e));
 
     const options = {
       sortedHash: this._sortedHash,
       unbalanced: this._unbalanced,
-    };
-
-    return new MerkleTree(newElements, options);
-  }
-
-  updateMany(indices, elements) {
-    indices.forEach((index) => {
-      assert(index < this._elementCount, 'Index out of range.');
-    });
-
-    const newElements = this.elements.map((e, i) => {
-      const index = indices.indexOf(i);
-
-      return index >= 0 ? elements[index] : e;
-    });
-
-    const options = {
-      sortedHash: this._sortedHash,
-      unbalanced: this._unbalanced,
+      elementPrefix: this._elementPrefix,
     };
 
     return new MerkleTree(newElements, options);
@@ -697,27 +600,29 @@ class MerkleTree {
     const { recursively = false } = options;
     const generate = recursively ? generateAppendProofRecursively : generateAppendProofLoop;
 
-    return generate(this._tree, ths._elementCount);
+    return generate(this._tree, this._elements.length);
   }
 
-  appendOne(element) {
+  appendSingle(element) {
     const newElements = this.elements.map((e) => e);
     newElements.push(element);
 
     const options = {
       sortedHash: this._sortedHash,
       unbalanced: this._unbalanced,
+      elementPrefix: this._elementPrefix,
     };
 
     return new MerkleTree(newElements, options);
   }
 
-  appendMany(elements) {
+  appendMulti(elements) {
     const newElements = this.elements.map((e) => e).concat(elements);
 
     const options = {
       sortedHash: this._sortedHash,
       unbalanced: this._unbalanced,
+      elementPrefix: this._elementPrefix,
     };
 
     return new MerkleTree(newElements, options);
@@ -729,8 +634,41 @@ class MerkleTree {
   generateMultiProof(indices, options = {}) {
     const { indexed = false } = options;
     const generate = indexed ? generateIndexedMultiProof : generateFlagMultiProof;
-    return generate(this._tree, elementCount, indices, { unbalanced: this.unbalanced });
+    const proof = generate(this._tree, indices, { unbalanced: this._unbalanced });
+    const elements = indices.map((index) => Buffer.from(this.elements[index]));
+
+    return Object.assign({ elements }, proof);
+  }
+
+  generateMultiUpdateProof(indices, elements, options = {}) {
+    const newElements = elements.map(Buffer.from);
+    return Object.assign({ newElements }, this.generateMultiProof(indices, options));
+  }
+
+  updateMulti(indices, elements) {
+    // TODO: Filter or throw on duplicate indices
+    indices.forEach((index) => {
+      assert(index < this._elements.length, 'Index out of range.');
+    });
+
+    const newElements = this.elements.map((e, i) => {
+      const index = indices.indexOf(i);
+
+      return index >= 0 ? elements[index] : e;
+    });
+
+    const options = {
+      sortedHash: this._sortedHash,
+      unbalanced: this._unbalanced,
+      elementPrefix: this._elementPrefix,
+    };
+
+    return new MerkleTree(newElements, options);
   }
 }
 
 module.exports = MerkleTree;
+
+// TODO: serialize method
+// TODO: update/append methods can return proof and new Merkle Tree
+// TODO: match paramter lengths on multi methods
