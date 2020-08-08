@@ -96,7 +96,7 @@ const generateFlagMultiProof = (tree, indices, options = {}) => {
   let decommitmentIndices = [];
   let nextIds = [];
   const leafCount = tree.length >> 1;
-  const treeDepth = MerkleTree.getDepthFromLeafCount(leafCount);
+  const treeDepth = MerkleTree.getDepthFromElementCount(leafCount);
 
   for (let depth = treeDepth; depth > 0; depth--) {
     // For each node we're interested in proving, add it to the list of nodes and
@@ -190,85 +190,70 @@ const verifyIndexedMultiProof = ({ root, depth, indices, elements, decommitments
   }
 };
 
-// TODO: check if/how this is compatible with non-sorted-hash trees
+// TODO: use separate set of flags for left/right hash order, allowing this to work for non-sorted-hash trees
+//       Should be able to infer indices of elements based on proof hash order and flags
 const verifyFlagMultiProof = ({ root, flags, elements, decommitments = [], skips }, options = {}) => {
-  // Keep verification minimal by using circular hashes queue with separate read and write heads
   const { elementPrefix = '00' } = options;
   const prefixBuffer = Buffer.from(elementPrefix, 'hex');
 
-  const totalFlags = flags.length;
+  const flagCount = flags.length;
   const totalElements = elements.length;
-  const hashes = new Array(totalElements);
-  let elementIndex = 0;
+
+  // Keep verification minimal by using circular hashes queue with separate read and write heads
+  const hashes = elements.map(element => hashNode(prefixBuffer, element));
   let hashReadIndex = 0;
   let hashWriteIndex = 0;
   let decommitmentIndex = 0;
 
-  for (let i = 0; i < totalFlags; i++) {
+  for (let i = 0; i < flagCount; i++) {
     hashReadIndex %= totalElements;
     hashWriteIndex %= totalElements;
 
-    const useElements = elementIndex < totalElements;
-
     if (skips && skips[i]) {
-      hashes[hashWriteIndex++] = useElements
-        ? hashNode(prefixBuffer, elements[elementIndex++])
-        : hashes[hashReadIndex++];
+      // TODO: check if this next line can be skipped. I don't think it can.
+      hashes[hashWriteIndex++] = hashes[hashReadIndex++];
       continue;
     }
 
-    const left = flags[i]
-      ? useElements
-        ? hashNode(prefixBuffer, elements[elementIndex++])
-        : hashes[hashReadIndex++]
-      : decommitments[decommitmentIndex++];
-
+    const left = flags[i] ? hashes[hashReadIndex++] : decommitments[decommitmentIndex++];
     hashReadIndex %= totalElements;
-    const right = useElements ? hashNode(prefixBuffer, elements[elementIndex++]) : hashes[hashReadIndex++];
+    const right = hashes[hashReadIndex++];
     hashes[hashWriteIndex++] = sortHashNode(left, right);
   }
 
   return hashes[(hashWriteIndex === 0 ? totalElements : hashWriteIndex) - 1].equals(root);
 };
 
-// TODO: check if/how this is compatible with non-sorted-hash trees
-const verifyBitFlagMultiProof = ({ root, flags, totalFlags, elements, decommitments = [], skips }, options = {}) => {
+// TODO: use separate set of flags for left/right hash order, allowing this to work for non-sorted-hash trees
+//       Should be able to infer indices of elements based on proof hash order and flags
+const verifyBitFlagMultiProof = ({ root, flags, flagCount, elements, decommitments = [], skips }, options = {}) => {
   const { elementPrefix = '00' } = options;
   const prefixBuffer = Buffer.from(elementPrefix, 'hex');
 
   // Keep verification minimal by using circular hashes queue with separate read and write heads
   const totalElements = elements.length;
-  const hashes = new Array(totalElements);
-  let elementIndex = 0;
+  const hashes = elements.map(element => hashNode(prefixBuffer, element));
   let hashReadIndex = 0;
   let hashWriteIndex = 0;
   let decommitmentIndex = 0;
   const oneBuffer = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
 
-  for (let i = 0; i < totalFlags; i++) {
+  for (let i = 0; i < flagCount; i++) {
     hashReadIndex %= totalElements;
     hashWriteIndex %= totalElements;
 
-    const useElements = elementIndex < totalElements;
     const skip = skips && and(rightShift(skips, i), oneBuffer).equals(oneBuffer);
 
     if (skip) {
-      hashes[hashWriteIndex++] = useElements
-        ? hashNode(prefixBuffer, elements[elementIndex++])
-        : hashes[hashReadIndex++];
+      // TODO: check if this next line can be skipped. I don't think it can.
+      hashes[hashWriteIndex++] = hashes[hashReadIndex++];
       continue;
     }
 
     const flag = and(rightShift(flags, i), oneBuffer).equals(oneBuffer);
-
-    const left = flag
-      ? useElements
-        ? hashNode(prefixBuffer, elements[elementIndex++])
-        : hashes[hashReadIndex++]
-      : decommitments[decommitmentIndex++];
-
+    const left = flag ? hashes[hashReadIndex++] : decommitments[decommitmentIndex++];
     hashReadIndex %= totalElements;
-    const right = useElements ? hashNode(prefixBuffer, elements[elementIndex++]) : hashes[hashReadIndex++];
+    const right = hashes[hashReadIndex++];
     hashes[hashWriteIndex++] = sortHashNode(left, right);
   }
 
@@ -327,60 +312,93 @@ const updateRootWithIndexedMultiProof = (
   }
 };
 
-// TODO: test this function
-// TODO: check if/how this is compatible with non-sorted-hash trees
-const updateRootWithFlagMultiProof = ({ root, flags, elements, newElements, decommitments = [] }, options = {}) => {
+// TODO: use separate set of flags for left/right hash order, allowing this to work for non-sorted-hash trees
+//       Should be able to infer indices of elements based on proof hash order and flags
+const updateRootWithFlagMultiProof = ({ root, flags, elements, newElements, decommitments = [], skips }, options = {}) => {
   const { elementPrefix = '00' } = options;
   const prefixBuffer = Buffer.from(elementPrefix, 'hex');
 
+  const flagCount = flags.length;
   const totalElements = elements.length;
-  const totalHashes = flags.length;
-  const hashes = new Array(totalHashes);
-  const newHashes = new Array(totalHashes);
-  let elementIndex = 0;
-  let hashIndex = 0;
+
+  // Keep verification minimal by using circular hashes queue with separate read and write heads
+  const hashes = elements.map(element => hashNode(prefixBuffer, element));
+  const newHashes = newElements.map(element => hashNode(prefixBuffer, element));
+  let hashReadIndex = 0;
+  let hashWriteIndex = 0;
   let decommitmentIndex = 0;
 
-  for (let i = 0; i < totalHashes; i++) {
-    const useElements = elementIndex < totalElements;
+  for (let i = 0; i < flagCount; i++) {
+    hashReadIndex %= totalElements;
+    hashWriteIndex %= totalElements;
 
     if (skips && skips[i]) {
-      hashes[hashWriteIndex] = useElements ? hashNode(prefixBuffer, elements[elementIndex]) : hashes[hashReadIndex];
-      newHashes[hashWriteIndex++] = useElements
-        ? hashNode(prefixBuffer, newElements[elementIndex++])
-        : hashes[hashReadIndex++];
+      // TODO: check if these next lines can be skipped. I don't think they can.
+      hashes[hashWriteIndex] = hashes[hashReadIndex];
+      newHashes[hashWriteIndex++] = newHashes[hashReadIndex++];
       continue;
     }
 
-    const left = flags[i]
-      ? useElements
-        ? hashNode(prefixBuffer, elements[elementIndex])
-        : hashes[hashIndex]
-      : decommitments[decommitmentIndex];
-
-    const right = useElements ? hashNode(prefixBuffer, elements[elementIndex]) : hashes[hashIndex];
-    hashes[i] = sortHashNode(left, right);
-
-    const newLeft = flags[i]
-      ? useElements
-        ? hashNode(prefixBuffer, newElements[elementIndex])
-        : newHashes[hashIndex++]
-      : decommitments[decommitmentIndex++];
-
-    const newRight = useElements ? hashNode(prefixBuffer, newElements[elementIndex]) : newHashes[hashIndex++];
-    newHashes[i] = sortHashNode(newLeft, newRight);
+    const left = flags[i] ? hashes[hashReadIndex] : decommitments[decommitmentIndex];
+    const newLeft = flags[i] ? newHashes[hashReadIndex++] : decommitments[decommitmentIndex++];
+    hashReadIndex %= totalElements;
+    const right = hashes[hashReadIndex];
+    const newRight = newHashes[hashReadIndex++];
+    hashes[hashWriteIndex] = sortHashNode(left, right);
+    newHashes[hashWriteIndex++] = sortHashNode(newLeft, newRight);
   }
 
-  assert(hashes[totalHashes - 1].equals(root), 'Invalid proof.');
+  const rootIndex = (hashWriteIndex === 0 ? totalElements : hashWriteIndex) - 1;
 
-  return { root: newHashes[totalHashes - 1] };
+  assert(hashes[rootIndex].equals(root), 'Invalid Proof.');
+
+  return { root: newHashes[rootIndex] };
 };
 
-// TODO: implement
-const updateRootWithBitFlagMultiProof = (
-  { root, flags, elements, newElements, decommitments = [] },
-  options = {}
-) => {};
+// TODO: use separate set of flags for left/right hash order, allowing this to work for non-sorted-hash trees
+//       Should be able to infer indices of elements based on proof hash order and flags
+const updateRootWithBitFlagMultiProof = ({ root, flags, flagCount, elements, newElements, decommitments = [], skips }, options = {}) => {
+  const { elementPrefix = '00' } = options;
+  const prefixBuffer = Buffer.from(elementPrefix, 'hex');
+
+  // Keep verification minimal by using circular hashes queue with separate read and write heads
+  const totalElements = elements.length;
+  const hashes = elements.map(element => hashNode(prefixBuffer, element));
+  const newHashes = newElements.map(element => hashNode(prefixBuffer, element));
+  let hashReadIndex = 0;
+  let hashWriteIndex = 0;
+  let decommitmentIndex = 0;
+  const oneBuffer = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
+
+  for (let i = 0; i < flagCount; i++) {
+    hashReadIndex %= totalElements;
+    hashWriteIndex %= totalElements;
+
+    const skip = skips && and(rightShift(skips, i), oneBuffer).equals(oneBuffer);
+
+    if (skip) {
+      // TODO: check if these next lines can be skipped. I don't think they can.
+      hashes[hashWriteIndex] = hashes[hashReadIndex];
+      newHashes[hashWriteIndex++] = newHashes[hashReadIndex++];
+      continue;
+    }
+
+    const flag = and(rightShift(flags, i), oneBuffer).equals(oneBuffer);
+    const left = flag ? hashes[hashReadIndex] : decommitments[decommitmentIndex];
+    const newLeft = flag ? newHashes[hashReadIndex++] : decommitments[decommitmentIndex++];
+    hashReadIndex %= totalElements;
+    const right = hashes[hashReadIndex];
+    const newRight = newHashes[hashReadIndex++];
+    hashes[hashWriteIndex] = sortHashNode(left, right);
+    newHashes[hashWriteIndex++] = sortHashNode(newLeft, newRight);
+  }
+
+  const rootIndex = (hashWriteIndex === 0 ? totalElements : hashWriteIndex) - 1;
+
+  assert(hashes[rootIndex].equals(root), 'Invalid Proof.')
+
+  return { root: newHashes[rootIndex] };
+};
 
 // TODO: consider a Proof class
 
@@ -632,9 +650,9 @@ class MerkleTree {
   //       - proving that elements are in the set (flag based)
   //       - proving that elements exist at specific indices (index based)
   generateMultiProof(indices, options = {}) {
-    const { indexed = false } = options;
+    const { indexed = false, bitFlag = false } = options;
     const generate = indexed ? generateIndexedMultiProof : generateFlagMultiProof;
-    const proof = generate(this._tree, indices, { unbalanced: this._unbalanced });
+    const proof = generate(this._tree, indices, { unbalanced: this._unbalanced, bitFlag });
     const elements = indices.map((index) => Buffer.from(this.elements[index]));
 
     return Object.assign({ elements }, proof);
