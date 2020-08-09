@@ -1737,72 +1737,398 @@ describe.only('Common Merkle-Tree', () => {
     });
   });
 
-  describe.skip('Append Proofs', () => {
+  describe('Append Proofs', () => {
     describe('Single Proof Generation', () => {
-      describe('Loop Algorithm', () => {
-        it('should generate an Append Proof for a 1-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false };
-          const elements = generateElements(3, { seed: 'ff' });
-          const merkleTree = new MerkleTree(elements, options);
-          const { root, decommitments } = merkleTree.generateAppendProof(options);
+      it('should generate an Append Proof for a 1-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(1, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const { root, elementCount, decommitments } = merkleTree.generateAppendProof(options);
 
-          const expectedDecommitments = [
-            'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-            'a7220cb76d040b2fdf4e25b319539c769eb77147fcb92b6ea8962cd04096c27b',
-          ];
+        const expectedDecommitments = ['0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60'];
+
+        expect(root.equals(merkleTree.root)).to.equal(true);
+        expect(elementCount).to.equal(1);
+        decommitments.forEach((decommitment, i) =>
+          expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+        );
+      });
+
+      it('should generate an Append Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(2, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const { root, elementCount, decommitments } = merkleTree.generateAppendProof(options);
+
+        const expectedDecommitments = ['a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27'];
+
+        expect(root.equals(merkleTree.root)).to.equal(true);
+        expect(elementCount).to.equal(2);
+        decommitments.forEach((decommitment, i) =>
+          expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+        );
+      });
+
+      it('should generate an Append Proof for a 3-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(3, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const { root, elementCount, decommitments } = merkleTree.generateAppendProof(options);
+
+        const expectedDecommitments = [
+          'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+          'a7220cb76d040b2fdf4e25b319539c769eb77147fcb92b6ea8962cd04096c27b',
+        ];
+
+        expect(root.equals(merkleTree.root)).to.equal(true);
+        expect(elementCount).to.equal(3);
+        decommitments.forEach((decommitment, i) =>
+          expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+        );
+      });
+
+      it('should generate an Append Proof for a 8-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(8, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const { root, elementCount, decommitments } = merkleTree.generateAppendProof(options);
+
+        const expectedDecommitments = ['0c67c6340449c320fb4966988f319713e0610c40237a05fdef8e5da8c66db8a4'];
+
+        expect(root.equals(merkleTree.root)).to.equal(true);
+        expect(elementCount).to.equal(8);
+        decommitments.forEach((decommitment, i) =>
+          expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+        );
+      });
+
+      it('should generate an Append Proof for a 15-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(15, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const { root, elementCount, decommitments } = merkleTree.generateAppendProof(options);
+
+        const expectedDecommitments = [
+          '0c67c6340449c320fb4966988f319713e0610c40237a05fdef8e5da8c66db8a4',
+          'd9df67e21f45396a2739193be4bb49cefb1ebac44dd283c07519b6de6f154f5b',
+          '712ed55abe1946b941876a6230b3135edadc400a18897e029ffdbff6900503e6',
+          'e481ff292c1b323f27dd2e7b0da511947e0d349a0616a739ea628a3a5888c529',
+        ];
+
+        expect(root.equals(merkleTree.root)).to.equal(true);
+        expect(elementCount).to.equal(15);
+        decommitments.forEach((decommitment, i) =>
+          expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+        );
+      });
+    });
+
+    describe('Append Proof Verification', () => {
+      it('should verify an Append Proof for a 1-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(1, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const proof = merkleTree.generateAppendProof(options);
+        const proofValid = MerkleTree.verifyAppendProof(proof, options);
+
+        expect(proofValid).to.equal(true);
+      });
+
+      it('should verify an Append Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(2, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const proof = merkleTree.generateAppendProof(options);
+        const proofValid = MerkleTree.verifyAppendProof(proof, options);
+
+        expect(proofValid).to.equal(true);
+      });
+
+      it('should verify an Append Proof for a 3-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(3, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const proof = merkleTree.generateAppendProof(options);
+        const proofValid = MerkleTree.verifyAppendProof(proof, options);
+
+        expect(proofValid).to.equal(true);
+      });
+
+      it('should verify an Append Proof for a 8-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(8, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const proof = merkleTree.generateAppendProof(options);
+        const proofValid = MerkleTree.verifyAppendProof(proof, options);
+
+        expect(proofValid).to.equal(true);
+      });
+
+      it('should verify an Append Proof for a 15-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(15, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const proof = merkleTree.generateAppendProof(options);
+        const proofValid = MerkleTree.verifyAppendProof(proof, options);
+
+        expect(proofValid).to.equal(true);
+      });
+
+      it('should verify an Append Proof for a 1-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        const elements = generateElements(1, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const proof = merkleTree.generateAppendProof(options);
+        const proofValid = MerkleTree.verifyAppendProof(proof, options);
+
+        expect(proofValid).to.equal(true);
+      });
+
+      it('should verify an Append Proof for a 2-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        const elements = generateElements(2, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const proof = merkleTree.generateAppendProof(options);
+        const proofValid = MerkleTree.verifyAppendProof(proof, options);
+
+        expect(proofValid).to.equal(true);
+      });
+
+      it('should verify an Append Proof for a 3-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        const elements = generateElements(3, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const proof = merkleTree.generateAppendProof(options);
+        const proofValid = MerkleTree.verifyAppendProof(proof, options);
+
+        expect(proofValid).to.equal(true);
+      });
+
+      it('should verify an Append Proof for a 8-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        const elements = generateElements(8, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const proof = merkleTree.generateAppendProof(options);
+        const proofValid = MerkleTree.verifyAppendProof(proof, options);
+
+        expect(proofValid).to.equal(true);
+      });
+
+      it('should verify an Append Proof for a 15-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        const elements = generateElements(15, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const proof = merkleTree.generateAppendProof(options);
+        const proofValid = MerkleTree.verifyAppendProof(proof, options);
+
+        expect(proofValid).to.equal(true);
+      });
+    });
+
+    describe('Append Proof Single Append', () => {
+      it('should verify an Append Proof for a 1-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(1, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const newElement = generateElements(1, { seed: '11' })[0];
+        const proof = merkleTree.generateSingleAppendProof(newElement);
+        const { root, elementCount } = MerkleTree.appendElementWithProof(proof, options);
+
+        const newElements = elements.concat(newElement);
+        const newMerkleTree1 = new MerkleTree(newElements, options);
+        const newMerkleTree2 = merkleTree.appendSingle(newElement);
+
+        expect(root.equals(newMerkleTree1.root)).to.equal(true);
+        expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        expect(elementCount).to.equal(newMerkleTree1.elements.length);
+        expect(elementCount).to.equal(newMerkleTree2.elements.length);
+      });
+
+      it('should verify an Append Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(2, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const newElement = generateElements(1, { seed: '11' })[0];
+        const proof = merkleTree.generateSingleAppendProof(newElement);
+        const { root, elementCount } = MerkleTree.appendElementWithProof(proof, options);
+
+        const newElements = elements.concat(newElement);
+        const newMerkleTree1 = new MerkleTree(newElements, options);
+        const newMerkleTree2 = merkleTree.appendSingle(newElement);
+
+        expect(root.equals(newMerkleTree1.root)).to.equal(true);
+        expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        expect(elementCount).to.equal(newMerkleTree1.elements.length);
+        expect(elementCount).to.equal(newMerkleTree2.elements.length);
+      });
+
+      it('should verify an Append Proof for a 3-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(3, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const newElement = generateElements(1, { seed: '11' })[0];
+        const proof = merkleTree.generateSingleAppendProof(newElement);
+        const { root, elementCount } = MerkleTree.appendElementWithProof(proof, options);
+
+        const newElements = elements.concat(newElement);
+        const newMerkleTree1 = new MerkleTree(newElements, options);
+        const newMerkleTree2 = merkleTree.appendSingle(newElement);
+
+        expect(root.equals(newMerkleTree1.root)).to.equal(true);
+        expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        expect(elementCount).to.equal(newMerkleTree1.elements.length);
+        expect(elementCount).to.equal(newMerkleTree2.elements.length);
+      });
+
+      it('should verify an Append Proof for a 8-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(8, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const newElement = generateElements(1, { seed: '11' })[0];
+        const proof = merkleTree.generateSingleAppendProof(newElement);
+        const { root, elementCount } = MerkleTree.appendElementWithProof(proof, options);
+
+        const newElements = elements.concat(newElement);
+        const newMerkleTree1 = new MerkleTree(newElements, options);
+        const newMerkleTree2 = merkleTree.appendSingle(newElement);
+
+        expect(root.equals(newMerkleTree1.root)).to.equal(true);
+        expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        expect(elementCount).to.equal(newMerkleTree1.elements.length);
+        expect(elementCount).to.equal(newMerkleTree2.elements.length);
+      });
+
+      it('should verify an Append Proof for a 15-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        const elements = generateElements(15, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const newElement = generateElements(1, { seed: '11' })[0];
+        const proof = merkleTree.generateSingleAppendProof(newElement);
+        const { root, elementCount } = MerkleTree.appendElementWithProof(proof, options);
+
+        const newElements = elements.concat(newElement);
+        const newMerkleTree1 = new MerkleTree(newElements, options);
+        const newMerkleTree2 = merkleTree.appendSingle(newElement);
+
+        expect(root.equals(newMerkleTree1.root)).to.equal(true);
+        expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        expect(elementCount).to.equal(newMerkleTree1.elements.length);
+        expect(elementCount).to.equal(newMerkleTree2.elements.length);
+      });
+
+      it('should verify an Append Proof for a 1-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        const elements = generateElements(1, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const newElement = generateElements(1, { seed: '11' })[0];
+        const proof = merkleTree.generateSingleAppendProof(newElement);
+        const { root, elementCount } = MerkleTree.appendElementWithProof(proof, options);
+
+        const newElements = elements.concat(newElement);
+        const newMerkleTree1 = new MerkleTree(newElements, options);
+        const newMerkleTree2 = merkleTree.appendSingle(newElement);
+
+        expect(root.equals(newMerkleTree1.root)).to.equal(true);
+        expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        expect(elementCount).to.equal(newMerkleTree1.elements.length);
+        expect(elementCount).to.equal(newMerkleTree2.elements.length);
+      });
+
+      it('should verify an Append Proof for a 2-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        const elements = generateElements(2, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const newElement = generateElements(1, { seed: '11' })[0];
+        const proof = merkleTree.generateSingleAppendProof(newElement);
+        const { root, elementCount } = MerkleTree.appendElementWithProof(proof, options);
+
+        const newElements = elements.concat(newElement);
+        const newMerkleTree1 = new MerkleTree(newElements, options);
+        const newMerkleTree2 = merkleTree.appendSingle(newElement);
+
+        expect(root.equals(newMerkleTree1.root)).to.equal(true);
+        expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        expect(elementCount).to.equal(newMerkleTree1.elements.length);
+        expect(elementCount).to.equal(newMerkleTree2.elements.length);
+      });
+
+      it('should verify an Append Proof for a 3-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        const elements = generateElements(3, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const newElement = generateElements(1, { seed: '11' })[0];
+        const proof = merkleTree.generateSingleAppendProof(newElement);
+        const { root, elementCount } = MerkleTree.appendElementWithProof(proof, options);
+
+        const newElements = elements.concat(newElement);
+        const newMerkleTree1 = new MerkleTree(newElements, options);
+        const newMerkleTree2 = merkleTree.appendSingle(newElement);
+
+        expect(root.equals(newMerkleTree1.root)).to.equal(true);
+        expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        expect(elementCount).to.equal(newMerkleTree1.elements.length);
+        expect(elementCount).to.equal(newMerkleTree2.elements.length);
+      });
+
+      it('should verify an Append Proof for a 8-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        const elements = generateElements(8, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const newElement = generateElements(1, { seed: '11' })[0];
+        const proof = merkleTree.generateSingleAppendProof(newElement);
+        const { root, elementCount } = MerkleTree.appendElementWithProof(proof, options);
+
+        const newElements = elements.concat(newElement);
+        const newMerkleTree1 = new MerkleTree(newElements, options);
+        const newMerkleTree2 = merkleTree.appendSingle(newElement);
+
+        expect(root.equals(newMerkleTree1.root)).to.equal(true);
+        expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        expect(elementCount).to.equal(newMerkleTree1.elements.length);
+        expect(elementCount).to.equal(newMerkleTree2.elements.length);
+      });
+
+      it('should verify an Append Proof for a 15-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        const elements = generateElements(15, { seed: 'ff' });
+        const merkleTree = new MerkleTree(elements, options);
+        const newElement = generateElements(1, { seed: '11' })[0];
+        const proof = merkleTree.generateSingleAppendProof(newElement);
+        const { root, elementCount } = MerkleTree.appendElementWithProof(proof, options);
+
+        const newElements = elements.concat(newElement);
+        const newMerkleTree1 = new MerkleTree(newElements, options);
+        const newMerkleTree2 = merkleTree.appendSingle(newElement);
+
+        expect(root.equals(newMerkleTree1.root)).to.equal(true);
+        expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        expect(elementCount).to.equal(newMerkleTree1.elements.length);
+        expect(elementCount).to.equal(newMerkleTree2.elements.length);
+      });
+    });
+
+    describe('Append Proof Update Consecutive Uses', () => {
+      it('should use 100 Append Proofs for a 15-element Merkle Tree, to append an 100 elements consecutively.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        let elements = generateElements(15);
+        let merkleTree = new MerkleTree(elements, options);
+
+        // Elements to be appended consecutively
+        const newElements = generateElements(100);
+
+        newElements.forEach((newElement) => {
+          const proof = merkleTree.generateSingleAppendProof(newElement);
+          const { root, elementCount } = MerkleTree.appendElementWithProof(proof, options);
+
+          elements.push(newElement);
+          merkleTree = merkleTree.appendSingle(newElement);
 
           expect(root.equals(merkleTree.root)).to.equal(true);
-          decommitments.forEach((decommitment, i) =>
-            expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
-          );
-        });
-
-        it('should generate an Append Proof for a 8-element Merkle Tree.', () => {
-          const options = { unbalanced: false, sortedHash: false };
-          const elements = generateElements(8, { seed: 'ff' });
-          const merkleTree = new MerkleTree(elements, options);
-          const { root, index, element, decommitments } = merkleTree.generateSingleProof(2);
-
-          const expectedDecommitments = [
-            'babbf2a0bca3f1360d7706d6d175f3380c5973df4b2d1bb19a9496792891697d',
-            'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-            'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
-          ];
-
-          expect(root.equals(merkleTree.root)).to.equal(true);
-          expect(index).to.equal(2);
-          expect(element.equals(elements[2])).to.equal(true);
-          decommitments.forEach((decommitment, i) =>
-            expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
-          );
-        });
-
-        it('should generate an Append Proof for a 15-element Merkle Tree.', () => {
-          const options = { unbalanced: false, sortedHash: false };
-          const elements = generateElements(8, { seed: 'ff' });
-          const merkleTree = new MerkleTree(elements, options);
-          const { root, index, element, decommitments } = merkleTree.generateSingleProof(2);
-
-          const expectedDecommitments = [
-            'babbf2a0bca3f1360d7706d6d175f3380c5973df4b2d1bb19a9496792891697d',
-            'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-            'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
-          ];
-
-          expect(root.equals(merkleTree.root)).to.equal(true);
-          expect(index).to.equal(2);
-          expect(element.equals(elements[2])).to.equal(true);
-          decommitments.forEach((decommitment, i) =>
-            expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
-          );
+          expect(elementCount).to.equal(merkleTree.elements.length);
         });
       });
     });
 
-    describe('Append Proof Verification', () => {});
-
-    describe('Append Proof Single Append', () => {});
-
-    describe('Append Proof Multi Append', () => {});
+    describe.skip('Append Proof Multi Append (TODO)', () => {});
   });
 });

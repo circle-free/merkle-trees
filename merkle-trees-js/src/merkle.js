@@ -1,58 +1,6 @@
 const assert = require('assert');
 const { rightShift, and } = require('bitwise-buffer');
-const { hashNode, sortHashNode, to32ByteBoolBuffer, to32ByteBuffer, nextPowerOf2 } = require('./utils');
-
-const generateAppendProofRecursivelyWith = (tree, leafCount, decommitments = []) => {
-  const depth = getDepthFromLeafCount(leafCount);
-
-  if (depth <= 1) return decommitments;
-
-  const newDecommitments = leafCount & 1 ? [tree[(1 << depth) + leafCount - 1]] : [];
-
-  return generateAppendProofRecursivelyWith(tree, leafCount >> 1, newDecommitments.concat(decommitments));
-};
-
-const generateAppendProofRecursively = (tree, elementCount) => {
-  const decommitments = generateAppendProofRecursivelyWith(tree, elementCount).map(Buffer.from);
-
-  return {
-    root: Buffer.from(tree[1]),
-    decommitments: decommitments.length === 0 ? [] : [tree[2], ...decommitments],
-  };
-};
-
-const generateAppendProofLoop = (tree, elementCount) => {
-  // The idea here is that we only need nodes/proof from the left of the append index
-  // since there are no real nodes/leafs to the right of the append index
-  // (i.e. a lone rightmost 9th leafs is its parent, grandparent, and great grandparent)
-  // So, we start at the top level (2 nodes) and determine the subtree of the append index.
-  // If it is on the right (hint, at level 1 it always is, by definition) then we pull in the
-  // left subtrees hash, track the offset in the serialized tree structure, and move down a
-  // level. Note that when we move down a level, the offset doubles.
-  const decommitments = [];
-
-  let numBranchesOnNodes = tree.length >> 1;
-  let appendIndex = elementCount;
-  let level = 1;
-  let offset = 0;
-
-  while (true) {
-    // appendIndex must always be localized to given subtree
-    appendIndex = appendIndex % numBranchesOnNodes;
-    numBranchesOnNodes >>= 1; // divide by 2
-    offset <<= 1; // multiply by 2
-
-    if (numBranchesOnNodes === 0) return { root: tree[1], decommitments };
-
-    if (appendIndex >= numBranchesOnNodes) {
-      // appendIndex is in the right subtree
-      decommitments.push(tree[(1 << level) + offset]);
-      offset += 1;
-    }
-
-    level += 1;
-  }
-};
+const { hashNode, sortHashNode, to32ByteBoolBuffer, to32ByteBuffer, nextPowerOf2, bitCount32 } = require('./utils');
 
 // TODO: implement and test for unbalanced trees
 // NOTE: indices must be in descending order
@@ -497,6 +445,7 @@ class MerkleTree {
     return MerkleTree.computeMixedRoot(elementCount, hash).equals(root);
   }
 
+  // TODO: this can probably be cheaper with sortedHash given that element count is required
   // TODO: make work with unbalanced trees
   static updateWithSingleProof({ root, elementCount, index, element, newElement, decommitments = [] }, options = {}) {
     const { sortedHash = false, elementPrefix = '00' } = options;
@@ -517,33 +466,35 @@ class MerkleTree {
     return { root: MerkleTree.computeMixedRoot(elementCount, newHash) };
   }
 
-  static appendElementWithProof({ element, root, decommitments = [] }, options = {}) {
-    assert(decommitments.length, 'Unexpected number of decommitments.');
+  static appendElementWithProof({ root, elementCount, newElement, decommitments = [] }, options = {}) {
+    assert(decommitments.length === bitCount32(elementCount), 'Unexpected number of decommitments.');
 
     const { sortedHash = false, elementPrefix = '00' } = options;
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashPair = sortedHash ? sortHashNode : hashNode;
 
-    // Clone decommitments so we don't destroy/consume it
-    const queue = decommitments.map(Buffer.from);
+    // Clone decommitments array so we don't destroy/consume it
+    const queue = decommitments.map((d) => d);
     const n = queue.length - 1;
 
     // As we verify the proof, we'll build the new root in parallel, since the
     // verification loop will consume the queue/stack
-    let newRoot = hashPair(queue[n], hashNode(prefixBuffer, element));
+    let newRoot = hashPair(queue[n], hashNode(prefixBuffer, newElement));
 
     for (let i = n; i > 0; i--) {
       newRoot = hashPair(queue[i - 1], newRoot);
       queue[i - 1] = hashPair(queue[i - 1], queue[i]);
     }
 
-    assert(queue[0].equals(root), 'Invalid Proof');
+    assert(MerkleTree.verifyMixedRoot(root, elementCount, queue[0]), 'Invalid Proof');
 
-    return { root: newRoot };
+    const newElementCount = elementCount + 1;
+
+    return { root: MerkleTree.computeMixedRoot(newElementCount, newRoot), elementCount: newElementCount };
   }
 
-  static verifyAppendProof({ root, decommitments = [] }, options = {}) {
-    assert(decommitments.length, 'Unexpected number of decommitments.');
+  static verifyAppendProof({ root, elementCount, decommitments = [] }, options = {}) {
+    assert(decommitments.length === bitCount32(elementCount), 'Unexpected number of decommitments.');
 
     const { sortedHash = false } = options;
     const hashPair = sortedHash ? sortHashNode : hashNode;
@@ -556,7 +507,7 @@ class MerkleTree {
       queue[i - 1] = hashPair(queue[i - 1], queue[i]);
     }
 
-    return queue[0].equals(root);
+    return MerkleTree.verifyMixedRoot(root, elementCount, queue[0]);
   }
 
   // TODO: implement
@@ -645,11 +596,41 @@ class MerkleTree {
     return new MerkleTree(newElements, options);
   }
 
-  generateAppendProof(options = {}) {
-    const { recursively = false } = options;
-    const generate = recursively ? generateAppendProofRecursively : generateAppendProofLoop;
+  generateAppendProof() {
+    // The idea here is that we only need nodes/proof from the left of the append index
+    // since there are no real nodes/leafs to the right of the append index
+    // (i.e. a lone rightmost 9th leafs is its parent, grandparent, and great grandparent)
+    // So, we start at the top level (2 nodes) and determine the subtree of the append index.
+    // If it is on the right (hint, at level 1 it always is, by definition) then we pull in the
+    // left subtrees hash, track the offset in the serialized tree structure, and move down a
+    // level. Note that when we move down a level, the offset doubles.
+    const decommitments = [];
+    const elementCount = this._elements.length;
 
-    return generate(this._tree, this._elements.length);
+    let numBranchesOnNodes = this._tree.length >> 1;
+    let appendIndex = elementCount;
+    let level = 0;
+    let offset = 0;
+
+    while (true) {
+      if (numBranchesOnNodes === 0) return { root: this._tree[0], elementCount, decommitments };
+
+      if (appendIndex >= numBranchesOnNodes) {
+        // appendIndex is in the right subtree
+        decommitments.push(this._tree[(1 << level) + offset]);
+        offset += 1;
+      }
+
+      // appendIndex must always be localized to given subtree
+      appendIndex = appendIndex % numBranchesOnNodes;
+      numBranchesOnNodes >>= 1; // divide by 2
+      offset <<= 1; // multiply by 2
+      level += 1;
+    }
+  }
+
+  generateSingleAppendProof(element) {
+    return Object.assign({ newElement: Buffer.from(element) }, this.generateAppendProof());
   }
 
   appendSingle(element) {
