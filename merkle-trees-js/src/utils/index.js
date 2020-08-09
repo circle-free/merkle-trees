@@ -60,7 +60,7 @@ const to32ByteBoolBuffer = (booleans) => {
     : null;
 };
 
-const nextPowerOf2 = (number) => {
+const roundUpToPowerOf2 = (number) => {
   if (bitCount32(number) === 1) return number;
 
   number |= number >> 1;
@@ -68,7 +68,6 @@ const nextPowerOf2 = (number) => {
   number |= number >> 4;
   number |= number >> 8;
   number |= number >> 16;
-  number |= number >> 32;
 
   return number + 1;
 };
@@ -82,5 +81,5 @@ module.exports = {
   hashNode,
   sortHashNode,
   findLastIndex,
-  nextPowerOf2,
+  roundUpToPowerOf2,
 };

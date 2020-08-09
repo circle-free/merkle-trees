@@ -1,13 +1,20 @@
 const assert = require('assert');
 const { rightShift, and } = require('bitwise-buffer');
-const { hashNode, sortHashNode, to32ByteBoolBuffer, to32ByteBuffer, nextPowerOf2, bitCount32 } = require('./utils');
+const {
+  hashNode,
+  sortHashNode,
+  to32ByteBoolBuffer,
+  to32ByteBuffer,
+  roundUpToPowerOf2,
+  bitCount32,
+} = require('./utils');
 
 // TODO: implement and test for unbalanced trees
 // NOTE: indices must be in descending order
 const generateIndexedMultiProof = (tree, elementCount, indices) => {
   const known = Array(tree.length).fill(false);
   const decommitments = [];
-  const leafCount = nextPowerOf2(elementCount); // also tree.length >> 1
+  const leafCount = roundUpToPowerOf2(elementCount); // also tree.length >> 1
 
   for (let i = 0; i < indices.length; i++) {
     assert(i === 0 || indices[i - 1] > indices[i], 'Indices must be in descending order');
@@ -42,7 +49,7 @@ const generateFlagMultiProof = (tree, elementCount, indices, options = {}) => {
   const skips = [];
   let decommitmentIndices = [];
   let nextIds = [];
-  const leafCount = nextPowerOf2(elementCount); // also tree.length >> 1
+  const leafCount = roundUpToPowerOf2(elementCount); // also tree.length >> 1
   const treeDepth = MerkleTree.getDepthFromElementCount(leafCount);
 
   for (let depth = treeDepth; depth > 0; depth--) {
@@ -108,7 +115,7 @@ const verifyIndexedMultiProof = ({ root, elementCount, indices, elements, decomm
   const { sortedHash = true, elementPrefix = '00' } = options;
   const prefixBuffer = Buffer.from(elementPrefix, 'hex');
   const hashPair = sortedHash ? sortHashNode : hashNode;
-  const leafCount = nextPowerOf2(elementCount);
+  const leafCount = roundUpToPowerOf2(elementCount);
 
   // Clone decommitments so we don't destroy/consume it (when when shift the array)
   const decommits = decommitments.map(Buffer.from);
@@ -226,7 +233,7 @@ const updateRootWithIndexedMultiProof = (
   const { sortedHash = true, elementPrefix = '00' } = options;
   const prefixBuffer = Buffer.from(elementPrefix, 'hex');
   const hashPair = sortedHash ? sortHashNode : hashNode;
-  const leafCount = nextPowerOf2(elementCount);
+  const leafCount = roundUpToPowerOf2(elementCount);
 
   // Clone decommitments so we don't destroy/consume it (when when shift the array)
   const decommits = decommitments.map(Buffer.from);
@@ -376,7 +383,7 @@ class MerkleTree {
 
     this._elements = elements.map(Buffer.from);
     this._depth = MerkleTree.getDepthFromElements(this._elements);
-    this._leafCount = MerkleTree.getLeafCountFromDepth(this._depth);
+    this._leafCount = MerkleTree.getLeafCountFromElements(this._elements);
 
     assert(this._unbalanced || this._elements.length === this._leafCount, 'Incorrect element count for balanced tree');
 
@@ -417,15 +424,11 @@ class MerkleTree {
   }
 
   static getLeafCountFromElementCount(elementCount) {
-    return 1 << MerkleTree.getDepthFromElementCount(elementCount);
+    return roundUpToPowerOf2(elementCount);
   }
 
   static getLeafCountFromElements(elements) {
     return MerkleTree.getLeafCountFromElementCount(elements.length);
-  }
-
-  static getLeafCountFromDepth(depth) {
-    return 1 << depth;
   }
 
   // TODO: make work with unbalanced trees
