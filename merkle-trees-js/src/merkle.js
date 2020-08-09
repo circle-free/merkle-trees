@@ -415,14 +415,6 @@ class MerkleTree {
     this._tree[0] = MerkleTree.computeMixedRoot(this._elements.length, this._tree[1]);
   }
 
-  static getDepthFromElementCount(elementCount) {
-    return Math.ceil(Math.log2(elementCount));
-  }
-
-  static getDepthFromElements(elements) {
-    return MerkleTree.getDepthFromElementCount(elements.length);
-  }
-
   static getLeafCountFromElementCount(elementCount) {
     return roundUpToPowerOf2(elementCount);
   }
