@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { hashNode, getHashFunction, to32ByteBuffer } = require('./utils');
+const { hashNode, getHashFunction, to32ByteBuffer, bitCount32 } = require('./utils');
 const Common = require('./common');
 const SingleProofs = require('./single-proofs');
 const MultiIndexedProofs = require('./multi-indexed-proofs');
@@ -109,6 +109,8 @@ class MerkleTree {
     const { sortedHash = false, unbalanced = false } = options;
     const hashFunction = getHashFunction(unbalanced, sortedHash);
 
+    if (decommitments.length !== bitCount32(elementCount)) return false;
+
     const { root: recoveredRoot } = AppendProofs.getRoot({ elementCount, decommitments, hashFunction });
 
     return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot);
@@ -120,6 +122,8 @@ class MerkleTree {
     const newLeaf = hashNode(prefixBuffer, newElement);
     const newElementCount = elementCount + 1;
     const hashFunction = getHashFunction(unbalanced, sortedHash);
+
+    if (decommitments.length !== bitCount32(elementCount)) return false;
 
     const { root: recoveredRoot, newRoot } = AppendProofs.getNewRoot({
       newLeaf,

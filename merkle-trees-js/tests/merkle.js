@@ -141,6 +141,7 @@ describe('Common Merkle-Tree', () => {
           expect(elementCount).to.equal(8);
           expect(index).to.equal(2);
           expect(element.equals(elements[2])).to.equal(true);
+          expect(decommitments.length).to.equal(expectedDecommitments.length);
           decommitments.forEach((decommitment, i) =>
             expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
           );
@@ -158,6 +159,7 @@ describe('Common Merkle-Tree', () => {
           expect(elementCount).to.equal(1);
           expect(index).to.equal(0);
           expect(element.equals(elements[0])).to.equal(true);
+          expect(decommitments.length).to.equal(expectedDecommitments.length);
           decommitments.forEach((decommitment, i) =>
             expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
           );
@@ -179,6 +181,7 @@ describe('Common Merkle-Tree', () => {
           expect(elementCount).to.equal(8);
           expect(index).to.equal(2);
           expect(element.equals(elements[2])).to.equal(true);
+          expect(decommitments.length).to.equal(expectedDecommitments.length);
           decommitments.forEach((decommitment, i) =>
             expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
           );
@@ -196,6 +199,7 @@ describe('Common Merkle-Tree', () => {
           expect(elementCount).to.equal(1);
           expect(index).to.equal(0);
           expect(element.equals(elements[0])).to.equal(true);
+          expect(decommitments.length).to.equal(expectedDecommitments.length);
           decommitments.forEach((decommitment, i) =>
             expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
           );
@@ -220,6 +224,7 @@ describe('Common Merkle-Tree', () => {
           expect(balancedProof.elementCount).to.equal(unbalancedProof.elementCount);
           expect(balancedProof.index).to.equal(unbalancedProof.index);
           expect(balancedProof.element.equals(unbalancedProof.element)).to.equal(true);
+          expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
           balancedProof.decommitments.forEach((decommitment, i) =>
             expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
           );
@@ -236,6 +241,7 @@ describe('Common Merkle-Tree', () => {
           expect(balancedProof.elementCount).to.equal(unbalancedProof.elementCount);
           expect(balancedProof.index).to.equal(unbalancedProof.index);
           expect(balancedProof.element.equals(unbalancedProof.element)).to.equal(true);
+          expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
           balancedProof.decommitments.forEach((decommitment, i) =>
             expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
           );
@@ -478,7 +484,9 @@ describe('Common Merkle-Tree', () => {
             expect(proof.root.equals(merkleTree.root)).to.equal(true);
             expect(proof.elementCount).to.equal(merkleTree.elements.length);
             expect(proof.indices).to.deep.equal(indices);
+            expect(proof.elements.length).to.equal(indices.length);
             proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+            expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
             proof.decommitments.forEach((decommitment, i) =>
               expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
             );
@@ -496,7 +504,9 @@ describe('Common Merkle-Tree', () => {
             expect(proof.root.equals(merkleTree.root)).to.equal(true);
             expect(proof.elementCount).to.equal(merkleTree.elements.length);
             expect(proof.indices).to.deep.equal(indices);
+            expect(proof.elements.length).to.equal(indices.length);
             proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+            expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
             proof.decommitments.forEach((decommitment, i) =>
               expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
             );
@@ -518,7 +528,9 @@ describe('Common Merkle-Tree', () => {
             expect(proof.root.equals(merkleTree.root)).to.equal(true);
             expect(proof.elementCount).to.equal(merkleTree.elements.length);
             expect(proof.indices).to.deep.equal(indices);
+            expect(proof.elements.length).to.equal(indices.length);
             proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+            expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
             proof.decommitments.forEach((decommitment, i) =>
               expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
             );
@@ -536,7 +548,9 @@ describe('Common Merkle-Tree', () => {
             expect(proof.root.equals(merkleTree.root)).to.equal(true);
             expect(proof.elementCount).to.equal(merkleTree.elements.length);
             expect(proof.indices).to.deep.equal(indices);
+            expect(proof.elements.length).to.equal(indices.length);
             proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+            expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
             proof.decommitments.forEach((decommitment, i) =>
               expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
             );
@@ -568,9 +582,11 @@ describe('Common Merkle-Tree', () => {
             balancedProof.elements.forEach((element, i) =>
               expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
             );
+            expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
             balancedProof.decommitments.forEach((decommitment, i) =>
               expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
             );
+            expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
           });
 
           it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
@@ -591,9 +607,11 @@ describe('Common Merkle-Tree', () => {
             balancedProof.elements.forEach((element, i) =>
               expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
             );
+            expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
             balancedProof.decommitments.forEach((decommitment, i) =>
               expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
             );
+            expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
           });
         });
       });
@@ -897,11 +915,13 @@ describe('Common Merkle-Tree', () => {
               expect(proof.root.equals(merkleTree.root)).to.equal(true);
               expect(proof.elementCount).to.deep.equal(8);
               proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+              expect(proof.elements.length).to.equal(indices.length);
               expect(proof.flags).to.deep.equal(expectedFlags);
               expect(proof.skips).to.deep.equal(expectedSkips);
               proof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
               );
+              expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
             });
 
             it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree, in descending order.', () => {
@@ -923,11 +943,13 @@ describe('Common Merkle-Tree', () => {
               expect(proof.root.equals(merkleTree.root)).to.equal(true);
               expect(proof.elementCount).to.deep.equal(8);
               proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+              expect(proof.elements.length).to.equal(indices.length);
               expect(proof.flags).to.deep.equal(expectedFlags);
               expect(proof.skips).to.deep.equal(expectedSkips);
               proof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
               );
+              expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
             });
 
             it('should generate a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
@@ -944,11 +966,13 @@ describe('Common Merkle-Tree', () => {
               expect(proof.root.equals(merkleTree.root)).to.equal(true);
               expect(proof.elementCount).to.deep.equal(1);
               proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+              expect(proof.elements.length).to.equal(indices.length);
               expect(proof.flags).to.deep.equal(expectedFlags);
               expect(proof.skips).to.deep.equal(expectedSkips);
               proof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
               );
+              expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
             });
           });
 
@@ -975,11 +999,13 @@ describe('Common Merkle-Tree', () => {
               balancedProof.elements.forEach((element, i) =>
                 expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
               );
+              expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
               expect(balancedProof.flags).to.deep.equal(unbalancedProof.flags);
               expect(balancedProof.skips).to.deep.equal(unbalancedProof.skips);
               balancedProof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
               );
+              expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
             });
 
             it('should generate the same Multi Proof for a 8-element Merkle Tree, in descending order.', () => {
@@ -998,11 +1024,13 @@ describe('Common Merkle-Tree', () => {
               balancedProof.elements.forEach((element, i) =>
                 expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
               );
+              expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
               expect(balancedProof.flags).to.deep.equal(unbalancedProof.flags);
               expect(balancedProof.skips).to.deep.equal(unbalancedProof.skips);
               balancedProof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
               );
+              expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
             });
 
             it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree, in ascending order.', () => {
@@ -1021,11 +1049,13 @@ describe('Common Merkle-Tree', () => {
               balancedProof.elements.forEach((element, i) =>
                 expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
               );
+              expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
               expect(balancedProof.flags).to.deep.equal(unbalancedProof.flags);
               expect(balancedProof.skips).to.deep.equal(unbalancedProof.skips);
               balancedProof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
               );
+              expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
             });
 
             it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree, in descending order.', () => {
@@ -1044,11 +1074,13 @@ describe('Common Merkle-Tree', () => {
               balancedProof.elements.forEach((element, i) =>
                 expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
               );
+              expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
               expect(balancedProof.flags).to.deep.equal(unbalancedProof.flags);
               expect(balancedProof.skips).to.deep.equal(unbalancedProof.skips);
               balancedProof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
               );
+              expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
             });
           });
         });
@@ -1319,12 +1351,14 @@ describe('Common Merkle-Tree', () => {
               expect(proof.root.equals(merkleTree.root)).to.equal(true);
               expect(proof.elementCount).to.equal(8);
               proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+              expect(proof.elements.length).to.equal(indices.length);
               expect(proof.flags.equals(expectedFlags)).to.equal(true);
               expect(proof.hashCount).to.equal(5);
               expect(proof.skips.equals(expectedSkips)).to.equal(true);
               proof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
               );
+              expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
             });
 
             it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree, in descending order.', () => {
@@ -1352,12 +1386,14 @@ describe('Common Merkle-Tree', () => {
               expect(proof.root.equals(merkleTree.root)).to.equal(true);
               expect(proof.elementCount).to.equal(8);
               proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+              expect(proof.elements.length).to.equal(indices.length);
               expect(proof.flags.equals(expectedFlags)).to.equal(true);
               expect(proof.hashCount).to.equal(5);
               expect(proof.skips.equals(expectedSkips)).to.equal(true);
               proof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
               );
+              expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
             });
 
             it('should generate a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
@@ -1380,12 +1416,14 @@ describe('Common Merkle-Tree', () => {
               expect(proof.root.equals(merkleTree.root)).to.equal(true);
               expect(proof.elementCount).to.equal(1);
               proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+              expect(proof.elements.length).to.equal(indices.length);
               expect(proof.flags.equals(expectedFlags)).to.equal(true);
               expect(proof.hashCount).to.equal(0);
               expect(proof.skips.equals(expectedSkips)).to.equal(true);
               proof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
               );
+              expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
             });
           });
 
@@ -1413,11 +1451,13 @@ describe('Common Merkle-Tree', () => {
               balancedProof.elements.forEach((element, i) =>
                 expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
               );
+              expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
               expect(balancedProof.flags).to.deep.equal(unbalancedProof.flags);
               expect(balancedProof.skips).to.deep.equal(unbalancedProof.skips);
               balancedProof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
               );
+              expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
             });
 
             it('should generate the same Multi Proof for a 8-element Merkle Tree, in descending order.', () => {
@@ -1437,11 +1477,13 @@ describe('Common Merkle-Tree', () => {
               balancedProof.elements.forEach((element, i) =>
                 expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
               );
+              expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
               expect(balancedProof.flags).to.deep.equal(unbalancedProof.flags);
               expect(balancedProof.skips).to.deep.equal(unbalancedProof.skips);
               balancedProof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
               );
+              expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
             });
 
             it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree, in ascending order.', () => {
@@ -1461,11 +1503,13 @@ describe('Common Merkle-Tree', () => {
               balancedProof.elements.forEach((element, i) =>
                 expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
               );
+              expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
               expect(balancedProof.flags).to.deep.equal(unbalancedProof.flags);
               expect(balancedProof.skips).to.deep.equal(unbalancedProof.skips);
               balancedProof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
               );
+              expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
             });
 
             it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree, in descending order.', () => {
@@ -1485,11 +1529,13 @@ describe('Common Merkle-Tree', () => {
               balancedProof.elements.forEach((element, i) =>
                 expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
               );
+              expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
               expect(balancedProof.flags).to.deep.equal(unbalancedProof.flags);
               expect(balancedProof.skips).to.deep.equal(unbalancedProof.skips);
               balancedProof.decommitments.forEach((decommitment, i) =>
                 expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
               );
+              expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
             });
           });
         });
@@ -1752,6 +1798,7 @@ describe('Common Merkle-Tree', () => {
         decommitments.forEach((decommitment, i) =>
           expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
         );
+        expect(decommitments.length).to.equal(expectedDecommitments.length);
       });
 
       it('should generate an Append Proof for a 2-element Merkle Tree.', () => {
@@ -1767,6 +1814,7 @@ describe('Common Merkle-Tree', () => {
         decommitments.forEach((decommitment, i) =>
           expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
         );
+        expect(decommitments.length).to.equal(expectedDecommitments.length);
       });
 
       it('should generate an Append Proof for a 3-element Merkle Tree.', () => {
@@ -1785,6 +1833,7 @@ describe('Common Merkle-Tree', () => {
         decommitments.forEach((decommitment, i) =>
           expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
         );
+        expect(decommitments.length).to.equal(expectedDecommitments.length);
       });
 
       it('should generate an Append Proof for a 8-element Merkle Tree.', () => {
@@ -1800,6 +1849,7 @@ describe('Common Merkle-Tree', () => {
         decommitments.forEach((decommitment, i) =>
           expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
         );
+        expect(decommitments.length).to.equal(expectedDecommitments.length);
       });
 
       it('should generate an Append Proof for a 15-element Merkle Tree.', () => {
@@ -1820,6 +1870,7 @@ describe('Common Merkle-Tree', () => {
         decommitments.forEach((decommitment, i) =>
           expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
         );
+        expect(decommitments.length).to.equal(expectedDecommitments.length);
       });
     });
 
