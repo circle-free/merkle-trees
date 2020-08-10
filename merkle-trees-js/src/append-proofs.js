@@ -49,7 +49,7 @@ const getRoot = ({ elementCount, decommitments, hashFunction }) => {
   return { root: queue[0] };
 };
 
-const getNewRoot = ({ newLeaf, elementCount, decommitments, hashFunction }) => {
+const getNewRootSingle = ({ newLeaf, elementCount, decommitments, hashFunction }) => {
   assert(decommitments.length === bitCount32(elementCount), 'Unexpected number of decommitments.');
 
   // Clone decommitments array so we don't destroy/consume it
@@ -66,6 +66,12 @@ const getNewRoot = ({ newLeaf, elementCount, decommitments, hashFunction }) => {
   }
 
   return { root: queue[0], newRoot };
+};
+
+const getNewRootMulti = ({ index, leaf, newLeafs, decommitments, hashFunction }) => {};
+
+const getNewRoot = (parameters) => {
+  return parameters.newLeafs ? getNewRootMulti(parameters) : getNewRootSingle(parameters);
 };
 
 module.exports = { generate, getRoot, getNewRoot };

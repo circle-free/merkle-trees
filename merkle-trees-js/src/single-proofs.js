@@ -25,7 +25,7 @@ const getRoot = ({ index, leaf, decommitments, hashFunction }) => {
   return { root: hash };
 };
 
-const getNewRootSingle = ({ index, leaf, newLeaf, decommitments, hashFunction }) => {
+const getNewRoot = ({ index, leaf, newLeaf, decommitments, hashFunction }) => {
   let hash = Buffer.from(leaf);
   let newHash = Buffer.from(newLeaf);
 
@@ -36,12 +36,6 @@ const getNewRootSingle = ({ index, leaf, newLeaf, decommitments, hashFunction })
   }
 
   return { root: hash, newRoot: newHash };
-};
-
-const getNewRootMulti = ({ index, leaf, newLeafs, decommitments, hashFunction }) => {};
-
-const getNewRoot = (parameters) => {
-  return parameters.newLeafs ? getNewRootMulti(parameters) : getNewRootSingle(parameters);
 };
 
 module.exports = { generate, getRoot, getNewRoot };
