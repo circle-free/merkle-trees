@@ -4,7 +4,6 @@ const assert = require('assert');
 
 // NOTE: indices must be in descending order
 
-// TODO: implement and test for unbalanced trees
 const generate = ({ tree, indices }) => {
   const known = Array(tree.length).fill(false);
   const decommitments = [];
@@ -27,67 +26,73 @@ const generate = ({ tree, indices }) => {
   return { decommitments: decommitments.map(Buffer.from) };
 };
 
-// TODO: refactor to use read/write heads on decommitments
-// TODO: test if/how this works with sortedHash
 const getRoot = ({ indices, leafs, leafCount, decommitments, hashFunction }) => {
-  // Clone decommitments so we don't destroy/consume it (when when shift the array)
-  const decommits = decommitments.map((d) => d);
-  const queue = leafs.map((leaf, i) => ({ index: leafCount + indices[i], node: leaf }));
+  const treeIndices = indices.map((index) => leafCount + index);
+  const hashes = leafs.map((leaf) => leaf);
+  let hashReadIndex = 0;
+  let hashWriteIndex = 0;
+  let decommitmentIndex = 0;
 
   while (true) {
-    assert(queue.length >= 1, 'Something went wrong.');
-
-    const { index, node } = queue.shift();
+    const index = treeIndices[hashReadIndex];
 
     if (index === 1) {
-      // tree index 1, so return root
-      return { root: Buffer.from(node) };
-    } else if ((index & 1) === 0) {
-      // Even nodes hashed with decommitment on right
-      queue.push({ index: index >> 1, node: hashFunction(node, decommits.shift()) });
-    } else if (queue.length > 0 && queue[0].index === index - 1) {
-      // Odd nodes can be hashed with neighbor on left (hash stack)
-      queue.push({ index: index >> 1, node: hashFunction(queue.shift().node, node) });
-    } else {
-      // Remaining odd nodes hashed with decommitment on the left
-      queue.push({ index: index >> 1, node: hashFunction(decommits.shift(), node) });
+      const rootIndex = (hashWriteIndex === 0 ? indices.length : hashWriteIndex) - 1;
+
+      return { root: hashes[rootIndex] };
     }
+
+    const nextHashReadIndex = (hashReadIndex + 1) % indices.length;
+    const indexIsOdd = index & 1;
+    const nextIsPair = treeIndices[nextHashReadIndex] === index - 1;
+
+    const right = indexIsOdd ? hashes[hashReadIndex++] : decommitments[decommitmentIndex++];
+    hashReadIndex %= indices.length;
+    const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : hashes[hashReadIndex++];
+
+    treeIndices[hashWriteIndex] = index >> 1;
+    hashes[hashWriteIndex++] = hashFunction(left, right);
+    hashReadIndex %= indices.length;
+    hashWriteIndex %= indices.length;
   }
 };
 
-// TODO: refactor to use read/write heads on decommitments
-// TODO: test if/how this works with sortedHash
 const getNewRoot = ({ indices, leafs, newLeafs, leafCount, decommitments, hashFunction }) => {
-  // Clone decommitments so we don't destroy/consume it (when when shift the array)
-  const decommits = decommitments.map(Buffer.from);
-  const queue = leafs.map((leaf, i) => ({ index: leafCount + indices[i], node: leaf }));
-  const newQueue = newLeafs.map((leaf, i) => ({ index: leafCount + indices[i], node: leaf }));
+  const treeIndices = indices.map((index) => leafCount + index);
+  const hashes = leafs.map((leaf) => leaf);
+  const newHashes = newLeafs.map((leaf) => leaf);
+  let hashReadIndex = 0;
+  let hashWriteIndex = 0;
+  let decommitmentIndex = 0;
 
   while (true) {
-    assert(queue.length >= 1, 'Something went wrong.');
-
-    const { index, node } = queue.shift();
-    const { node: newNode } = newQueue.shift();
+    const index = treeIndices[hashReadIndex];
 
     if (index === 1) {
-      // tree index 1, so return root
-      return { root: Buffer.from(node), newRoot: Buffer.from(newNode) };
-    } else if ((index & 1) === 0) {
-      // Even nodes hashed with decommitment on right
-      const decommitment = decommits.shift();
-      queue.push({ index: index >> 1, node: hashFunction(node, decommitment) });
-      newQueue.push({ index: index >> 1, node: hashFunction(newNode, decommitment) });
-    } else if (queue.length > 0 && queue[0].index === index - 1) {
-      // Odd nodes can be hashed with neighbor on left (hash stack)
-      queue.push({ index: index >> 1, node: hashFunction(queue.shift().node, node) });
-      newQueue.push({ index: index >> 1, node: hashFunction(newQueue.shift().node, newNode) });
-    } else {
-      // Remaining odd nodes hashed with decommitment on the left
-      const decommitment = decommits.shift();
-      queue.push({ index: index >> 1, node: hashFunction(decommitment, node) });
-      newQueue.push({ index: index >> 1, node: hashFunction(decommitment, newNode) });
+      const rootIndex = (hashWriteIndex === 0 ? indices.length : hashWriteIndex) - 1;
+
+      return { root: hashes[rootIndex], newRoot: newHashes[rootIndex] };
     }
+
+    const nextHashReadIndex = (hashReadIndex + 1) % indices.length;
+    const indexIsOdd = index & 1;
+    const nextIsPair = treeIndices[nextHashReadIndex] === index - 1;
+
+    const right = indexIsOdd ? hashes[hashReadIndex] : decommitments[decommitmentIndex];
+    const newRight = indexIsOdd ? newHashes[hashReadIndex++] : decommitments[decommitmentIndex++];
+    hashReadIndex %= indices.length;
+    const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex] : hashes[hashReadIndex];
+    const newLeft = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : newHashes[hashReadIndex++];
+
+    treeIndices[hashWriteIndex] = index >> 1;
+    hashes[hashWriteIndex] = hashFunction(left, right);
+    newHashes[hashWriteIndex++] = hashFunction(newLeft, newRight);
+    hashReadIndex %= indices.length;
+    hashWriteIndex %= indices.length;
   }
 };
 
 module.exports = { generate, getRoot, getNewRoot };
+
+// TODO: indexIsOdd is like a left flag, (indexIsOdd && !nextIsPair) is like a right flag, so do we need
+//       indices? Or rather, can they be inferred from flags?

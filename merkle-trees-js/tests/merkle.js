@@ -884,6 +884,39 @@ describe('Common Merkle-Tree', () => {
               expect(root.equals(merkleTree.root)).to.equal(true);
             });
           });
+
+          it('should use 100 Multi Proofs for a 16-element sorted-hash Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+            const options = { unbalanced: false, sortedHash: true, indexed: true };
+            let elements = generateElements(16);
+            let merkleTree = new MerkleTree(elements, options);
+
+            // Elements to be inserted at respective indices
+            const newElementsMatrix = Array.from({ length: 100 }, () => generateElements(6));
+            const rawIndicesMatrix = Array.from({ length: 100 }, () =>
+              Array.from({ length: 6 }, () => Math.floor(Math.random() * 16))
+            );
+            const indicesMatrix = rawIndicesMatrix.map((indices) =>
+              indices.filter((index, i) => indices.indexOf(index) === i).sort((a, b) => b - a)
+            );
+
+            newElementsMatrix.forEach((ne, i) => {
+              const indices = indicesMatrix[i];
+              const newElements = ne.slice(0, indices.length);
+
+              const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
+              const { root } = MerkleTree.updateWithMultiProof(proof, options);
+
+              elements = elements.map((element, i) => {
+                const index = indices.indexOf(i);
+
+                return index >= 0 ? newElements[index] : element;
+              });
+
+              merkleTree = merkleTree.updateMulti(indices, newElements);
+
+              expect(root.equals(merkleTree.root)).to.equal(true);
+            });
+          });
         });
 
         describe('Unbalanced', () => {

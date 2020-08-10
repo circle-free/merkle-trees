@@ -97,9 +97,6 @@ const getRootBooleans = ({ leafs, flags, skips, decommitments, hashFunction }) =
   let decommitmentIndex = 0;
 
   for (let i = 0; i < flagCount; i++) {
-    hashReadIndex %= leafCount;
-    hashWriteIndex %= leafCount;
-
     if (skips && skips[i]) {
       // TODO: check if this next line can be skipped. I don't think it can.
       hashes[hashWriteIndex++] = hashes[hashReadIndex++];
@@ -110,6 +107,9 @@ const getRootBooleans = ({ leafs, flags, skips, decommitments, hashFunction }) =
     hashReadIndex %= leafCount;
     const right = hashes[hashReadIndex++];
     hashes[hashWriteIndex++] = hashFunction(left, right);
+
+    hashReadIndex %= leafCount;
+    hashWriteIndex %= leafCount;
   }
 
   const rootIndex = (hashWriteIndex === 0 ? leafCount : hashWriteIndex) - 1;
@@ -127,9 +127,6 @@ const getRootBits = ({ leafs, hashCount, flags, skips, decommitments, hashFuncti
   const oneBuffer = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
 
   for (let i = 0; i < hashCount; i++) {
-    hashReadIndex %= leafCount;
-    hashWriteIndex %= leafCount;
-
     const skip = skips && and(rightShift(skips, i), oneBuffer).equals(oneBuffer);
 
     if (skip) {
@@ -143,6 +140,9 @@ const getRootBits = ({ leafs, hashCount, flags, skips, decommitments, hashFuncti
     hashReadIndex %= leafCount;
     const right = hashes[hashReadIndex++];
     hashes[hashWriteIndex++] = hashFunction(left, right);
+
+    hashReadIndex %= leafCount;
+    hashWriteIndex %= leafCount;
   }
 
   const rootIndex = (hashWriteIndex === 0 ? leafCount : hashWriteIndex) - 1;
@@ -166,9 +166,6 @@ const getNewRootBooleans = ({ leafs, newLeafs, flags, skips, decommitments, hash
   let decommitmentIndex = 0;
 
   for (let i = 0; i < flagCount; i++) {
-    hashReadIndex %= leafCount;
-    hashWriteIndex %= leafCount;
-
     if (skips && skips[i]) {
       // TODO: check if these next lines can be skipped. I don't think they can.
       hashes[hashWriteIndex] = hashes[hashReadIndex];
@@ -183,6 +180,9 @@ const getNewRootBooleans = ({ leafs, newLeafs, flags, skips, decommitments, hash
     const newRight = newHashes[hashReadIndex++];
     hashes[hashWriteIndex] = hashFunction(left, right);
     newHashes[hashWriteIndex++] = hashFunction(newLeft, newRight);
+
+    hashReadIndex %= leafCount;
+    hashWriteIndex %= leafCount;
   }
 
   const rootIndex = (hashWriteIndex === 0 ? leafCount : hashWriteIndex) - 1;
@@ -201,9 +201,6 @@ const getNewRootBits = ({ leafs, newLeafs, hashCount, flags, skips, decommitment
   const oneBuffer = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
 
   for (let i = 0; i < hashCount; i++) {
-    hashReadIndex %= leafCount;
-    hashWriteIndex %= leafCount;
-
     const skip = skips && and(rightShift(skips, i), oneBuffer).equals(oneBuffer);
 
     if (skip) {
@@ -221,6 +218,9 @@ const getNewRootBits = ({ leafs, newLeafs, hashCount, flags, skips, decommitment
     const newRight = newHashes[hashReadIndex++];
     hashes[hashWriteIndex] = hashFunction(left, right);
     newHashes[hashWriteIndex++] = hashFunction(newLeft, newRight);
+
+    hashReadIndex %= leafCount;
+    hashWriteIndex %= leafCount;
   }
 
   const rootIndex = (hashWriteIndex === 0 ? leafCount : hashWriteIndex) - 1;

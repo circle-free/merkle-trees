@@ -274,9 +274,9 @@ class MerkleTree {
 
 module.exports = MerkleTree;
 
-// TODO: serialize method
+// TODO: serialize method (just elements?)
 // TODO: update/append methods can return proof and new Merkle Tree
-// TODO: match paramter lengths on multi methods
+// TODO: check/match paramter lengths on multi methods
 // TODO: consider splitting up single proof methods into
 //       - proving that an element is in the set (flag based)
 //       - proving that an element exist at specific index (index based)
@@ -284,6 +284,5 @@ module.exports = MerkleTree;
 //       - proving that elements are in the set (flag based)
 //       - proving that elements exist at specific indices (index based)
 // TODO: consider a Proof class
-// TODO: check length of args match
 // TODO: implement appendElementsWithProof
 // TODO: verify and update single proof can probably be cheaper with sortedHash given that element count is required
