@@ -41,6 +41,17 @@ const sortHashNode = (leftHash, rightHash) => {
   return hash(Buffer.concat([leftHash, rightHash].sort(Buffer.compare)));
 };
 
+const getHashFunction = (unbalanced, sortedHash) => (left, right) => {
+  if (unbalanced && !left && !right) return null;
+
+  // TODO: Test if we can allow this.
+  if (unbalanced && !left) return right;
+
+  if (unbalanced && !right) return left;
+
+  return sortedHash ? sortHashNode(left, right) : hashNode(left, right);
+};
+
 const findLastIndex = (array, predicate) => {
   let i = array.length;
 
@@ -80,6 +91,7 @@ module.exports = {
   hash,
   hashNode,
   sortHashNode,
+  getHashFunction,
   findLastIndex,
   roundUpToPowerOf2,
 };
