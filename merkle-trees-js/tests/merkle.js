@@ -929,35 +929,7 @@ describe('Common Merkle-Tree', () => {
       describe('Existence-Only Boolean-Array Multi Proofs', () => {
         describe('Existence-Only Boolean-Array Multi Proof Generation', () => {
           describe('Balanced', () => {
-            it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree, in ascending order.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false };
-              const elements = generateElements(8, { seed: 'ff' });
-              const merkleTree = new MerkleTree(elements, options);
-              const indices = [1, 4, 5];
-              const proof = merkleTree.generateMultiProof(indices, options);
-
-              const expectedDecommitments = [
-                '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
-                'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
-                'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
-              ];
-
-              const expectedFlags = [false, true, false, false, true];
-              const expectedSkips = [false, false, false, false, false];
-
-              expect(proof.root.equals(merkleTree.root)).to.equal(true);
-              expect(proof.elementCount).to.deep.equal(8);
-              proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
-              expect(proof.elements.length).to.equal(indices.length);
-              expect(proof.flags).to.deep.equal(expectedFlags);
-              expect(proof.skips).to.deep.equal(expectedSkips);
-              proof.decommitments.forEach((decommitment, i) =>
-                expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
-              );
-              expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
-            });
-
-            it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree, in descending order.', () => {
+            it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -1010,38 +982,108 @@ describe('Common Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
-            it.skip('should generate a Multi Proof for a sorted-hash 9-element Merkle Tree, in ascending order (TODO).', () => {});
+            it('should generate a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false };
+              const elements = generateElements(12, { seed: 'ff' });
+              const merkleTree = new MerkleTree(elements, options);
+              const indices = [11, 8, 3, 2];
+              const proof = merkleTree.generateMultiProof(indices, options);
 
-            it.skip('should generate a Multi Proof for a sorted-hash 9-element Merkle Tree, in descending order (TODO).', () => {});
+              const expectedDecommitments = [
+                '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
+                'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
+                'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+                'bc481a454a66b25fd1adf8b6b88cbcac3783d39d5ab1e4c45d114846da10274c',
+              ];
+
+              const expectedFlags = [false, false, true, true, false, false, false, true];
+              const expectedSkips = [false, false, false, false, false, true, false, false];
+
+              expect(proof.root.equals(merkleTree.root)).to.equal(true);
+              expect(proof.elementCount).to.deep.equal(12);
+              proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+              expect(proof.elements.length).to.equal(indices.length);
+              expect(proof.flags).to.deep.equal(expectedFlags);
+              expect(proof.skips).to.deep.equal(expectedSkips);
+              proof.decommitments.forEach((decommitment, i) =>
+                expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+              );
+              expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
+            });
+
+            it('should generate a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false };
+              const elements = generateElements(19, { seed: 'ff' });
+              const merkleTree = new MerkleTree(elements, options);
+              const indices = [17, 12, 9, 4, 2];
+              const proof = merkleTree.generateMultiProof(indices, options);
+
+              const expectedDecommitments = [
+                '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
+                '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
+                'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
+                '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
+                'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
+                'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
+                'c83c0742945e25d8ea750b433deb383bd3c68c5e415398cb3a1bf7ebd760fe85',
+                '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
+                'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
+                'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+              ];
+
+              const expectedFlags = [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                false,
+                true,
+                true,
+              ];
+
+              const expectedSkips = [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                true,
+                false,
+                false,
+              ];
+
+              expect(proof.root.equals(merkleTree.root)).to.equal(true);
+              expect(proof.elementCount).to.deep.equal(19);
+              proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+              expect(proof.elements.length).to.equal(indices.length);
+              expect(proof.flags).to.deep.equal(expectedFlags);
+              expect(proof.skips).to.deep.equal(expectedSkips);
+              proof.decommitments.forEach((decommitment, i) =>
+                expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+              );
+              expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
+            });
           });
 
           describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should generate the same Multi Proof for a 8-element Merkle Tree, in ascending order.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false };
-              const elements = generateElements(8, { seed: 'ff' });
-              const indices = [1, 4, 5];
-
-              const balancedMerkleTree = new MerkleTree(elements, options);
-              const balancedProof = balancedMerkleTree.generateMultiProof(indices, options);
-
-              options.unbalanced = true;
-              const unbalancedMerkleTree = new MerkleTree(elements, options);
-              const unbalancedProof = unbalancedMerkleTree.generateMultiProof(indices, options);
-
-              expect(balancedProof.root.equals(unbalancedProof.root)).to.equal(true);
-              balancedProof.elements.forEach((element, i) =>
-                expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
-              );
-              expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
-              expect(balancedProof.flags).to.deep.equal(unbalancedProof.flags);
-              expect(balancedProof.skips).to.deep.equal(unbalancedProof.skips);
-              balancedProof.decommitments.forEach((decommitment, i) =>
-                expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
-              );
-              expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
-            });
-
-            it('should generate the same Multi Proof for a 8-element Merkle Tree, in descending order.', () => {
+            it('should generate the same Multi Proof for a 8-element Merkle Tree.', () => {
               const options = { unbalanced: false, sortedHash: false, indexed: false };
               const elements = generateElements(8, { seed: 'ff' });
               const indices = [5, 4, 1];
@@ -1066,32 +1108,7 @@ describe('Common Merkle-Tree', () => {
               expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
             });
 
-            it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree, in ascending order.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false };
-              const elements = generateElements(8, { seed: 'ff' });
-              const indices = [1, 4, 5];
-
-              const balancedMerkleTree = new MerkleTree(elements, options);
-              const balancedProof = balancedMerkleTree.generateMultiProof(indices, options);
-
-              options.unbalanced = true;
-              const unbalancedMerkleTree = new MerkleTree(elements, options);
-              const unbalancedProof = unbalancedMerkleTree.generateMultiProof(indices, options);
-
-              expect(balancedProof.root.equals(unbalancedProof.root)).to.equal(true);
-              balancedProof.elements.forEach((element, i) =>
-                expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
-              );
-              expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
-              expect(balancedProof.flags).to.deep.equal(unbalancedProof.flags);
-              expect(balancedProof.skips).to.deep.equal(unbalancedProof.skips);
-              balancedProof.decommitments.forEach((decommitment, i) =>
-                expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
-              );
-              expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
-            });
-
-            it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree, in descending order.', () => {
+            it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false };
               const elements = generateElements(8, { seed: 'ff' });
               const indices = [5, 4, 1];
@@ -1120,18 +1137,7 @@ describe('Common Merkle-Tree', () => {
 
         describe('Existence-Only Boolean-Array Multi Proof Verification', () => {
           describe('Balanced', () => {
-            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, in ascending order.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false };
-              const elements = generateElements(8, { seed: 'ff' });
-              const merkleTree = new MerkleTree(elements, options);
-              const indices = [1, 4, 5];
-              const proof = merkleTree.generateMultiProof(indices, options);
-              const proofValid = MerkleTree.verifyMultiProof(proof, options);
-
-              expect(proofValid).to.equal(true);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, in descending order.', () => {
+            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -1155,24 +1161,31 @@ describe('Common Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
-            it.skip('should verify a Multi Proof for a sorted-hash 9-element Merkle Tree, in ascending order (TODO).', () => {});
-
-            it.skip('should verify a Multi Proof for a sorted-hash 9-element Merkle Tree, in descending order (TODO).', () => {});
-          });
-
-          describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, in ascending order.', () => {
+            it('should verify a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false };
-              const elements = generateElements(8, { seed: 'ff' });
+              const elements = generateElements(12, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
-              const indices = [1, 4, 5];
+              const indices = [11, 8, 3, 0];
               const proof = merkleTree.generateMultiProof(indices, options);
               const proofValid = MerkleTree.verifyMultiProof(proof, options);
 
               expect(proofValid).to.equal(true);
             });
 
-            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, in descending order.', () => {
+            it('should verify a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false };
+              const elements = generateElements(19, { seed: 'ff' });
+              const merkleTree = new MerkleTree(elements, options);
+              const indices = [17, 12, 9, 4, 2];
+              const proof = merkleTree.generateMultiProof(indices, options);
+              const proofValid = MerkleTree.verifyMultiProof(proof, options);
+
+              expect(proofValid).to.equal(true);
+            });
+          });
+
+          describe('Balanced/Unbalanced Overlapping Cases', () => {
+            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -1187,35 +1200,12 @@ describe('Common Merkle-Tree', () => {
 
         describe('Existence-Only Boolean-Array Multi Proof Update', () => {
           describe('Balanced', () => {
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree to update elements, in ascending order.', () => {
+            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree to update elements.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
 
               const indices = [5, 4, 1];
-              const newElements = generateElements(3, { seed: '11' });
-              const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
-              const { root } = MerkleTree.updateWithMultiProof(proof, options);
-
-              const newTreeElements = elements.map((e, i) => {
-                const index = indices.indexOf(i);
-
-                return index >= 0 ? newElements[index] : e;
-              });
-
-              const newMerkleTree1 = new MerkleTree(newTreeElements, options);
-              const newMerkleTree2 = merkleTree.updateMulti(indices, newElements);
-
-              expect(root.equals(newMerkleTree1.root)).to.equal(true);
-              expect(root.equals(newMerkleTree2.root)).to.equal(true);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree to update elements, in descending order.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false };
-              const elements = generateElements(8, { seed: 'ff' });
-              const merkleTree = new MerkleTree(elements, options);
-
-              const indices = [1, 4, 5];
               const newElements = generateElements(3, { seed: '11' });
               const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
               const { root } = MerkleTree.updateWithMultiProof(proof, options);
@@ -1258,19 +1248,13 @@ describe('Common Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
-            it.skip('should use a Multi Proof for an sorted-hash 9-element Merkle Tree to update an element, in ascending order (TODO).', () => {});
-
-            it.skip('should use a Multi Proof for an sorted-hash 9-element Merkle Tree to update an element, in descending order (TODO).', () => {});
-          });
-
-          describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update an element, in ascending order (TODO).', () => {
+            it('should verify a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false };
-              const elements = generateElements(8, { seed: 'ff' });
+              const elements = generateElements(12, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
 
-              const indices = [5, 4, 1];
-              const newElements = generateElements(3, { seed: '11' });
+              const indices = [11, 8, 3, 0];
+              const newElements = generateElements(4, { seed: '11' });
               const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
 
               const { root } = MerkleTree.updateWithMultiProof(proof, options);
@@ -1288,12 +1272,38 @@ describe('Common Merkle-Tree', () => {
               expect(root.equals(newMerkleTree2.root)).to.equal(true);
             });
 
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update an element, in descending order (TODO).', () => {
+            it('should verify a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false };
+              const elements = generateElements(19, { seed: 'ff' });
+              const merkleTree = new MerkleTree(elements, options);
+
+              const indices = [17, 12, 9, 4, 2];
+              const newElements = generateElements(5, { seed: '11' });
+              const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
+
+              const { root } = MerkleTree.updateWithMultiProof(proof, options);
+
+              const newTreeElements = elements.map((e, i) => {
+                const index = indices.indexOf(i);
+
+                return index >= 0 ? newElements[index] : e;
+              });
+
+              const newMerkleTree1 = new MerkleTree(newTreeElements, options);
+              const newMerkleTree2 = merkleTree.updateMulti(indices, newElements);
+
+              expect(root.equals(newMerkleTree1.root)).to.equal(true);
+              expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            });
+          });
+
+          describe('Balanced/Unbalanced Overlapping Cases', () => {
+            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update an element.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
 
-              const indices = [1, 4, 5];
+              const indices = [5, 4, 1];
               const newElements = generateElements(3, { seed: '11' });
               const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
 
@@ -1351,7 +1361,38 @@ describe('Common Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
-            it.skip('should use 100 Multi Proofs for a 17-element Merkle Tree, to perform 100 updates of up to 6 random elements (TODO).', () => {});
+            it('should use 100 Multi Proofs for a 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false };
+              let elements = generateElements(19);
+              let merkleTree = new MerkleTree(elements, options);
+
+              // Elements to be inserted at respective indices
+              const newElementsMatrix = Array.from({ length: 100 }, () => generateElements(6));
+              const rawIndicesMatrix = Array.from({ length: 100 }, () =>
+                Array.from({ length: 6 }, () => Math.floor(Math.random() * 19))
+              );
+              const indicesMatrix = rawIndicesMatrix.map((indices) =>
+                indices.filter((index, i) => indices.indexOf(index) === i).sort((a, b) => b - a)
+              );
+
+              newElementsMatrix.forEach((ne, i) => {
+                const indices = indicesMatrix[i];
+                const newElements = ne.slice(0, indices.length);
+
+                const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
+                const { root } = MerkleTree.updateWithMultiProof(proof, options);
+
+                elements = elements.map((element, i) => {
+                  const index = indices.indexOf(i);
+
+                  return index >= 0 ? newElements[index] : element;
+                });
+
+                merkleTree = merkleTree.updateMulti(indices, newElements);
+
+                expect(root.equals(merkleTree.root)).to.equal(true);
+              });
+            });
           });
         });
       });
@@ -1359,42 +1400,7 @@ describe('Common Merkle-Tree', () => {
       describe('Existence-Only Boolean-Bit Multi Proofs', () => {
         describe('Existence-Only Boolean-Bit Multi Proof Generation', () => {
           describe('Balanced', () => {
-            it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree, in ascending order.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
-              const elements = generateElements(8, { seed: 'ff' });
-              const merkleTree = new MerkleTree(elements, options);
-              const indices = [1, 4, 5];
-              const proof = merkleTree.generateMultiProof(indices, options);
-
-              const expectedDecommitments = [
-                '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
-                'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
-                'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
-              ];
-
-              const expectedFlags = Buffer.from(
-                '0000000000000000000000000000000000000000000000000000000000000012',
-                'hex'
-              );
-              const expectedSkips = Buffer.from(
-                '0000000000000000000000000000000000000000000000000000000000000000',
-                'hex'
-              );
-
-              expect(proof.root.equals(merkleTree.root)).to.equal(true);
-              expect(proof.elementCount).to.equal(8);
-              proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
-              expect(proof.elements.length).to.equal(indices.length);
-              expect(proof.flags.equals(expectedFlags)).to.equal(true);
-              expect(proof.hashCount).to.equal(5);
-              expect(proof.skips.equals(expectedSkips)).to.equal(true);
-              proof.decommitments.forEach((decommitment, i) =>
-                expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
-              );
-              expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
-            });
-
-            it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree, in descending order.', () => {
+            it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -1411,6 +1417,7 @@ describe('Common Merkle-Tree', () => {
                 '0000000000000000000000000000000000000000000000000000000000000011',
                 'hex'
               );
+
               const expectedSkips = Buffer.from(
                 '0000000000000000000000000000000000000000000000000000000000000000',
                 'hex'
@@ -1437,10 +1444,12 @@ describe('Common Merkle-Tree', () => {
               const proof = merkleTree.generateMultiProof(indices, options);
 
               const expectedDecommitments = [];
+
               const expectedFlags = Buffer.from(
                 '0000000000000000000000000000000000000000000000000000000000000000',
                 'hex'
               );
+
               const expectedSkips = Buffer.from(
                 '0000000000000000000000000000000000000000000000000000000000000000',
                 'hex'
@@ -1461,39 +1470,89 @@ describe('Common Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
-            it.skip('should generate a Multi Proof for a sorted-hash 9-element Merkle Tree, in ascending order (TODO).', () => {});
+            it('should generate a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              const elements = generateElements(12, { seed: 'ff' });
+              const merkleTree = new MerkleTree(elements, options);
+              const indices = [11, 8, 3, 2];
+              const proof = merkleTree.generateMultiProof(indices, options);
 
-            it.skip('should generate a Multi Proof for a sorted-hash 9-element Merkle Tree, in descending order (TODO).', () => {});
+              const expectedDecommitments = [
+                '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
+                'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
+                'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+                'bc481a454a66b25fd1adf8b6b88cbcac3783d39d5ab1e4c45d114846da10274c',
+              ];
+
+              const expectedFlags = Buffer.from(
+                '000000000000000000000000000000000000000000000000000000000000008c',
+                'hex'
+              );
+
+              const expectedSkips = Buffer.from(
+                '0000000000000000000000000000000000000000000000000000000000000020',
+                'hex'
+              );
+
+              expect(proof.root.equals(merkleTree.root)).to.equal(true);
+              expect(proof.elementCount).to.equal(12);
+              proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+              expect(proof.elements.length).to.equal(indices.length);
+              expect(proof.flags.equals(expectedFlags)).to.equal(true);
+              expect(proof.hashCount).to.equal(8);
+              expect(proof.skips.equals(expectedSkips)).to.equal(true);
+              proof.decommitments.forEach((decommitment, i) =>
+                expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+              );
+              expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
+            });
+
+            it('should generate a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              const elements = generateElements(19, { seed: 'ff' });
+              const merkleTree = new MerkleTree(elements, options);
+              const indices = [17, 12, 9, 4, 2];
+              const proof = merkleTree.generateMultiProof(indices, options);
+
+              const expectedDecommitments = [
+                '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
+                '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
+                'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
+                '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
+                'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
+                'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
+                'c83c0742945e25d8ea750b433deb383bd3c68c5e415398cb3a1bf7ebd760fe85',
+                '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
+                'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
+                'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+              ];
+
+              const expectedFlags = Buffer.from(
+                '000000000000000000000000000000000000000000000000000000000000d800',
+                'hex'
+              );
+
+              const expectedSkips = Buffer.from(
+                '0000000000000000000000000000000000000000000000000000000000002400',
+                'hex'
+              );
+
+              expect(proof.root.equals(merkleTree.root)).to.equal(true);
+              expect(proof.elementCount).to.equal(19);
+              proof.elements.forEach((element, i) => expect(element.equals(elements[indices[i]])).to.equal(true));
+              expect(proof.elements.length).to.equal(indices.length);
+              expect(proof.flags.equals(expectedFlags)).to.equal(true);
+              expect(proof.hashCount).to.equal(16);
+              expect(proof.skips.equals(expectedSkips)).to.equal(true);
+              proof.decommitments.forEach((decommitment, i) =>
+                expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+              );
+              expect(proof.decommitments.length).to.equal(expectedDecommitments.length);
+            });
           });
 
           describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should generate the same Multi Proof for a 8-element Merkle Tree, in ascending order.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, bitFlags: true };
-              const elements = generateElements(8, { seed: 'ff' });
-              const indices = [1, 4, 5];
-
-              const balancedMerkleTree = new MerkleTree(elements, options);
-              const balancedProof = balancedMerkleTree.generateMultiProof(indices, options);
-
-              options.unbalanced = true;
-              const unbalancedMerkleTree = new MerkleTree(elements, options);
-              const unbalancedProof = unbalancedMerkleTree.generateMultiProof(indices, options);
-
-              expect(balancedProof.root.equals(unbalancedProof.root)).to.equal(true);
-              expect(balancedProof.elementCount).to.deep.equal(unbalancedProof.elementCount);
-              balancedProof.elements.forEach((element, i) =>
-                expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
-              );
-              expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
-              expect(balancedProof.flags).to.deep.equal(unbalancedProof.flags);
-              expect(balancedProof.skips).to.deep.equal(unbalancedProof.skips);
-              balancedProof.decommitments.forEach((decommitment, i) =>
-                expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
-              );
-              expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
-            });
-
-            it('should generate the same Multi Proof for a 8-element Merkle Tree, in descending order.', () => {
+            it('should generate the same Multi Proof for a 8-element Merkle Tree.', () => {
               const options = { unbalanced: false, sortedHash: false, indexed: false, bitFlags: true };
               const elements = generateElements(8, { seed: 'ff' });
               const indices = [5, 4, 1];
@@ -1519,33 +1578,7 @@ describe('Common Merkle-Tree', () => {
               expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
             });
 
-            it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree, in ascending order.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
-              const elements = generateElements(8, { seed: 'ff' });
-              const indices = [1, 4, 5];
-
-              const balancedMerkleTree = new MerkleTree(elements, options);
-              const balancedProof = balancedMerkleTree.generateMultiProof(indices, options);
-
-              options.unbalanced = true;
-              const unbalancedMerkleTree = new MerkleTree(elements, options);
-              const unbalancedProof = unbalancedMerkleTree.generateMultiProof(indices, options);
-
-              expect(balancedProof.root.equals(unbalancedProof.root)).to.equal(true);
-              expect(balancedProof.elementCount).to.deep.equal(unbalancedProof.elementCount);
-              balancedProof.elements.forEach((element, i) =>
-                expect(element.equals(unbalancedProof.elements[i])).to.equal(true)
-              );
-              expect(balancedProof.elements.length).to.equal(unbalancedProof.elements.length);
-              expect(balancedProof.flags).to.deep.equal(unbalancedProof.flags);
-              expect(balancedProof.skips).to.deep.equal(unbalancedProof.skips);
-              balancedProof.decommitments.forEach((decommitment, i) =>
-                expect(decommitment.equals(unbalancedProof.decommitments[i])).to.equal(true)
-              );
-              expect(balancedProof.decommitments.length).to.equal(unbalancedProof.decommitments.length);
-            });
-
-            it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree, in descending order.', () => {
+            it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
               const elements = generateElements(8, { seed: 'ff' });
               const indices = [5, 4, 1];
@@ -1575,18 +1608,7 @@ describe('Common Merkle-Tree', () => {
 
         describe('Existence-Only Boolean-Bit Multi Proof Verification', () => {
           describe('Balanced', () => {
-            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, in ascending order.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
-              const elements = generateElements(8, { seed: 'ff' });
-              const merkleTree = new MerkleTree(elements, options);
-              const indices = [1, 4, 5];
-              const proof = merkleTree.generateMultiProof(indices, options);
-              const proofValid = MerkleTree.verifyMultiProof(proof, options);
-
-              expect(proofValid).to.equal(true);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, in descending order.', () => {
+            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -1610,24 +1632,31 @@ describe('Common Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
-            it.skip('should verify a Multi Proof for a sorted-hash 9-element Merkle Tree, in ascending order (TODO).', () => {});
-
-            it.skip('should verify a Multi Proof for a sorted-hash 9-element Merkle Tree, in descending order (TODO).', () => {});
-          });
-
-          describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, in ascending order.', () => {
+            it('should generate a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
-              const elements = generateElements(8, { seed: 'ff' });
+              const elements = generateElements(12, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
-              const indices = [1, 4, 5];
+              const indices = [11, 8, 3, 2];
               const proof = merkleTree.generateMultiProof(indices, options);
               const proofValid = MerkleTree.verifyMultiProof(proof, options);
 
               expect(proofValid).to.equal(true);
             });
 
-            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, in descending order.', () => {
+            it('should generate a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              const elements = generateElements(19, { seed: 'ff' });
+              const merkleTree = new MerkleTree(elements, options);
+              const indices = [17, 12, 9, 4, 2];
+              const proof = merkleTree.generateMultiProof(indices, options);
+              const proofValid = MerkleTree.verifyMultiProof(proof, options);
+
+              expect(proofValid).to.equal(true);
+            });
+          });
+
+          describe('Balanced/Unbalanced Overlapping Cases', () => {
+            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -1642,36 +1671,12 @@ describe('Common Merkle-Tree', () => {
 
         describe('Existence-Only Boolean-Bit Multi Proof Update', () => {
           describe('Balanced', () => {
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree to update elements, in ascending order.', () => {
+            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree to update elements.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
 
               const indices = [5, 4, 1];
-              const newElements = generateElements(3, { seed: '11' });
-              const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
-
-              const { root } = MerkleTree.updateWithMultiProof(proof, options);
-
-              const newTreeElements = elements.map((e, i) => {
-                const index = indices.indexOf(i);
-
-                return index >= 0 ? newElements[index] : e;
-              });
-
-              const newMerkleTree1 = new MerkleTree(newTreeElements, options);
-              const newMerkleTree2 = merkleTree.updateMulti(indices, newElements);
-
-              expect(root.equals(newMerkleTree1.root)).to.equal(true);
-              expect(root.equals(newMerkleTree2.root)).to.equal(true);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree to update elements, in descending order.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
-              const elements = generateElements(8, { seed: 'ff' });
-              const merkleTree = new MerkleTree(elements, options);
-
-              const indices = [1, 4, 5];
               const newElements = generateElements(3, { seed: '11' });
               const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
 
@@ -1716,21 +1721,14 @@ describe('Common Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
-            it.skip('should use a Multi Proof for an sorted-hash 9-element Merkle Tree to update an element, in ascending order (TODO).', () => {});
-
-            it.skip('should use a Multi Proof for an sorted-hash 9-element Merkle Tree to update an element, in descending order (TODO).', () => {});
-          });
-
-          describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update an element, in ascending order (TODO).', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree to update elements.', () => {
+              const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
 
               const indices = [5, 4, 1];
               const newElements = generateElements(3, { seed: '11' });
               const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
-
               const { root } = MerkleTree.updateWithMultiProof(proof, options);
 
               const newTreeElements = elements.map((e, i) => {
@@ -1746,12 +1744,37 @@ describe('Common Merkle-Tree', () => {
               expect(root.equals(newMerkleTree2.root)).to.equal(true);
             });
 
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update an element, in descending order (TODO).', () => {
+            it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree to update elements.', () => {
+              const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
+              const elements = generateElements(1, { seed: 'ff' });
+              const merkleTree = new MerkleTree(elements, options);
+
+              const indices = [0];
+              const newElements = generateElements(3, { seed: '11' });
+              const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
+              const { root } = MerkleTree.updateWithMultiProof(proof, options);
+
+              const newTreeElements = elements.map((e, i) => {
+                const index = indices.indexOf(i);
+
+                return index >= 0 ? newElements[index] : e;
+              });
+
+              const newMerkleTree1 = new MerkleTree(newTreeElements, options);
+              const newMerkleTree2 = merkleTree.updateMulti(indices, newElements);
+
+              expect(root.equals(newMerkleTree1.root)).to.equal(true);
+              expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            });
+          });
+
+          describe('Balanced/Unbalanced Overlapping Cases', () => {
+            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update an element.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
 
-              const indices = [1, 4, 5];
+              const indices = [5, 4, 1];
               const newElements = generateElements(3, { seed: '11' });
               const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
 
@@ -1809,7 +1832,38 @@ describe('Common Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
-            it.skip('should use 100 Multi Proofs for a 17-element Merkle Tree, to perform 100 updates of up to 6 random elements (TODO).', () => {});
+            it('should use 100 Multi Proofs for a 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              let elements = generateElements(19);
+              let merkleTree = new MerkleTree(elements, options);
+
+              // Elements to be inserted at respective indices
+              const newElementsMatrix = Array.from({ length: 100 }, () => generateElements(6));
+              const rawIndicesMatrix = Array.from({ length: 100 }, () =>
+                Array.from({ length: 6 }, () => Math.floor(Math.random() * 19))
+              );
+              const indicesMatrix = rawIndicesMatrix.map((indices) =>
+                indices.filter((index, i) => indices.indexOf(index) === i).sort((a, b) => b - a)
+              );
+
+              newElementsMatrix.forEach((ne, i) => {
+                const indices = indicesMatrix[i];
+                const newElements = ne.slice(0, indices.length);
+
+                const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
+                const { root } = MerkleTree.updateWithMultiProof(proof, options);
+
+                elements = elements.map((element, i) => {
+                  const index = indices.indexOf(i);
+
+                  return index >= 0 ? newElements[index] : element;
+                });
+
+                merkleTree = merkleTree.updateMulti(indices, newElements);
+
+                expect(root.equals(merkleTree.root)).to.equal(true);
+              });
+            });
           });
         });
       });

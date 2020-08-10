@@ -23,7 +23,7 @@ const generate = ({ tree, indices }) => {
     known[i] = left || right;
   }
 
-  return { decommitments: decommitments.map(Buffer.from) };
+  return { decommitments: decommitments.map(Buffer.from), indices: indices.slice() };
 };
 
 const getRoot = ({ indices, leafs, leafCount, decommitments, hashFunction }) => {
@@ -96,3 +96,4 @@ module.exports = { generate, getRoot, getNewRoot };
 
 // TODO: indexIsOdd is like a left flag, (indexIsOdd && !nextIsPair) is like a right flag, so do we need
 //       indices? Or rather, can they be inferred from flags?
+// TODO: implement and test for unbalanced trees

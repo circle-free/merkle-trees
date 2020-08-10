@@ -3,67 +3,43 @@
 const assert = require('assert');
 const { rightShift, and } = require('bitwise-buffer');
 
-const { getDepthFromElementCount } = require('./common');
 const { to32ByteBoolBuffer } = require('./utils');
 
-// NOTE: check if indices must only be in ascending order
-// TODO: use separate set of flags for left/right hash order, allowing this to work for non-sorted-hash trees
-//       Should be able to infer indices of elements based on proof hash order and flags
-// TODO: somehow merge logic for bitwise and boolean algorithms
+// NOTE: indices must be in descending order
 
-// TODO: test for unbalanced trees
 const generateBooleans = ({ tree, indices }) => {
-  let ids = indices.slice();
-  const nodes = [];
-  const tested = [];
+  const known = Array(tree.length).fill(false);
+  const relevant = Array(tree.length).fill(false);
+  const decommitments = [];
   const flags = [];
   const skips = [];
-  let decommitmentIndices = [];
-  let nextIds = [];
   const leafCount = tree.length >> 1;
-  const treeDepth = getDepthFromElementCount(leafCount);
 
-  for (let depth = treeDepth; depth > 0; depth--) {
-    // For each node we're interested in proving, add it to the list of nodes and
-    // add it's sibling/pair to list of decommitments. Push half the node's level
-    // index to the list of next ids, for the next (higher) depth iteration
-    for (let j = 0; j < ids.length; j++) {
-      const id = ids[j];
-      const nodeIndex = (1 << depth) + id;
-      const pairIndex = nodeIndex + (id & 1 ? -1 : 1);
+  for (let i = 0; i < indices.length; i++) {
+    assert(i === 0 || indices[i - 1] > indices[i], 'Indices must be in descending order');
+    known[leafCount + indices[i]] = true;
+    relevant[(leafCount + indices[i]) >> 1] = true;
+  }
 
-      nodes.push(nodeIndex);
-      decommitmentIndices.push(pairIndex);
-      nextIds.push(id >> 1);
+  for (let i = leafCount - 1; i > 0; i--) {
+    const leftChildIndex = i << 1;
+    const left = known[leftChildIndex];
+    const right = known[leftChildIndex + 1];
+    const sibling = tree[leftChildIndex + left];
+
+    if (left ^ right) decommitments.push(sibling);
+
+    if (relevant[i]) {
+      flags.push(left === right);
+      skips.push(!sibling);
+      relevant[i >> 1] = true;
     }
 
-    // Filter out decommitments that are themselves being proved
-    decommitmentIndices = decommitmentIndices.filter((decommitment) => !nodes.includes(decommitment));
-
-    // For each node we're interested in proving, check if its sibling/pair is in the
-    // list of decommitments, and push the flag (proof NOT used) to the list of flags.
-    // Also, keep track of indices already tested (and its pairs), so we can skip over them.
-    for (let j = 0; j < ids.length; j++) {
-      const id = ids[j];
-      const nodeIndex = (1 << depth) + id;
-
-      if (tested.includes(nodeIndex)) continue;
-
-      const pairIndex = nodeIndex + (id & 1 ? -1 : 1);
-      const proofUsed = decommitmentIndices.includes(pairIndex);
-      flags.push(!proofUsed);
-      skips.push(!tree[pairIndex]);
-      tested.push(nodeIndex);
-      tested.push(pairIndex);
-    }
-
-    // Filter out duplicate ids (since 3 >> 1 and 4 >> 1 are redundant)
-    ids = nextIds.filter((index, i) => nextIds.indexOf(index) === i);
-    nextIds = [];
+    known[i] = left || right;
   }
 
   return {
-    decommitments: decommitmentIndices.map((i) => Buffer.from(tree[i])).filter((d) => d),
+    decommitments: decommitments.filter((d) => d).map(Buffer.from),
     flags,
     skips,
   };
@@ -100,6 +76,8 @@ const getRootBooleans = ({ leafs, flags, skips, decommitments, hashFunction }) =
     if (skips && skips[i]) {
       // TODO: check if this next line can be skipped. I don't think it can.
       hashes[hashWriteIndex++] = hashes[hashReadIndex++];
+      hashReadIndex %= leafCount;
+      hashWriteIndex %= leafCount;
       continue;
     }
 
@@ -132,6 +110,8 @@ const getRootBits = ({ leafs, hashCount, flags, skips, decommitments, hashFuncti
     if (skip) {
       // TODO: check if this next line can be skipped. I don't think it can.
       hashes[hashWriteIndex++] = hashes[hashReadIndex++];
+      hashReadIndex %= leafCount;
+      hashWriteIndex %= leafCount;
       continue;
     }
 
@@ -170,6 +150,8 @@ const getNewRootBooleans = ({ leafs, newLeafs, flags, skips, decommitments, hash
       // TODO: check if these next lines can be skipped. I don't think they can.
       hashes[hashWriteIndex] = hashes[hashReadIndex];
       newHashes[hashWriteIndex++] = newHashes[hashReadIndex++];
+      hashReadIndex %= leafCount;
+      hashWriteIndex %= leafCount;
       continue;
     }
 
@@ -207,6 +189,8 @@ const getNewRootBits = ({ leafs, newLeafs, hashCount, flags, skips, decommitment
       // TODO: check if these next lines can be skipped. I don't think they can.
       hashes[hashWriteIndex] = hashes[hashReadIndex];
       newHashes[hashWriteIndex++] = newHashes[hashReadIndex++];
+      hashReadIndex %= leafCount;
+      hashWriteIndex %= leafCount;
       continue;
     }
 
@@ -233,3 +217,8 @@ const getNewRoot = (parameters) => {
 };
 
 module.exports = { generate, getRoot, getNewRoot };
+
+// TODO: use separate set of flags for left/right hash order, allowing this to work for non-sorted-hash trees
+//       Should be able to infer indices of elements based on proof hash order and flags
+// TODO: somehow merge logic for bitwise and boolean algorithms
+// TODO: test for unbalanced trees

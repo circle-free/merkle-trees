@@ -203,7 +203,6 @@ class MerkleTree {
       root: Buffer.from(this._tree[0]),
       elementCount: this._elements.length,
       elements,
-      indices: indices.slice(),
     };
 
     return Object.assign(base, proof);
