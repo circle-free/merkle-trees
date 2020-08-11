@@ -66,6 +66,7 @@ const getRootBooleans = ({ leafs, flags, skips, decommitments, hashFunction }) =
   const flagCount = flags.length;
   const leafCount = leafs.length;
 
+  // TODO: compare this performance vs an empty hashes array, and using leafIndex > leafCount to decide
   // Keep verification minimal by using circular hashes queue with separate read and write heads
   const hashes = leafs.map((leaf) => leaf);
   let hashReadIndex = 0;
@@ -74,7 +75,6 @@ const getRootBooleans = ({ leafs, flags, skips, decommitments, hashFunction }) =
 
   for (let i = 0; i < flagCount; i++) {
     if (skips && skips[i]) {
-      // TODO: check if this next line can be skipped. I don't think it can.
       hashes[hashWriteIndex++] = hashes[hashReadIndex++];
       hashReadIndex %= leafCount;
       hashWriteIndex %= leafCount;
@@ -108,7 +108,6 @@ const getRootBits = ({ leafs, hashCount, flags, skips, decommitments, hashFuncti
     const skip = skips && and(rightShift(skips, i), oneBuffer).equals(oneBuffer);
 
     if (skip) {
-      // TODO: check if this next line can be skipped. I don't think it can.
       hashes[hashWriteIndex++] = hashes[hashReadIndex++];
       hashReadIndex %= leafCount;
       hashWriteIndex %= leafCount;
@@ -147,7 +146,6 @@ const getNewRootBooleans = ({ leafs, newLeafs, flags, skips, decommitments, hash
 
   for (let i = 0; i < flagCount; i++) {
     if (skips && skips[i]) {
-      // TODO: check if these next lines can be skipped. I don't think they can.
       hashes[hashWriteIndex] = hashes[hashReadIndex];
       newHashes[hashWriteIndex++] = newHashes[hashReadIndex++];
       hashReadIndex %= leafCount;
@@ -186,7 +184,6 @@ const getNewRootBits = ({ leafs, newLeafs, hashCount, flags, skips, decommitment
     const skip = skips && and(rightShift(skips, i), oneBuffer).equals(oneBuffer);
 
     if (skip) {
-      // TODO: check if these next lines can be skipped. I don't think they can.
       hashes[hashWriteIndex] = hashes[hashReadIndex];
       newHashes[hashWriteIndex++] = newHashes[hashReadIndex++];
       hashReadIndex %= leafCount;

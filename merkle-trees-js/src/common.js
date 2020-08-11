@@ -11,7 +11,8 @@ const buildTree = ({ leafs, hashFunction }) => {
   }
 
   for (let i = leafCount - 1; i > 0; i--) {
-    tree[i] = hashFunction(tree[i << 1], tree[(i << 1) + 1]);
+    const index = i << 1;
+    tree[i] = hashFunction(tree[index], tree[index + 1]);
   }
 
   return { tree };

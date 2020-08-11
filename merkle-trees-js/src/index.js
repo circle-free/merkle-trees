@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { hashNode, getHashFunction, to32ByteBuffer, bitCount32 } = require('./utils');
+const { hashNode, getHashFunction, to32ByteBuffer } = require('./utils');
 const Common = require('./common');
 const SingleProofs = require('./single-proofs');
 const MultiIndexedProofs = require('./multi-indexed-proofs');
@@ -109,24 +109,39 @@ class MerkleTree {
     const { sortedHash = false, unbalanced = false } = options;
     const hashFunction = getHashFunction(unbalanced, sortedHash);
 
-    if (decommitments.length !== bitCount32(elementCount)) return false;
-
     const { root: recoveredRoot } = AppendProofs.getRoot({ elementCount, decommitments, hashFunction });
 
     return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot);
   }
 
-  static appendElementWithProof({ root, elementCount, newElement, decommitments }, options = {}) {
+  static appendSingleWithProof({ root, elementCount, newElement, decommitments }, options = {}) {
     const { sortedHash = false, unbalanced = false, elementPrefix = '00' } = options;
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const newLeaf = hashNode(prefixBuffer, newElement);
     const newElementCount = elementCount + 1;
     const hashFunction = getHashFunction(unbalanced, sortedHash);
 
-    if (decommitments.length !== bitCount32(elementCount)) return false;
-
     const { root: recoveredRoot, newRoot } = AppendProofs.getNewRoot({
       newLeaf,
+      elementCount,
+      decommitments,
+      hashFunction,
+    });
+
+    assert(MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot), 'Invalid Proof.');
+
+    return { root: MerkleTree.computeMixedRoot(newElementCount, newRoot), elementCount: newElementCount };
+  }
+
+  static appendMultiWithProof({ root, elementCount, newElements, decommitments }, options = {}) {
+    const { sortedHash = false, unbalanced = false, elementPrefix = '00' } = options;
+    const prefixBuffer = Buffer.from(elementPrefix, 'hex');
+    const newLeafs = newElements.map((element) => hashNode(prefixBuffer, element));
+    const newElementCount = elementCount + newElements.length;
+    const hashFunction = getHashFunction(unbalanced, sortedHash);
+
+    const { root: recoveredRoot, newRoot } = AppendProofs.getNewRoot({
+      newLeafs,
       elementCount,
       decommitments,
       hashFunction,
@@ -235,14 +250,20 @@ class MerkleTree {
   }
 
   generateAppendProof() {
-    const elementCount = this._elements.length;
-    const { decommitments } = AppendProofs.generate({ tree: this._tree, elementCount });
+    const { elementCount, decommitments } = AppendProofs.generate({
+      tree: this._tree,
+      elementCount: this._elements.length,
+    });
 
     return { root: Buffer.from(this._tree[0]), elementCount, decommitments };
   }
 
   generateSingleAppendProof(element) {
     return Object.assign({ newElement: Buffer.from(element) }, this.generateAppendProof());
+  }
+
+  generateMultiAppendProof(elements) {
+    return Object.assign({ newElements: elements.map(Buffer.from) }, this.generateAppendProof());
   }
 
   appendSingle(element) {
@@ -259,7 +280,7 @@ class MerkleTree {
   }
 
   appendMulti(elements) {
-    const newElements = this.elements.map((e) => e).concat(elements);
+    const newElements = this.elements.concat(elements);
 
     const options = {
       sortedHash: this._sortedHash,
