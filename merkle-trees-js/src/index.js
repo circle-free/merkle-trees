@@ -2,8 +2,8 @@ const assert = require('assert');
 const { hashNode, getHashFunction, to32ByteBuffer } = require('./utils');
 const Common = require('./common');
 const SingleProofs = require('./single-proofs');
-const MultiIndexedProofs = require('./multi-indexed-proofs');
-const MultiFlagProofs = require('./multi-flag-proofs');
+const MultiIndexedProofs = require('./index-multi-proofs');
+const MultiFlagProofs = require('./flag-multi-proofs');
 const AppendProofs = require('./append-proofs');
 
 class MerkleTree {

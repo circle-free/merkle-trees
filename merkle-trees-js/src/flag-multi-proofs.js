@@ -225,7 +225,7 @@ const getNewRootBits = ({ leafs, newLeafs, hashCount, flags, skips, decommitment
     const left = flag ? hashes[hashReadIndex] : decommitments[decommitmentIndex];
     const newLeft = flag ? newHashes[hashReadIndex++] : decommitments[decommitmentIndex++];
     hashReadIndex %= leafCount;
-    
+
     const right = hashes[hashReadIndex];
     const newRight = newHashes[hashReadIndex++];
     hashes[hashWriteIndex] = hashFunction(left, right);

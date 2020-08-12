@@ -5,7 +5,7 @@ const { expect } = chai;
 const { generateElements } = require('./helpers');
 const MerkleTree = require('../src');
 
-describe('Common Merkle-Tree', () => {
+describe('Merkle-Tree', () => {
   describe('Merkle Tree Construction', () => {
     describe('Balanced', () => {
       it('should build a 8-element Merkle Tree.', () => {
