@@ -1,8 +1,5 @@
 'use strict';
 
-// TODO: test how this handles null elements/leafs before the append index
-// TODO: test how this fails for incorrect element counts (and ths bit counts)
-
 const { bitCount32, roundUpToPowerOf2 } = require('./utils');
 
 // This is the SingleProof.generate algorithm, using the elementCount as index,
@@ -172,3 +169,6 @@ const getNewRoot = (parameters) => {
 };
 
 module.exports = { generate, getRoot, getNewRoot };
+
+// TODO: test how this handles null elements/leafs before the append index
+// TODO: test how this fails for incorrect element counts (and ths bit counts)

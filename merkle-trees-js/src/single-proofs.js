@@ -1,7 +1,5 @@
 'use strict';
 
-// TODO: make these work with unbalanced trees
-
 // Generates a set of decommitments to prove the existence of a leaf at a given index.
 const generate = ({ tree, index }) => {
   const decommitments = [];
@@ -46,3 +44,5 @@ const getNewRoot = ({ index, leaf, newLeaf, decommitments, hashFunction }) => {
 };
 
 module.exports = { generate, getRoot, getNewRoot };
+
+// TODO: make these work with unbalanced trees
