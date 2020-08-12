@@ -2,6 +2,7 @@
 
 // TODO: make these work with unbalanced trees
 
+// Generates a set of decommitments to prove the existence of a leaf at a given index.
 const generate = ({ tree, index }) => {
   const decommitments = [];
   const leafCount = tree.length >> 1;
@@ -13,11 +14,13 @@ const generate = ({ tree, index }) => {
   return { decommitments: decommitments.map(Buffer.from) };
 };
 
+// Compute the root given a leaf, its index, and a set of decommitments.
 const getRoot = ({ index, leaf, decommitments, hashFunction }) => {
   const n = decommitments.length - 1;
   let hash = Buffer.from(leaf);
 
   for (let i = n; i >= 0; i--) {
+    // Note that hash order is irrelevant if hash function sorts nodes
     hash = index & 1 ? hashFunction(decommitments[i], hash) : hashFunction(hash, decommitments[i]);
     index >>= 1;
   }
@@ -25,6 +28,9 @@ const getRoot = ({ index, leaf, decommitments, hashFunction }) => {
   return { root: hash };
 };
 
+// Compute the existing root given a leaf, its index, and a set of decommitments
+// and computes a new root, along the way, given a new leaf to take its place.
+// See getRoot for relevant inline comments.
 const getNewRoot = ({ index, leaf, newLeaf, decommitments, hashFunction }) => {
   const n = decommitments.length - 1;
   let hash = Buffer.from(leaf);

@@ -2,6 +2,7 @@
 
 const { roundUpToPowerOf2 } = require('./utils');
 
+// common algorithm to build a serialized merkle tree from an array of leafs
 const buildTree = ({ leafs, hashFunction }) => {
   const leafCount = leafs.length;
   const tree = Array(leafCount << 1).fill(null);

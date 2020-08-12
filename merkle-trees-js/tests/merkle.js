@@ -2267,7 +2267,7 @@ describe('Common Merkle-Tree', () => {
       });
     });
 
-    describe.only('Append Proof Multi Append (TODO)', () => {
+    describe('Append Proof Multi Append (TODO)', () => {
       it('should generate a Multi Append Proof for a sorted-hash 19-element Merkle Tree, to append 5 elements.', () => {
         const options = { unbalanced: true, sortedHash: true, indexed: false };
         const elements = generateElements(19, { seed: 'ff' });
