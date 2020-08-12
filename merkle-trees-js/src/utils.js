@@ -23,8 +23,7 @@ const bitCount32 = (n) => {
 
 // NOTE: arguments must already be buffer, preferably 32 bytes
 const hash = (buffer) => {
-  const hash = new Keccak(256);
-  return hash.update(buffer).digest();
+  return new Keccak(256).update(buffer).digest();
 };
 
 // NOTE: arguments must already be buffers, preferably 32 bytes
