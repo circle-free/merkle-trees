@@ -145,7 +145,7 @@ const getNewRootMulti = ({ newLeafs, elementCount, decommitments, hashFunction }
     }
 
     // if upper bound (and implicitly even), there is no sibling to the "right"
-    if (index === upperBound) hashes[writeIndex++] = hashes[i];
+    if (index === upperBound) hashes[writeIndex++] = useLeafs ? newLeafs[i] : hashes[i];
 
     // if upper bound (or greater, due to over-incrementing in next step), reset and level up
     if (index >= upperBound) {
