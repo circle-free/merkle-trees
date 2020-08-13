@@ -124,7 +124,7 @@ const getNewRootMulti = ({ newLeafs, elementCount, decommitments, hashFunction }
   while (n > 0) {
     hash = hashFunction(decommitments[--n], hash);
   }
-  
+
   const appendingLeafCount = newLeafs.length;
   const newTotalElementCount = elementCount + appendingLeafCount;
   const newTotalLeafCount = roundUpToPowerOf2(newTotalElementCount);
