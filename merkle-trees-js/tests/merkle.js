@@ -4,6 +4,7 @@ const chai = require('chai');
 const { expect } = chai;
 const { generateElements } = require('./helpers');
 const MerkleTree = require('../src');
+const combinedProofs = require('../src/combined-proofs');
 
 describe('Merkle-Tree', () => {
   describe('Merkle Tree Construction', () => {
@@ -1482,7 +1483,7 @@ describe('Merkle-Tree', () => {
 
         describe('Existence-Only Boolean-Array Multi Proof Update', () => {
           describe('Balanced', () => {
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree to update elements.', () => {
+            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, to update elements.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -1505,7 +1506,7 @@ describe('Merkle-Tree', () => {
               expect(root.equals(newMerkleTree2.root)).to.equal(true);
             });
 
-            it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree to update elements.', () => {
+            it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree, to update elements.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false };
               const elements = generateElements(1, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -1530,7 +1531,7 @@ describe('Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
-            it('should verify a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
+            it('should use a Multi Proof for a sorted-hash 12-element Merkle Tree, to update elements.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false };
               const elements = generateElements(12, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -1554,7 +1555,7 @@ describe('Merkle-Tree', () => {
               expect(root.equals(newMerkleTree2.root)).to.equal(true);
             });
 
-            it('should verify a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+            it('should use a Multi Proof for a sorted-hash 19-element Merkle Tree, to update elements.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false };
               const elements = generateElements(19, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -1580,7 +1581,7 @@ describe('Merkle-Tree', () => {
           });
 
           describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update an element.', () => {
+            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update elements.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -1953,7 +1954,7 @@ describe('Merkle-Tree', () => {
 
         describe('Existence-Only Boolean-Bit Multi Proof Update', () => {
           describe('Balanced', () => {
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree to update elements.', () => {
+            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, to update elements.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -1977,7 +1978,7 @@ describe('Merkle-Tree', () => {
               expect(root.equals(newMerkleTree2.root)).to.equal(true);
             });
 
-            it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree to update elements.', () => {
+            it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree, to update elements.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
               const elements = generateElements(1, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -2003,7 +2004,7 @@ describe('Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree to update elements.', () => {
+            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, to update elements.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -2026,7 +2027,7 @@ describe('Merkle-Tree', () => {
               expect(root.equals(newMerkleTree2.root)).to.equal(true);
             });
 
-            it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree to update elements.', () => {
+            it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree, to update elements.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
               const elements = generateElements(1, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -2051,7 +2052,7 @@ describe('Merkle-Tree', () => {
           });
 
           describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update an element.', () => {
+            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update elements.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               const elements = generateElements(8, { seed: 'ff' });
               const merkleTree = new MerkleTree(elements, options);
@@ -2839,6 +2840,918 @@ describe('Merkle-Tree', () => {
 
           expect(root.equals(merkleTree.root)).to.equal(true);
         });
+      });
+    });
+  });
+
+  describe('Combined Proof (Multi Proofs with Append Proofs)', () => {
+    describe('Existence-Only Multi Proofs', () => {
+      describe('Existence-Only Boolean-Array Combined Proofs', () => {
+        describe('Existence-Only Boolean-Array Combined Proof Generation', () => {
+          it('should verify a Combined Proof for a sorted-hash 1-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(1, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [0];
+            const uElements = generateElements(1, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(2, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [1];
+            const uElements = generateElements(1, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(2, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [1, 0];
+            const uElements = generateElements(2, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(128, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [127, 15, 12, 4, 2];
+            const uElements = generateElements(5, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(128, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [127, 126, 15, 12, 4, 2];
+            const uElements = generateElements(6, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [99];
+            const uElements = generateElements(1, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [99, 15, 12, 4, 2];
+            const uElements = generateElements(5, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [99, 98, 15, 12, 4, 2];
+            const uElements = generateElements(6, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [99, 97, 15, 12, 4, 2];
+            const uElements = generateElements(6, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [99, 98, 97, 15, 12, 4, 2];
+            const uElements = generateElements(7, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [100];
+            const uElements = generateElements(1, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [100, 15, 12, 4, 2];
+            const uElements = generateElements(5, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [100, 99, 15, 12, 4, 2];
+            const uElements = generateElements(6, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [100, 98, 15, 12, 4, 2];
+            const uElements = generateElements(6, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const originalElements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(originalElements, options);
+            const indices = [100, 99, 98, 15, 12, 4, 2];
+            const uElements = generateElements(7, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const combinedProof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { decommitments, elements, updateElements, appendElements } = combinedProof;
+            const { decommitments: multiDecommitments } = merkleTree.generateMultiProof(indices, options);
+
+            expect(decommitments.reduce((r, d, i) => r && d.equals(multiDecommitments[i]), true)).to.equal(true);
+            expect(decommitments.length).to.equal(multiDecommitments.length);
+            updateElements.forEach((element, i) => expect(element.equals(uElements[i])).to.equal(true));
+            expect(updateElements.length).to.equal(uElements.length);
+            appendElements.forEach((element, i) => expect(element.equals(aElements[i])).to.equal(true));
+            expect(appendElements.length).to.equal(aElements.length);
+          });
+        });
+
+        describe('Existence-Only Boolean-Array Combined Proof Verification', () => {
+          it('should verify a Combined Proof for a sorted-hash 1-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(1, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [0];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(2, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [1];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(2, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [1, 0];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(128, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [127, 15, 12, 4, 2];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(128, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [127, 126, 15, 12, 4, 2];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [99];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [99, 15, 12, 4, 2];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [99, 98, 15, 12, 4, 2];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [99, 97, 15, 12, 4, 2];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [99, 98, 97, 15, 12, 4, 2];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [100];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [100, 15, 12, 4, 2];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [100, 99, 15, 12, 4, 2];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [100, 98, 15, 12, 4, 2];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [100, 99, 98, 15, 12, 4, 2];
+            const proof = merkleTree.generateCombinedProof(indices, [], [], options);
+            const proofValid = MerkleTree.verifyCombinedProof(proof, options);
+
+            expect(proofValid).to.equal(true);
+          });
+        });
+
+        describe('Existence-Only Boolean-Array Combined Proof Update and Append', () => {
+          it('should usa a Combined Proof for a sorted-hash 19-element Merkle Tree, to update and append elements.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(19, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [18, 17, 12, 1];
+            const uElements = generateElements(4, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 1-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(1, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [0];
+            const uElements = generateElements(1, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(2, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [1];
+            const uElements = generateElements(1, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(2, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [1, 0];
+            const uElements = generateElements(2, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(128, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [127, 15, 12, 4, 2];
+            const uElements = generateElements(5, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(128, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [127, 126, 15, 12, 4, 2];
+            const uElements = generateElements(6, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [99];
+            const uElements = generateElements(1, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [99, 15, 12, 4, 2];
+            const uElements = generateElements(5, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [99, 98, 15, 12, 4, 2];
+            const uElements = generateElements(6, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [99, 97, 15, 12, 4, 2];
+            const uElements = generateElements(6, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(100, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [99, 98, 97, 15, 12, 4, 2];
+            const uElements = generateElements(7, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [100];
+            const uElements = generateElements(1, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [100, 15, 12, 4, 2];
+            const uElements = generateElements(5, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [100, 99, 15, 12, 4, 2];
+            const uElements = generateElements(6, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [100, 98, 15, 12, 4, 2];
+            const uElements = generateElements(6, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+
+          it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+            const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: false };
+            const elements = generateElements(101, { seed: 'ff' });
+            const merkleTree = new MerkleTree(elements, options);
+            const indices = [100, 99, 98, 15, 12, 4, 2];
+            const uElements = generateElements(7, { seed: '11' });
+            const aElements = generateElements(5, { seed: '22' });
+            const proof = merkleTree.generateCombinedProof(indices, uElements, aElements, options);
+            const { root } = MerkleTree.updateAndAppendWithMultiProof(proof, options);
+
+            const updatedElements = elements.map((e, i) => {
+              const index = indices.indexOf(i);
+
+              return index >= 0 ? uElements[index] : e;
+            });
+
+            const newElements = updatedElements.concat(aElements);
+            const newMerkleTree1 = new MerkleTree(newElements, options);
+            const newMerkleTree2 = merkleTree.updateAndAppendMulti(indices, uElements, aElements);
+            const newMerkleTree3 = merkleTree.updateMulti(indices, uElements).appendMulti(aElements);
+            const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(indices, uElements);
+
+            expect(root.equals(newMerkleTree1.root)).to.equal(true);
+            expect(root.equals(newMerkleTree2.root)).to.equal(true);
+            expect(root.equals(newMerkleTree3.root)).to.equal(true);
+            expect(root.equals(newMerkleTree4.root)).to.equal(true);
+          });
+        });
+
+        describe.skip('Existence-Only Boolean-Array Combined Proof Update an Append Consecutive Uses', () => {});
       });
     });
   });
