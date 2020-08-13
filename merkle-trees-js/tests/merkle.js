@@ -853,11 +853,7 @@ describe('Merkle-Tree', () => {
           });
         });
 
-        describe('Unbalanced', () => {
-          it.skip('should generate a Multi Proof for a 9-element Merkle Tree (TODO).', () => {});
-
-          it.skip('should generate a Multi Proof for a sorted-hash 9-element Merkle Tree (TODO).', () => {});
-        });
+        describe.skip('Unbalanced (TODO)', () => {});
 
         describe('Balanced/Unbalanced Overlapping Cases', () => {
           it('should generate the same Multi Proof for a 8-element Merkle Tree.', () => {
@@ -959,11 +955,7 @@ describe('Merkle-Tree', () => {
           });
         });
 
-        describe('Unbalanced', () => {
-          it.skip('should verify a Multi Proof for a 9-element Merkle Tree (TODO).', () => {});
-
-          it.skip('should verify a Multi Proof for a sorted-hash 9-element Merkle Tree (TODO).', () => {});
-        });
+        describe.skip('Unbalanced (TODO)', () => {});
 
         describe('Balanced/Unbalanced Overlapping Cases', () => {
           it('should verify a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option.', () => {
@@ -1089,11 +1081,7 @@ describe('Merkle-Tree', () => {
           });
         });
 
-        describe('Unbalanced', () => {
-          it.skip('should use a Multi Proof for an 9-element Merkle Tree to update an element (TODO).', () => {});
-
-          it.skip('should use a Multi Proof for an sorted-hash 9-element Merkle Tree to update an element (TODO).', () => {});
-        });
+        describe.skip('Unbalanced (TODO)', () => {});
 
         describe('Balanced/Unbalanced Overlapping Cases', () => {
           it('should use a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option, to update an element.', () => {
@@ -1120,7 +1108,7 @@ describe('Merkle-Tree', () => {
             expect(root.equals(newMerkleTree2.root)).to.equal(true);
           });
 
-          it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update an element (TODO).', () => {
+          it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update an element.', () => {
             const options = { unbalanced: true, sortedHash: true, indexed: true };
             const elements = generateElements(8, { seed: 'ff' });
             const merkleTree = new MerkleTree(elements, options);
@@ -1215,9 +1203,7 @@ describe('Merkle-Tree', () => {
           });
         });
 
-        describe('Unbalanced', () => {
-          it.skip('should use 100 Multi Proofs for a 17-element Merkle Tree, to perform 100 updates of up to 6 random elements (TODO).', () => {});
-        });
+        describe.skip('Unbalanced (TODO)', () => {});
       });
     });
 
