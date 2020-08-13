@@ -9,18 +9,28 @@ const generate = ({ tree, index }) => {
     decommitments.unshift(i & 1 ? tree[i - 1] : tree[i + 1]);
   }
 
-  return { decommitments: decommitments.map(Buffer.from) };
+  // Filter out non-existent decommitments, which are nodes to the "right" of the last leaf
+  return { decommitments: decommitments.filter((d) => d).map(Buffer.from) };
 };
 
 // Compute the root given a leaf, its index, and a set of decommitments.
-const getRoot = ({ index, leaf, decommitments, hashFunction }) => {
-  const n = decommitments.length - 1;
+const getRoot = ({ elementCount, index, leaf, decommitments, hashFunction }) => {
+  let n = decommitments.length;
   let hash = Buffer.from(leaf);
+  let upperBound = elementCount - 1;
 
-  for (let i = n; i >= 0; i--) {
+  while (n > 0) {
+    // If even and the "right-most" node at this level, the parent hash is this child
+    if (index === upperBound && !(index & 1)) {
+      index >>= 1;
+      upperBound >>= 1;
+      continue;
+    }
+
     // Note that hash order is irrelevant if hash function sorts nodes
-    hash = index & 1 ? hashFunction(decommitments[i], hash) : hashFunction(hash, decommitments[i]);
+    hash = index & 1 ? hashFunction(decommitments[--n], hash) : hashFunction(hash, decommitments[--n]);
     index >>= 1;
+    upperBound >>= 1;
   }
 
   return { root: hash };
@@ -29,20 +39,26 @@ const getRoot = ({ index, leaf, decommitments, hashFunction }) => {
 // Compute the existing root given a leaf, its index, and a set of decommitments
 // and computes a new root, along the way, given a new leaf to take its place.
 // See getRoot for relevant inline comments.
-const getNewRoot = ({ index, leaf, newLeaf, decommitments, hashFunction }) => {
-  const n = decommitments.length - 1;
+const getNewRoot = ({ elementCount, index, leaf, newLeaf, decommitments, hashFunction }) => {
+  let n = decommitments.length;
   let hash = Buffer.from(leaf);
   let newHash = Buffer.from(newLeaf);
+  let upperBound = elementCount - 1;
 
-  for (let i = n; i >= 0; i--) {
-    hash = index & 1 ? hashFunction(decommitments[i], hash) : hashFunction(hash, decommitments[i]);
-    newHash = index & 1 ? hashFunction(decommitments[i], newHash) : hashFunction(newHash, decommitments[i]);
+  while (n > 0) {
+    if (index === upperBound && !(index & 1)) {
+      index >>= 1;
+      upperBound >>= 1;
+      continue;
+    }
+
+    hash = index & 1 ? hashFunction(decommitments[--n], hash) : hashFunction(hash, decommitments[--n]);
+    newHash = index & 1 ? hashFunction(decommitments[n], newHash) : hashFunction(newHash, decommitments[n]);
     index >>= 1;
+    upperBound >>= 1;
   }
 
   return { root: hash, newRoot: newHash };
 };
 
 module.exports = { generate, getRoot, getNewRoot };
-
-// TODO: make these work with unbalanced trees

@@ -207,9 +207,133 @@ describe('Merkle-Tree', () => {
       });
 
       describe('Unbalanced', () => {
-        it.skip('should generate a Single Proof for a 9-element Merkle Tree (TODO).', () => {});
+        it('should verify a Single Proof for a 9-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false };
+          const elements = generateElements(9, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+          const { root, elementCount, index, element, decommitments } = merkleTree.generateSingleProof(8);
 
-        it.skip('should generate a Single Proof for a sorted-hash 9-element Merkle Tree (TODO).', () => {});
+          const expectedDecommitments = ['0c67c6340449c320fb4966988f319713e0610c40237a05fdef8e5da8c66db8a4'];
+
+          expect(root.equals(merkleTree.root)).to.equal(true);
+          expect(elementCount).to.equal(9);
+          expect(index).to.equal(8);
+          expect(element.equals(elements[8])).to.equal(true);
+          expect(decommitments.length).to.equal(expectedDecommitments.length);
+          decommitments.forEach((decommitment, i) =>
+            expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+          );
+        });
+
+        it('should verify a Single Proof for a 27-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false };
+          const elements = generateElements(27, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+          const { root, elementCount, index, element, decommitments } = merkleTree.generateSingleProof(25);
+
+          const expectedDecommitments = [
+            'c7ec3e428ae2869b12c1b8e12a84e56f0d7f3cbe752cd1c3775158cf846412be',
+            '88d2a11c3b0935fc6a30e3b0a69fa58a84de08ea333248f23e5d747613fc04f9',
+            '289b3d65643b54739112fa7df258736b511ed1b5611e4f9ce681ae39fbd5fd8b',
+            'c43e6f0c51c26c040dc4a40e372839ccc4a53c1762504da451819ae9e93d239a',
+          ];
+
+          expect(root.equals(merkleTree.root)).to.equal(true);
+          expect(elementCount).to.equal(27);
+          expect(index).to.equal(25);
+          expect(element.equals(elements[25])).to.equal(true);
+          expect(decommitments.length).to.equal(expectedDecommitments.length);
+          decommitments.forEach((decommitment, i) =>
+            expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+          );
+        });
+
+        it('should verify a Single Proof for a 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false };
+          const elements = generateElements(100, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+          const { root, elementCount, index, element, decommitments } = merkleTree.generateSingleProof(97);
+
+          const expectedDecommitments = [
+            'eb98df4415ff9a93976bb26b84f3819662fe31939e022cfa52d9061de351f6d5',
+            '06f8f83483a72750b8ba34cbe8fd54cc1243479b12f7b659075311dc54800203',
+            'bbc26fa1ff8c9f841d4f4758cccac1def0f9929c30c949451d4e71e4ded0a681',
+            '4ac05d0ec2e247aad1065f712d3d6934938e4709f224a0466f558bdf2e4cbf9c',
+          ];
+
+          expect(root.equals(merkleTree.root)).to.equal(true);
+          expect(elementCount).to.equal(100);
+          expect(index).to.equal(97);
+          expect(element.equals(elements[97])).to.equal(true);
+          expect(decommitments.length).to.equal(expectedDecommitments.length);
+          decommitments.forEach((decommitment, i) =>
+            expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+          );
+        });
+
+        it('should verify a Single Proof for a sorted-hash 9-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true };
+          const elements = generateElements(9, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+          const { root, elementCount, index, element, decommitments } = merkleTree.generateSingleProof(8);
+
+          const expectedDecommitments = ['7f8dc34b7b4e06eff546283358ff8d7a988b62bc266f6337f8234c9a84778221'];
+
+          expect(root.equals(merkleTree.root)).to.equal(true);
+          expect(elementCount).to.equal(9);
+          expect(index).to.equal(8);
+          expect(element.equals(elements[8])).to.equal(true);
+          expect(decommitments.length).to.equal(expectedDecommitments.length);
+          decommitments.forEach((decommitment, i) =>
+            expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+          );
+        });
+
+        it('should verify a Single Proof for a sorted-hash 27-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true };
+          const elements = generateElements(27, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+          const { root, elementCount, index, element, decommitments } = merkleTree.generateSingleProof(25);
+
+          const expectedDecommitments = [
+            '2c2cdc952c9d537709959cd357f6268fff33e5e21147f1a23db6cae78fb91eb9',
+            'c62e1d7cf122111fa068da94e48ecd21cb02bba4bd41d56e9f4b69a4509a2962',
+            '289b3d65643b54739112fa7df258736b511ed1b5611e4f9ce681ae39fbd5fd8b',
+            'c43e6f0c51c26c040dc4a40e372839ccc4a53c1762504da451819ae9e93d239a',
+          ];
+
+          expect(root.equals(merkleTree.root)).to.equal(true);
+          expect(elementCount).to.equal(27);
+          expect(index).to.equal(25);
+          expect(element.equals(elements[25])).to.equal(true);
+          expect(decommitments.length).to.equal(expectedDecommitments.length);
+          decommitments.forEach((decommitment, i) =>
+            expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+          );
+        });
+
+        it('should verify a Single Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true };
+          const elements = generateElements(100, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+          const { root, elementCount, index, element, decommitments } = merkleTree.generateSingleProof(97);
+
+          const expectedDecommitments = [
+            'bb9a6e5787ae741c6a0e75a360aefe75ee06284ece1edddc1573ac9462945e7f',
+            '904afce76e0f7ccead463e22aec76018c1450afd3deb4f387e0617ef39721685',
+            'bbc26fa1ff8c9f841d4f4758cccac1def0f9929c30c949451d4e71e4ded0a681',
+            '4ac05d0ec2e247aad1065f712d3d6934938e4709f224a0466f558bdf2e4cbf9c',
+          ];
+
+          expect(root.equals(merkleTree.root)).to.equal(true);
+          expect(elementCount).to.equal(100);
+          expect(index).to.equal(97);
+          expect(element.equals(elements[97])).to.equal(true);
+          expect(decommitments.length).to.equal(expectedDecommitments.length);
+          decommitments.forEach((decommitment, i) =>
+            expect(decommitment.toString('hex')).to.equal(expectedDecommitments[i])
+          );
+        });
       });
 
       describe('Balanced/Unbalanced Overlapping Cases', () => {
@@ -293,9 +417,65 @@ describe('Merkle-Tree', () => {
       });
 
       describe('Unbalanced', () => {
-        it.skip('should verify a Single Proof for an 9-element Merkle Tree (TODO).', () => {});
+        it('should verify a Single Proof for a 9-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false };
+          const elements = generateElements(9, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+          const proof = merkleTree.generateSingleProof(8);
+          const proofValid = MerkleTree.verifySingleProof(proof, options);
 
-        it.skip('should verify a Single Proof for an sorted-hash 9-element Merkle Tree (TODO).', () => {});
+          expect(proofValid).to.equal(true);
+        });
+
+        it('should verify a Single Proof for a 27-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false };
+          const elements = generateElements(27, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+          const proof = merkleTree.generateSingleProof(25);
+          const proofValid = MerkleTree.verifySingleProof(proof, options);
+
+          expect(proofValid).to.equal(true);
+        });
+
+        it('should verify a Single Proof for a 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false };
+          const elements = generateElements(100, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+          const proof = merkleTree.generateSingleProof(97);
+          const proofValid = MerkleTree.verifySingleProof(proof, options);
+
+          expect(proofValid).to.equal(true);
+        });
+
+        it('should verify a Single Proof for a sorted-hash 9-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true };
+          const elements = generateElements(9, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+          const proof = merkleTree.generateSingleProof(8);
+          const proofValid = MerkleTree.verifySingleProof(proof, options);
+
+          expect(proofValid).to.equal(true);
+        });
+
+        it('should verify a Single Proof for a sorted-hash 27-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true };
+          const elements = generateElements(27, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+          const proof = merkleTree.generateSingleProof(25);
+          const proofValid = MerkleTree.verifySingleProof(proof, options);
+
+          expect(proofValid).to.equal(true);
+        });
+
+        it('should verify a Single Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true };
+          const elements = generateElements(100, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+          const proof = merkleTree.generateSingleProof(97);
+          const proofValid = MerkleTree.verifySingleProof(proof, options);
+
+          expect(proofValid).to.equal(true);
+        });
       });
 
       describe('Balanced/Unbalanced Overlapping Cases', () => {
@@ -393,9 +573,107 @@ describe('Merkle-Tree', () => {
       });
 
       describe('Unbalanced', () => {
-        it.skip('should use a Single Proof for an 9-element Merkle Tree to update an element (TODO).', () => {});
+        it('should verify a Single Proof for a 9-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false };
+          const elements = generateElements(9, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
 
-        it.skip('should use a Single Proof for an sorted-hash 9-element Merkle Tree to update an element (TODO).', () => {});
+          const newElement = generateElements(1, { seed: '11' })[0];
+          const proof = merkleTree.generateSingleUpdateProof(8, newElement);
+          const { root } = MerkleTree.updateWithSingleProof(proof, options);
+
+          const newElements = elements.map((e, i) => (i === 8 ? newElement : e));
+          const newMerkleTree1 = new MerkleTree(newElements, options);
+          const newMerkleTree2 = merkleTree.updateSingle(8, newElement);
+
+          expect(root.equals(newMerkleTree1.root)).to.equal(true);
+          expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        });
+
+        it('should verify a Single Proof for a 27-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false };
+          const elements = generateElements(27, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+
+          const newElement = generateElements(1, { seed: '11' })[0];
+          const proof = merkleTree.generateSingleUpdateProof(25, newElement);
+          const { root } = MerkleTree.updateWithSingleProof(proof, options);
+
+          const newElements = elements.map((e, i) => (i === 25 ? newElement : e));
+          const newMerkleTree1 = new MerkleTree(newElements, options);
+          const newMerkleTree2 = merkleTree.updateSingle(25, newElement);
+
+          expect(root.equals(newMerkleTree1.root)).to.equal(true);
+          expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        });
+
+        it('should verify a Single Proof for a 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false };
+          const elements = generateElements(100, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+
+          const newElement = generateElements(1, { seed: '11' })[0];
+          const proof = merkleTree.generateSingleUpdateProof(97, newElement);
+          const { root } = MerkleTree.updateWithSingleProof(proof, options);
+
+          const newElements = elements.map((e, i) => (i === 97 ? newElement : e));
+          const newMerkleTree1 = new MerkleTree(newElements, options);
+          const newMerkleTree2 = merkleTree.updateSingle(97, newElement);
+
+          expect(root.equals(newMerkleTree1.root)).to.equal(true);
+          expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        });
+
+        it('should verify a Single Proof for a sorted-hash 9-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true };
+          const elements = generateElements(9, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+
+          const newElement = generateElements(1, { seed: '11' })[0];
+          const proof = merkleTree.generateSingleUpdateProof(8, newElement);
+          const { root } = MerkleTree.updateWithSingleProof(proof, options);
+
+          const newElements = elements.map((e, i) => (i === 8 ? newElement : e));
+          const newMerkleTree1 = new MerkleTree(newElements, options);
+          const newMerkleTree2 = merkleTree.updateSingle(8, newElement);
+
+          expect(root.equals(newMerkleTree1.root)).to.equal(true);
+          expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        });
+
+        it('should verify a Single Proof for a sorted-hash 27-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true };
+          const elements = generateElements(27, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+
+          const newElement = generateElements(1, { seed: '11' })[0];
+          const proof = merkleTree.generateSingleUpdateProof(25, newElement);
+          const { root } = MerkleTree.updateWithSingleProof(proof, options);
+
+          const newElements = elements.map((e, i) => (i === 25 ? newElement : e));
+          const newMerkleTree1 = new MerkleTree(newElements, options);
+          const newMerkleTree2 = merkleTree.updateSingle(25, newElement);
+
+          expect(root.equals(newMerkleTree1.root)).to.equal(true);
+          expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        });
+
+        it('should verify a Single Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true };
+          const elements = generateElements(100, { seed: 'ff' });
+          const merkleTree = new MerkleTree(elements, options);
+
+          const newElement = generateElements(1, { seed: '11' })[0];
+          const proof = merkleTree.generateSingleUpdateProof(97, newElement);
+          const { root } = MerkleTree.updateWithSingleProof(proof, options);
+
+          const newElements = elements.map((e, i) => (i === 97 ? newElement : e));
+          const newMerkleTree1 = new MerkleTree(newElements, options);
+          const newMerkleTree2 = merkleTree.updateSingle(97, newElement);
+
+          expect(root.equals(newMerkleTree1.root)).to.equal(true);
+          expect(root.equals(newMerkleTree2.root)).to.equal(true);
+        });
       });
 
       describe('Balanced/Unbalanced Overlapping Cases', () => {
@@ -459,7 +737,25 @@ describe('Merkle-Tree', () => {
       });
 
       describe('Unbalanced', () => {
-        it.skip('should use 100 Single Proofs for a sorted-hash 17-element Merkle Tree, to update an 100 elements consecutively (TODO).', () => {});
+        it('should use 100 Single Proofs for a 25-element Merkle Tree, to update an 100 elements consecutively.', () => {
+          const options = { unbalanced: true, sortedHash: false };
+          let elements = generateElements(25);
+          let merkleTree = new MerkleTree(elements, options);
+
+          // Elements to be inserted at respective indices
+          const newElements = generateElements(100);
+          const indices = Array.from({ length: 100 }, () => Math.floor(Math.random() * 25));
+
+          newElements.forEach((newElement, i) => {
+            const proof = merkleTree.generateSingleUpdateProof(indices[i], newElement);
+            const { root } = MerkleTree.updateWithSingleProof(proof, options);
+
+            elements[indices[i]] = newElement;
+            merkleTree = merkleTree.updateSingle(indices[i], newElement);
+
+            expect(root.equals(merkleTree.root)).to.equal(true);
+          });
+        });
       });
     });
   });

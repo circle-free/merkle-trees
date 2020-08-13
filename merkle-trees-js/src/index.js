@@ -49,7 +49,7 @@ class MerkleTree {
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashFunction = getHashFunction(unbalanced, sortedHash);
     const leaf = hashNode(prefixBuffer, element);
-    const { root: recoveredRoot } = SingleProofs.getRoot({ index, leaf, decommitments, hashFunction });
+    const { root: recoveredRoot } = SingleProofs.getRoot({ elementCount, index, leaf, decommitments, hashFunction });
 
     return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot);
   }
@@ -62,6 +62,7 @@ class MerkleTree {
     const newLeaf = hashNode(prefixBuffer, newElement);
 
     const { root: recoveredRoot, newRoot } = SingleProofs.getNewRoot({
+      elementCount,
       index,
       leaf,
       newLeaf,
