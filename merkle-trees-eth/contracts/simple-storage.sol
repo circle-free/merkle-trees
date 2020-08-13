@@ -6,14 +6,6 @@ contract Simple_Storage {
 
   event Data_Used(bytes32 data_used);
 
-  constructor(uint256[] memory indices, bytes32[] memory _elements) public {
-    uint256 index_count = indices.length;
-
-    for(uint256 i = 0; i < index_count; ++i) {
-      elements[indices[i]] = _elements[i];
-    }
-  }
-
   function hash_node(bytes32 left, bytes32 right) internal pure returns (bytes32 hash) {
     assembly {
       mstore(0x00, left)
@@ -24,12 +16,12 @@ contract Simple_Storage {
     return hash;
   }
 
-  function verify(uint256[] memory indices, bytes32[] memory _elements) public view returns (bool valid) {
-    if (indices.length != _elements.length) return false;
-
+  function verify(uint256[] memory indices, bytes32[] memory _elements) public view returns (bool) {
     uint256 index_count = indices.length;
 
-    for(uint256 i = 0; i < index_count; ++i) {
+    if (index_count != _elements.length) return false;
+
+    for(uint256 i; i < index_count; ++i) {
       if (elements[indices[i]] != _elements[i]) return false;
     }
 
@@ -38,7 +30,7 @@ contract Simple_Storage {
 
   function use(uint256[] memory indices) public {
     uint256 index_count = indices.length;
-    bytes32 data_used = bytes32(0);
+    bytes32 data_used;
 
     for(uint256 i; i < index_count; ++i) {
       data_used = hash_node(data_used, elements[indices[i]]);
@@ -47,17 +39,21 @@ contract Simple_Storage {
     emit Data_Used(data_used);
   }
 
-  function update(uint256[] memory indices, bytes32[] memory new_elements) public {
+  function update_one(uint256 index, bytes32 new_element) public {
+    elements[index] = new_element;
+  }
+
+  function update_many(uint256[] memory indices, bytes32[] memory new_elements) public {
     uint256 index_count = indices.length;
 
-    for(uint256 i = 0; i < index_count; ++i) {
+    for(uint256 i; i < index_count; ++i) {
       elements[indices[i]] = new_elements[i];
     }
   }
 
   function use_and_update(uint256[] memory indices) public {
     uint256 index_count = indices.length;
-    bytes32 data_used = bytes32(0);
+    bytes32 data_used;
 
     for(uint256 i; i < index_count; ++i) {
       data_used = hash_node(data_used, elements[indices[i]]);

@@ -26,11 +26,11 @@ const generate = ({ tree, elementCount }) => {
 // Note, it is implied that there is nothing to the right of the "right-most"
 // decommitment, explaining the departure from the SingleProof.getRoot algorithm.
 const getRoot = ({ elementCount, decommitments, hashFunction }) => {
-  const n = bitCount32(elementCount) - 1;
-  let hash = decommitments[n];
+  let n = bitCount32(elementCount);
+  let hash = decommitments[--n];
 
-  for (let i = n; i > 0; i--) {
-    hash = hashFunction(decommitments[i - 1], hash);
+  while (n > 0) {
+    hash = hashFunction(decommitments[--n], hash);
   }
 
   return { root: hash };
@@ -42,13 +42,13 @@ const getRoot = ({ elementCount, decommitments, hashFunction }) => {
 // appended, explaining the departure from the SingleProof.getNewRoot algorithm.
 // See getRoot for relevant inline comments.
 const getNewRootSingle = ({ newLeaf, elementCount, decommitments, hashFunction }) => {
-  const n = bitCount32(elementCount) - 1;
-  let hash = decommitments[n];
+  let n = bitCount32(elementCount);
+  let hash = decommitments[--n];
   let newHash = hashFunction(decommitments[n], newLeaf);
 
-  for (let i = n; i > 0; i--) {
-    newHash = hashFunction(decommitments[i - 1], newHash);
-    hash = hashFunction(decommitments[i - 1], hash);
+  while (n > 0) {
+    newHash = hashFunction(decommitments[--n], newHash);
+    hash = hashFunction(decommitments[n], hash);
   }
 
   return { root: hash, newRoot: newHash };
@@ -66,21 +66,27 @@ const getNewRootSingle = ({ newLeaf, elementCount, decommitments, hashFunction }
 // Note, this code is left here as a clearer explanation of the algorithm, made
 // simpler by the getNewRootMulti below, which maintains the sparse tree compactly.
 const getNewRootMultiMemoryLarge = ({ newLeafs, elementCount, decommitments, hashFunction }) => {
-  const newLeafCount = newLeafs.length;
-  const totalElementCount = elementCount + newLeafCount;
-  const totalLeafCount = roundUpToPowerOf2(totalElementCount);
-  const tree = Array(totalLeafCount << 1).fill(null);
+  let n = bitCount32(elementCount);
+  let hash = decommitments[--n];
 
-  // Fill the empty tree with the the leafs that we are adding. it will be sparse.
-  for (let i = 0; i < newLeafCount; i++) {
-    tree[totalLeafCount + elementCount + i] = newLeafs[i];
+  while (n > 0) {
+    hash = hashFunction(decommitments[--n], hash);
   }
 
-  let n = bitCount32(elementCount) - 1;
-  let hash = decommitments[n];
+  const appendingLeafCount = newLeafs.length;
+  const newTotalElementCount = elementCount + appendingLeafCount;
+  const newTotalLeafCount = roundUpToPowerOf2(newTotalElementCount);
+  const tree = Array(newTotalLeafCount << 1).fill(null);
+
+  // Fill the empty tree with the the leafs that we are adding. it will be sparse.
+  for (let i = 0; i < appendingLeafCount; i++) {
+    tree[newTotalLeafCount + elementCount + i] = newLeafs[i];
+  }
+
+  n = bitCount32(elementCount);
 
   // Start at the "right-most" element, since nothing exists "to the right".
-  for (let i = (totalLeafCount + totalElementCount - 1) >> 1; i > 0; i--) {
+  for (let i = (newTotalLeafCount + newTotalElementCount - 1) >> 1; i > 0; i--) {
     const index = i << 1;
     const left = tree[index];
     const right = tree[index + 1];
@@ -97,8 +103,7 @@ const getNewRootMultiMemoryLarge = ({ newLeafs, elementCount, decommitments, has
     // Sibling to the "left" does not exist, so use the decommitment.
     // Also, continue building the exiting root.
     if (!left) {
-      tree[i] = hashFunction(decommitments[n--], right);
-      hash = hashFunction(decommitments[n], hash);
+      tree[i] = hashFunction(decommitments[--n], right);
       continue;
     }
 
@@ -113,39 +118,42 @@ const getNewRootMultiMemoryLarge = ({ newLeafs, elementCount, decommitments, has
 // a stack where the accumulated nodes are maintained. The side of this stack is at
 // most n/2 + 1, there n is the amount of leafs being appended.
 const getNewRootMulti = ({ newLeafs, elementCount, decommitments, hashFunction }) => {
-  const newLeafCount = newLeafs.length;
-  const totalElementCount = elementCount + newLeafCount;
-  const totalLeafCount = roundUpToPowerOf2(totalElementCount);
-  const hashes = Array((newLeafCount >> 1) + 1).fill(null);
+  let n = bitCount32(elementCount);
+  let hash = decommitments[--n];
 
-  let n = bitCount32(elementCount) - 1;
-  let hash = decommitments[n];
-  let lowerBound = totalLeafCount + elementCount;
-  let upperBound = totalLeafCount + totalElementCount - 1;
+  while (n > 0) {
+    hash = hashFunction(decommitments[--n], hash);
+  }
+  
+  const appendingLeafCount = newLeafs.length;
+  const newTotalElementCount = elementCount + appendingLeafCount;
+  const newTotalLeafCount = roundUpToPowerOf2(newTotalElementCount);
+  const hashes = newLeafs.map((leaf) => leaf);
+
+  n = bitCount32(elementCount);
+  let lowerBound = newTotalLeafCount + elementCount;
+  let upperBound = newTotalLeafCount + newTotalElementCount - 1;
   let i = 0;
   let writeIndex = 0;
-  let offset = totalLeafCount + elementCount;
+  let offset = newTotalLeafCount + elementCount;
 
   while (true) {
     const index = offset + i;
 
     if (index === 1) return { root: hash, newRoot: hashes[0] };
 
-    const useLeafs = index >= totalLeafCount;
-
     // Odd node must be merged with decommitment on its "left", as hashes does not contain its
     // sibling. Note that this is the only case where index could be odd, since a previously even index
     // would have resulted in a double incrementing of i. In other words, the only odd index we expect
     // is possibly when i = 0, such that it is the first node being appended/touched.
-    // Also, continue building the exiting root.
+    // Also, continue building the existing root.
     if (index === lowerBound && index & 1) {
-      hashes[writeIndex++] = hashFunction(decommitments[n--], useLeafs ? newLeafs[i++] : hashes[i++]);
-      hash = hashFunction(decommitments[n], hash);
+      hashes[writeIndex++] = hashFunction(decommitments[--n], hashes[i++]);
       continue;
     }
 
     // if upper bound (and implicitly even), there is no sibling to the "right"
-    if (index === upperBound) hashes[writeIndex++] = useLeafs ? newLeafs[i] : hashes[i];
+    if (index === upperBound) hashes[writeIndex++] = hashes[i];
 
     // if upper bound (or greater, due to over-incrementing in next step), reset and level up
     if (index >= upperBound) {
@@ -158,9 +166,7 @@ const getNewRootMulti = ({ newLeafs, elementCount, decommitments, hashFunction }
     }
 
     // index is implicitly even and neither of the bounds, so just hash siblings normally
-    hashes[writeIndex++] = useLeafs
-      ? hashFunction(newLeafs[i++], newLeafs[i++])
-      : hashFunction(hashes[i++], hashes[i++]);
+    hashes[writeIndex++] = hashFunction(hashes[i++], hashes[i++]);
   }
 };
 
