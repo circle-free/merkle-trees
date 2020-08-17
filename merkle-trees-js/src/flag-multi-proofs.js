@@ -83,29 +83,36 @@ const generate = (parameters) => {
 // nodes without siblings to the "right", in the case of unbalanced trees.
 // See MultiIndexedProof.getRoot for relevant inline comments.
 const getRootBooleans = ({ leafs, flags, skips, decommitments, hashFunction }) => {
-  // TODO: Consider an empty hashes array and a leafIndex that is used, while leafIndex < leafCount,
-  // to reference leafs directly from leafs parameter, rather than copying all leafs to memory.
-  const hashes = leafs.map((leaf) => leaf);
   const hashCount = flags.length;
   const leafCount = leafs.length;
+  const hashes = Array(leafCount).fill(null);
 
   let hashReadIndex = 0;
   let hashWriteIndex = 0;
   let decommitmentIndex = 0;
+  let useLeafs = true;
 
   for (let i = 0; i < hashCount; i++) {
     if (skips[i]) {
-      hashes[hashWriteIndex++] = hashes[hashReadIndex++];
+      hashes[hashWriteIndex++] = useLeafs ? leafs[hashReadIndex++] : hashes[hashReadIndex++];
+
+      if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
 
       hashReadIndex %= leafCount;
       hashWriteIndex %= leafCount;
       continue;
     }
 
-    const left = flags[i] ? hashes[hashReadIndex++] : decommitments[decommitmentIndex++];
+    const right = flags[i]
+      ? useLeafs
+        ? leafs[hashReadIndex++]
+        : hashes[hashReadIndex++]
+      : decommitments[decommitmentIndex++];
     hashReadIndex %= leafCount;
-    const right = hashes[hashReadIndex++];
+    const left = useLeafs ? leafs[hashReadIndex++] : hashes[hashReadIndex++];
     hashes[hashWriteIndex++] = hashFunction(left, right);
+
+    if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
 
     hashReadIndex %= leafCount;
     hashWriteIndex %= leafCount;
@@ -113,24 +120,30 @@ const getRootBooleans = ({ leafs, flags, skips, decommitments, hashFunction }) =
 
   const rootIndex = (hashWriteIndex === 0 ? leafCount : hashWriteIndex) - 1;
 
-  return { root: Buffer.from(hashes[rootIndex]) };
+  return { root: Buffer.from(useLeafs ? leafs[0] : hashes[rootIndex]) };
 };
 
 // This is identical to the above getRootBooleans algorithm, differing only in that the
 // the flag and skip bit-set is shifted and checked, rather than boolean arrays.
 // See getRootBooleans for relevant inline comments.
+// TODO: perhaps we can get rid of hashCount parameter with some combination of unused
+//       (flags[i], skips[i]) pair. (i.e. flags[i] is irrelevant if skips[i] is true)
 const getRootBits = ({ leafs, hashCount, flags, skips, decommitments, hashFunction }) => {
-  const hashes = leafs.map((leaf) => leaf);
   const leafCount = leafs.length;
+  const hashes = Array(leafCount).fill(null);
 
   let hashReadIndex = 0;
   let hashWriteIndex = 0;
   let decommitmentIndex = 0;
+  let useLeafs = true;
   let bitCheck = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
 
   for (let i = 0; i < hashCount; i++) {
     if (and(skips, bitCheck).equals(bitCheck)) {
-      hashes[hashWriteIndex++] = hashes[hashReadIndex++];
+      hashes[hashWriteIndex++] = useLeafs ? leafs[hashReadIndex++] : hashes[hashReadIndex++];
+
+      if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
+
       hashReadIndex %= leafCount;
       hashWriteIndex %= leafCount;
       bitCheck = leftShift(bitCheck, 1);
@@ -138,10 +151,16 @@ const getRootBits = ({ leafs, hashCount, flags, skips, decommitments, hashFuncti
     }
 
     const flag = and(flags, bitCheck).equals(bitCheck);
-    const left = flag ? hashes[hashReadIndex++] : decommitments[decommitmentIndex++];
+    const right = flag
+      ? useLeafs
+        ? leafs[hashReadIndex++]
+        : hashes[hashReadIndex++]
+      : decommitments[decommitmentIndex++];
     hashReadIndex %= leafCount;
-    const right = hashes[hashReadIndex++];
+    const left = useLeafs ? leafs[hashReadIndex++] : hashes[hashReadIndex++];
     hashes[hashWriteIndex++] = hashFunction(left, right);
+
+    if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
 
     hashReadIndex %= leafCount;
     hashWriteIndex %= leafCount;
@@ -150,7 +169,7 @@ const getRootBits = ({ leafs, hashCount, flags, skips, decommitments, hashFuncti
 
   const rootIndex = (hashWriteIndex === 0 ? leafCount : hashWriteIndex) - 1;
 
-  return { root: Buffer.from(hashes[rootIndex]) };
+  return { root: Buffer.from(useLeafs ? leafs[0] : hashes[rootIndex]) };
 };
 
 const getRoot = (parameters) => {
@@ -161,32 +180,46 @@ const getRoot = (parameters) => {
 // new root (due to the updated leafs), is computed along the way.
 // See getRootBooleans for relevant inline comments.
 const getNewRootBooleans = ({ leafs, newLeafs, flags, skips, decommitments, hashFunction }) => {
-  const hashes = leafs.map((leaf) => leaf);
-  const newHashes = newLeafs.map((leaf) => leaf);
   const hashCount = flags.length;
   const leafCount = leafs.length;
+  const hashes = Array(leafCount).fill(null);
+  const newHashes = Array(leafCount).fill(null);
 
   let hashReadIndex = 0;
   let hashWriteIndex = 0;
   let decommitmentIndex = 0;
+  let useLeafs = true;
 
   for (let i = 0; i < hashCount; i++) {
     if (skips[i]) {
-      hashes[hashWriteIndex] = hashes[hashReadIndex];
-      newHashes[hashWriteIndex++] = newHashes[hashReadIndex++];
+      hashes[hashWriteIndex] = useLeafs ? leafs[hashReadIndex] : hashes[hashReadIndex];
+      newHashes[hashWriteIndex++] = useLeafs ? newLeafs[hashReadIndex++] : newHashes[hashReadIndex++];
+
+      if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
 
       hashReadIndex %= leafCount;
       hashWriteIndex %= leafCount;
       continue;
     }
 
-    const left = flags[i] ? hashes[hashReadIndex] : decommitments[decommitmentIndex];
-    const newLeft = flags[i] ? newHashes[hashReadIndex++] : decommitments[decommitmentIndex++];
+    const right = flags[i]
+      ? useLeafs
+        ? leafs[hashReadIndex]
+        : hashes[hashReadIndex]
+      : decommitments[decommitmentIndex];
+    const newRight = flags[i]
+      ? useLeafs
+        ? newLeafs[hashReadIndex++]
+        : newHashes[hashReadIndex++]
+      : decommitments[decommitmentIndex++];
     hashReadIndex %= leafCount;
-    const right = hashes[hashReadIndex];
-    const newRight = newHashes[hashReadIndex++];
+
+    const left = useLeafs ? leafs[hashReadIndex] : hashes[hashReadIndex];
+    const newLeft = useLeafs ? newLeafs[hashReadIndex++] : newHashes[hashReadIndex++];
     hashes[hashWriteIndex] = hashFunction(left, right);
     newHashes[hashWriteIndex++] = hashFunction(newLeft, newRight);
+
+    if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
 
     hashReadIndex %= leafCount;
     hashWriteIndex %= leafCount;
@@ -194,26 +227,34 @@ const getNewRootBooleans = ({ leafs, newLeafs, flags, skips, decommitments, hash
 
   const rootIndex = (hashWriteIndex === 0 ? leafCount : hashWriteIndex) - 1;
 
-  return { root: Buffer.from(hashes[rootIndex]), newRoot: Buffer.from(newHashes[rootIndex]) };
+  return {
+    root: Buffer.from(useLeafs ? leafs[0] : hashes[rootIndex]),
+    newRoot: Buffer.from(useLeafs ? newLeafs[0] : newHashes[rootIndex]),
+  };
 };
 
 // This is identical to the above getRootBits algorithm, differing only in that the
 // new root (due to the updated leafs), is computed along the way.
 // See getRootBits for relevant inline comments.
+// TODO: perhaps we can get rid of hashCount parameter with some combination of unused
+//       (flags[i], skips[i]) pair. (i.e. flags[i] is irrelevant if skips[i] is true)
 const getNewRootBits = ({ leafs, newLeafs, hashCount, flags, skips, decommitments, hashFunction }) => {
-  const hashes = leafs.map((leaf) => leaf);
-  const newHashes = newLeafs.map((leaf) => leaf);
   const leafCount = leafs.length;
+  const hashes = Array(leafCount).fill(null);
+  const newHashes = Array(leafCount).fill(null);
 
   let hashReadIndex = 0;
   let hashWriteIndex = 0;
   let decommitmentIndex = 0;
+  let useLeafs = true;
   let bitCheck = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
 
   for (let i = 0; i < hashCount; i++) {
     if (and(skips, bitCheck).equals(bitCheck)) {
-      hashes[hashWriteIndex] = hashes[hashReadIndex];
-      newHashes[hashWriteIndex++] = newHashes[hashReadIndex++];
+      hashes[hashWriteIndex] = useLeafs ? leafs[hashReadIndex] : hashes[hashReadIndex];
+      newHashes[hashWriteIndex++] = useLeafs ? newLeafs[hashReadIndex++] : newHashes[hashReadIndex++];
+
+      if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
 
       hashReadIndex %= leafCount;
       hashWriteIndex %= leafCount;
@@ -222,14 +263,20 @@ const getNewRootBits = ({ leafs, newLeafs, hashCount, flags, skips, decommitment
     }
 
     const flag = and(flags, bitCheck).equals(bitCheck);
-    const left = flag ? hashes[hashReadIndex] : decommitments[decommitmentIndex];
-    const newLeft = flag ? newHashes[hashReadIndex++] : decommitments[decommitmentIndex++];
+    const right = flag ? (useLeafs ? leafs[hashReadIndex] : hashes[hashReadIndex]) : decommitments[decommitmentIndex];
+    const newRight = flag
+      ? useLeafs
+        ? newLeafs[hashReadIndex++]
+        : newHashes[hashReadIndex++]
+      : decommitments[decommitmentIndex++];
     hashReadIndex %= leafCount;
 
-    const right = hashes[hashReadIndex];
-    const newRight = newHashes[hashReadIndex++];
+    const left = useLeafs ? leafs[hashReadIndex] : hashes[hashReadIndex];
+    const newLeft = useLeafs ? newLeafs[hashReadIndex++] : newHashes[hashReadIndex++];
     hashes[hashWriteIndex] = hashFunction(left, right);
     newHashes[hashWriteIndex++] = hashFunction(newLeft, newRight);
+
+    if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
 
     hashReadIndex %= leafCount;
     hashWriteIndex %= leafCount;
@@ -238,7 +285,10 @@ const getNewRootBits = ({ leafs, newLeafs, hashCount, flags, skips, decommitment
 
   const rootIndex = (hashWriteIndex === 0 ? leafCount : hashWriteIndex) - 1;
 
-  return { root: Buffer.from(hashes[rootIndex]), newRoot: Buffer.from(newHashes[rootIndex]) };
+  return {
+    root: Buffer.from(useLeafs ? leafs[0] : hashes[rootIndex]),
+    newRoot: Buffer.from(useLeafs ? newLeafs[0] : newHashes[rootIndex]),
+  };
 };
 
 const getNewRoot = (parameters) => {

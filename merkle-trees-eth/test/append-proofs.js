@@ -72,7 +72,7 @@ describe("Append_Proofs", async accounts => {
     // });
   });
 
-  it(`should append 5 new elements, for 37,145 gas.`, async () => {
+  it(`should append 5 new elements, for 35,648 gas.`, async () => {
     const newElementCount = 5;
     const newElements = generateElements(newElementCount, { seed: 2 });
     const hexNewElements = newElements.map(element => '0x' + element.toString('hex'));
@@ -80,7 +80,7 @@ describe("Append_Proofs", async accounts => {
     const hexAppendDecommitments = appendDecommitments.map(d => '0x' + d.toString('hex'));
     const { receipt: appendReceipt } = await contractInstance.append_many(1, hexNewElements, hexAppendDecommitments);
 
-    expect(appendReceipt.gasUsed).to.equal(37145);
+    expect(appendReceipt.gasUsed).to.equal(35648);
     
     const newMerkleTree = merkleTree.appendMulti(newElements);
     const retrievedRoot = await contractInstance.root();
@@ -93,7 +93,7 @@ describe("Append_Proofs", async accounts => {
     // expect(newElementExists).to.equal(true);
   });
 
-  it(`should append 5 new elements at 5 respective new indices, 100 times consecutively, for 4,272,902 gas.`, async () => {
+  it(`should append 5 new elements at 5 respective new indices, 100 times consecutively, for 4,068,121 gas.`, async () => {
     const newElementCount = 5;
     const newElements = Array.from({ length: 100 }, (_, i) => generateElements(newElementCount, { seed: 3 + i }));
 
@@ -111,7 +111,7 @@ describe("Append_Proofs", async accounts => {
     const retrievedRoot = await contractInstance.root();
     expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
 
-    expect(cumulativeGasUsed).to.equal(4272902);
+    expect(cumulativeGasUsed).to.equal(4068121);
     
     // Can't spot check until SingleProofs lib supports unbalanced trees
   });

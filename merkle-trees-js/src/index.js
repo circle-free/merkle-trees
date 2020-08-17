@@ -1,10 +1,12 @@
 const assert = require('assert');
+
 const { hashNode, getHashFunction, to32ByteBuffer } = require('./utils');
 const Common = require('./common');
 const SingleProofs = require('./single-proofs');
 const MultiIndexedProofs = require('./index-multi-proofs');
 const MultiFlagProofs = require('./flag-multi-proofs');
 const AppendProofs = require('./append-proofs');
+const CombinedProofs = require('./combined-proofs');
 
 class MerkleTree {
   constructor(elements, options = {}) {
@@ -153,6 +155,31 @@ class MerkleTree {
     return { root: MerkleTree.computeMixedRoot(newElementCount, newRoot), elementCount: newElementCount };
   }
 
+  static verifyCombinedProof(parameters, options = {}) {
+    const { elementPrefix = '00' } = options;
+    const prefixBuffer = Buffer.from(elementPrefix, 'hex');
+    const hashFunction = getHashFunction(true, true);
+    const leafs = parameters.elements.map((element) => hashNode(prefixBuffer, element));
+    const params = Object.assign({ leafs, hashFunction }, parameters);
+    const { root } = CombinedProofs.getRoot(params);
+    return MerkleTree.verifyMixedRoot(parameters.root, parameters.elementCount, root);
+  }
+
+  static updateAndAppendWithMultiProof(parameters, options = {}) {
+    const { elementPrefix = '00' } = options;
+    const prefixBuffer = Buffer.from(elementPrefix, 'hex');
+    const hashFunction = getHashFunction(true, true);
+    const leafs = parameters.elements.map((element) => hashNode(prefixBuffer, element));
+    const updateLeafs = parameters.updateElements.map((element) => hashNode(prefixBuffer, element));
+    const appendLeafs = parameters.appendElements.map((element) => hashNode(prefixBuffer, element));
+    const params = Object.assign({ leafs, updateLeafs, appendLeafs, hashFunction }, parameters);
+    const { root: recoveredRoot, newRoot } = CombinedProofs.getNewRoot(params);
+
+    assert(MerkleTree.verifyMixedRoot(parameters.root, parameters.elementCount, recoveredRoot), 'Invalid Proof.');
+
+    return { root: MerkleTree.computeMixedRoot(parameters.elementCount + appendLeafs.length, newRoot) };
+  }
+
   static computeMixedRoot(elementCount, root) {
     return hashNode(to32ByteBuffer(elementCount), root);
   }
@@ -291,6 +318,30 @@ class MerkleTree {
 
     return new MerkleTree(newElements, options);
   }
+
+  generateCombinedProof(indices, updateElements, appendElements, options = {}) {
+    const elementCount = this._elements.length;
+    assert(indices[0] === elementCount - 1, 'indices must include last element.');
+
+    const { bitFlags = false } = options;
+    const parameters = { tree: this._tree, indices, bitFlags };
+    const proof = CombinedProofs.generate(parameters);
+    const elements = indices.map((index) => Buffer.from(this._elements[index]));
+
+    const base = {
+      root: Buffer.from(this._tree[0]),
+      elementCount,
+      elements,
+      updateElements: updateElements.map(Buffer.from),
+      appendElements: appendElements.map(Buffer.from),
+    };
+
+    return Object.assign(base, proof);
+  }
+
+  updateAndAppendMulti(indices, updateElements, appendElements) {
+    return this.updateMulti(indices, updateElements).appendMulti(appendElements);
+  }
 }
 
 module.exports = MerkleTree;
@@ -307,3 +358,4 @@ module.exports = MerkleTree;
 // TODO: consider a Proof class
 // TODO: implement appendElementsWithProof
 // TODO: verify and update single proof can probably be cheaper with sortedHash given that element count is required
+// TODO: should generateCombinedProof include the last index if not provided?
