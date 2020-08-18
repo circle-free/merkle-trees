@@ -168,6 +168,7 @@ class MerkleTree {
   static updateAndAppendWithMultiProof(parameters, options = {}) {
     const { elementPrefix = '00' } = options;
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
+    const newElementCount = parameters.elementCount + parameters.appendElements.length;
     const hashFunction = getHashFunction(true, true);
     const leafs = parameters.elements.map((element) => hashNode(prefixBuffer, element));
     const updateLeafs = parameters.updateElements.map((element) => hashNode(prefixBuffer, element));
@@ -177,7 +178,10 @@ class MerkleTree {
 
     assert(MerkleTree.verifyMixedRoot(parameters.root, parameters.elementCount, recoveredRoot), 'Invalid Proof.');
 
-    return { root: MerkleTree.computeMixedRoot(parameters.elementCount + appendLeafs.length, newRoot) };
+    return {
+      root: MerkleTree.computeMixedRoot(parameters.elementCount + appendLeafs.length, newRoot),
+      elementCount: newElementCount,
+    };
   }
 
   static computeMixedRoot(elementCount, root) {
