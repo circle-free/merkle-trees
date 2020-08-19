@@ -594,8 +594,20 @@ const getNewRoot = (parameters) => {
   return Buffer.isBuffer(parameters.flags) ? getNewRootBits(parameters) : getNewRootBooleans(parameters);
 };
 
-module.exports = { generate, getRoot, getNewRoot };
+// This returns the minimum index that must be in the proof, to result in a proof that will be
+// a valid combined proof (i.e. a valid multi-proof and append-proof). Simply, set the first
+// set bit in the element count to zero, and return that value.
+const getMinimumIndex = (elementCount) => {
+  for (let shifts = 0; shifts < 32; shifts++) {
+    if (elementCount & 1) return (elementCount & 0xfffffffe) << shifts;
+
+    elementCount >>= 1;
+  }
+};
+
+module.exports = { generate, getRoot, getNewRoot, getMinimumIndex };
 
 // TODO: use separate set of flags for left/right hash order, allowing this to work for non-sorted-hash trees
 //       Should be able to infer indices of elements based on proof hash order and flags
 // TODO: bitCount no longer really needed now that there is element->leaf hashing
+// TODO: consider another proof boolean-array informing when to take a hash as an append-decommitment

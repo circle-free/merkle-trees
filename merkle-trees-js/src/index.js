@@ -165,7 +165,7 @@ class MerkleTree {
     return MerkleTree.verifyMixedRoot(parameters.root, parameters.elementCount, root);
   }
 
-  static updateAndAppendWithMultiProof(parameters, options = {}) {
+  static updateAndAppendWithCombinedProof(parameters, options = {}) {
     const { elementPrefix = '00' } = options;
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const newElementCount = parameters.elementCount + parameters.appendElements.length;
@@ -323,9 +323,14 @@ class MerkleTree {
     return new MerkleTree(newElements, options);
   }
 
+  getMinimumCombinedProofIndex() {
+    return CombinedProofs.getMinimumIndex(this._elements.length);
+  }
+
   generateCombinedProof(indices, updateElements, appendElements, options = {}) {
     const elementCount = this._elements.length;
-    assert(indices[0] === elementCount - 1, 'indices must include last element.');
+    const minimumIndex = CombinedProofs.getMinimumIndex(elementCount);
+    assert(indices[0] >= minimumIndex, `First index must be larger than ${minimumIndex}.`);
 
     const { bitFlags = false } = options;
     const parameters = { tree: this._tree, indices, bitFlags };
@@ -360,6 +365,4 @@ module.exports = MerkleTree;
 //       - proving that elements are in the set (flag based)
 //       - proving that elements exist at specific indices (index based)
 // TODO: consider a Proof class
-// TODO: implement appendElementsWithProof
 // TODO: verify and update single proof can probably be cheaper with sortedHash given that element count is required
-// TODO: should generateCombinedProof include the last index if not provided?
