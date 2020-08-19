@@ -229,6 +229,7 @@ const getRootBits = ({ leafs, elementCount, hashCount, flags, skips, decommitmen
     }
 
     const flag = and(flags, bitCheck).equals(bitCheck);
+    const nextHashReadIndex = (hashReadIndex + 1) % leafCount;
 
     const appendHash = flag
       ? useLeafs

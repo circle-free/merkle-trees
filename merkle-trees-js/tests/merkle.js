@@ -1745,5 +1745,258 @@ describe('Merkle-Tree', () => {
         });
       });
     });
+
+    describe('Boolean-Bit Combined Proofs', () => {
+      describe('Boolean-Bit Combined Proof Generation', () => {
+        it('should verify a Combined Proof for a sorted-hash 1-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(1, 'ff', [0], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(2, 'ff', [1], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(2, 'ff', [1, 0], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(128, 'ff', [127, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(128, 'ff', [127, 126, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(100, 'ff', [99], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(100, 'ff', [99, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(100, 'ff', [99, 98, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(100, 'ff', [99, 97, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(100, 'ff', [99, 98, 97, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(101, 'ff', [100], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(101, 'ff', [100, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(101, 'ff', [100, 99, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(101, 'ff', [100, 98, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofGeneration(101, 'ff', [100, 99, 98, 15, 12, 4, 2], 5, options);
+        });
+      });
+
+      describe('Boolean-Bit Combined Proof Verification', () => {
+        it('should verify a Combined Proof for a sorted-hash 1-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(1, [0], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(2, [1], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(2, [1, 0], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(128, [127, 15, 12, 4, 2], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(128, [127, 126, 15, 12, 4, 2], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(100, [99], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(100, [99, 15, 12, 4, 2], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(100, [99, 98, 15, 12, 4, 2], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(100, [99, 97, 15, 12, 4, 2], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(100, [99, 98, 97, 15, 12, 4, 2], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(101, [100], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(101, [100, 15, 12, 4, 2], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(101, [100, 99, 15, 12, 4, 2], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(101, [100, 98, 15, 12, 4, 2], options);
+        });
+
+        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedProofVerification(101, [100, 99, 98, 15, 12, 4, 2], options);
+        });
+      });
+
+      describe('Boolean-Bit Combined Proof Update and Append', () => {
+        it('should use a Combined Proof for a sorted-hash 1-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(1, [0], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 2-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(2, [1], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 2-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(2, [1, 0], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 128-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(128, [127, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 128-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(128, [127, 126, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 100-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(100, [99], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 100-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(100, [99, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 100-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(100, [99, 98, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 100-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(100, [99, 97, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 100-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(100, [99, 98, 97, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 101-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(101, [100], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 101-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(101, [100, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 101-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(101, [100, 99, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 101-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(101, [100, 98, 15, 12, 4, 2], 5, options);
+        });
+
+        it('should use a Combined Proof for a sorted-hash 101-element Merkle Tree, to update and append elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+          testCombinedUpdateAndAppend(101, [100, 99, 98, 15, 12, 4, 2], 5, options);
+        });
+      });
+
+      describe('Boolean-Bit Combined Proof Update an Append Consecutive Uses', () => {
+        it('should use 100 Combined Proofs for a 1-element Merkle Tree, to perform 100 updates and appends of up to 6 random elements respectively.', () => {
+          testConsecutiveUpdateAndAppend(100, 1, 6, 6, {
+            unbalanced: true,
+            sortedHash: true,
+            indexed: false,
+            bitFlags: true,
+          });
+        });
+
+        it('should use 50 Combined Proofs for a 3-element Merkle Tree, to perform 50 updates and appends of up to 12 random elements respectively.', () => {
+          testConsecutiveUpdateAndAppend(50, 3, 12, 12, {
+            unbalanced: true,
+            sortedHash: true,
+            indexed: false,
+            bitFlags: true,
+          });
+        });
+      });
+    });
   });
 });
