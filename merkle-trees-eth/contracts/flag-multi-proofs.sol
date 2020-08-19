@@ -20,27 +20,39 @@ contract Flag_Multi_Proofs {
     return hash;
   }
 
-  function set_root(bytes32 _root) public {
+  function _debug_set_root(bytes32 _root) public {
     root = _root;
   }
 
+  function set_root(uint256 total_element_count, bytes32 element_root) public {
+    root = hash_node(bytes32(total_element_count), element_root);
+  }
+
+  function validate(uint256 total_element_count, bytes32 element_root) internal view {
+    require(hash_node(bytes32(total_element_count), element_root) == root, "INVALID_PROOF");
+  }
+
   // Indices are required to be sorted highest to lowest.
-  function verify(uint256 total_element_count, bytes32[] memory elements, uint256 hash_count, bytes32 flags, bytes32 skips, bytes32[] memory decommitments) public view returns (bool) {
-    if (flags.length != hash_count && skips.length != hash_count) return false;
-    
+  function get_root(bytes32[] memory elements, bytes32[] memory proof) public pure returns (bytes32) {
     uint256 verifying_element_count = elements.length;
     bytes32[] memory hashes = new bytes32[](verifying_element_count);
-    uint256 read_index;
     uint256 write_index;
-    uint256 decommitment_index;
-    bool use_elements = true;
-    bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
-    
-    for (uint256 i; i < hash_count; i++) {
-      if (skips & bit_check == bit_check) {
-        hashes[write_index++] = use_elements ? hash_node(bytes32(0), elements[read_index++]) : hashes[read_index++];
 
-        if (use_elements && read_index == verifying_element_count) use_elements = false;
+    while (write_index < verifying_element_count) {
+      hashes[write_index++] = hash_node(bytes32(0), elements[write_index]);
+    }
+
+    write_index = 0;
+    uint256 read_index;
+    uint256 decommitment_index;
+    bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
+    bytes32 right;
+    
+    while (true) {
+      if (proof[1] & bit_check == bit_check) {
+        if (proof[0] & bit_check == bit_check) return hashes[(write_index == 0 ? verifying_element_count : write_index) - 1];
+
+        hashes[write_index++] = hashes[read_index++];
 
         read_index %= verifying_element_count;
         write_index %= verifying_element_count;
@@ -48,22 +60,22 @@ contract Flag_Multi_Proofs {
         continue;
       }
 
-      bytes32 right = (flags & bit_check == bit_check) ? use_elements ? hash_node(bytes32(0), elements[read_index++]) : hashes[read_index++] : decommitments[decommitment_index++];
-      read_index %= verifying_element_count;
-      hashes[write_index++] = hash_pair(use_elements ? hash_node(bytes32(0), elements[read_index++]) : hashes[read_index++], right);
+      right = (proof[0] & bit_check == bit_check) ? hashes[read_index++] : proof[2 + decommitment_index++];
 
-      if (use_elements && read_index == verifying_element_count) use_elements = false;
+      read_index %= verifying_element_count;
+
+      hashes[write_index++] = hash_pair(hashes[read_index++], right);
 
       read_index %= verifying_element_count;
       write_index %= verifying_element_count;
       bit_check = bit_check << 1;
     }
-
-    return hash_node(bytes32(total_element_count), hashes[(write_index == 0 ? verifying_element_count : write_index) - 1]) == root;
   }
 
   // Indices are required to be sorted highest to lowest.
-  function use(uint256 total_element_count, bytes32[] memory elements, uint256 hash_count, bytes32 flags, bytes32 skips, bytes32[] memory decommitments) public {
+  function use(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
+    validate(total_element_count, get_root(elements, proof));
+    
     uint256 using_element_count = elements.length;
     bytes32 data_used;
 
@@ -72,30 +84,38 @@ contract Flag_Multi_Proofs {
     }
 
     emit Data_Used(data_used);
-
-    require(verify(total_element_count, elements, hash_count, flags, skips, decommitments), "INVALID_PROOF");
   }
 
   // Indices are required to be sorted highest to lowest.
-  function update(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory new_elements, uint256 hash_count, bytes32 flags, bytes32 skips, bytes32[] memory decommitments) public {
+  function get_roots(bytes32[] memory elements, bytes32[] memory new_elements, bytes32[] memory proof) public pure returns(bytes32, bytes32) {
     uint256 new_element_count = new_elements.length;
     require(elements.length == new_element_count, "LENGTH_MISMATCH");
     
-    bytes32[] memory hashes = new bytes32[](new_element_count);
-    bytes32[] memory new_hashes = new bytes32[](new_element_count);
-
-    uint256 read_index;
+    bytes32[] memory hashes = new bytes32[](new_element_count << 1);
     uint256 write_index;
-    uint256 decommitment_index;
-    bool use_elements = true;
-    bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     
-    for (uint256 i; i < hash_count; i++) {
-      if (skips & bit_check == bit_check) {
-        hashes[write_index] = use_elements ? hash_node(bytes32(0), elements[read_index]) : hashes[read_index];
-        new_hashes[write_index++] = use_elements ? hash_node(bytes32(0), new_elements[read_index++]) : new_hashes[read_index++];
+    while (write_index < new_element_count) {
+      hashes[write_index] = hash_node(bytes32(0), elements[write_index]);
+      hashes[new_element_count + write_index++] = hash_node(bytes32(0), new_elements[write_index]);
+    }
 
-        if (use_elements && read_index == new_element_count) use_elements = false;
+    write_index = 0;
+    uint256 read_index;
+    uint256 decommitment_index;
+    bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
+    bytes32 right;
+    bytes32 new_right;
+    
+    while (true) {
+      if (proof[1] & bit_check == bit_check) {
+        if (proof[0] & bit_check == bit_check) {
+          read_index = (write_index == 0 ? new_element_count : write_index) - 1;
+          
+          return (hashes[read_index], hashes[new_element_count + read_index]);
+        }
+
+        hashes[write_index] = hashes[read_index];
+        hashes[new_element_count + write_index++] = hashes[new_element_count + read_index++];
 
         read_index %= new_element_count;
         write_index %= new_element_count;
@@ -103,30 +123,22 @@ contract Flag_Multi_Proofs {
         continue;
       }
 
-      bool flag = flags & bit_check == bit_check;
-      bytes32 right = flag ? use_elements ? hash_node(bytes32(0), elements[read_index]) : hashes[read_index] : decommitments[decommitment_index];
-      bytes32 new_right = flag ? use_elements ? hash_node(bytes32(0), new_elements[read_index++]) : new_hashes[read_index++] : decommitments[decommitment_index++];
+      right = (proof[0] & bit_check == bit_check) ? hashes[read_index] : proof[2 + decommitment_index];
+      new_right = (proof[0] & bit_check == bit_check) ? hashes[new_element_count + read_index++] : proof[2 + decommitment_index++];
+
       read_index %= new_element_count;
 
-      hashes[write_index] = hash_pair(use_elements ? hash_node(bytes32(0), elements[read_index]) : hashes[read_index], right);
-      new_hashes[write_index++] = hash_pair(use_elements ? hash_node(bytes32(0), new_elements[read_index++]) : new_hashes[read_index++], new_right);
-
-      if (use_elements && read_index == new_element_count) use_elements = false;
+      hashes[write_index] = hash_pair(hashes[read_index], right);
+      hashes[new_element_count + write_index++] = hash_pair(hashes[new_element_count + read_index++], new_right);
 
       read_index %= new_element_count;
       write_index %= new_element_count;
       bit_check = bit_check << 1;
     }
-
-    read_index = (write_index == 0 ? new_element_count : write_index) - 1;
-
-    require(hash_node(bytes32(total_element_count), hashes[read_index]) == root, "INVALID_PROOF");
-        
-    root = hash_node(bytes32(total_element_count), new_hashes[read_index]);
   }
 
   // Indices are required to be sorted highest to lowest.
-  function use_and_update(uint256 total_element_count, bytes32[] memory elements, uint256 hash_count, bytes32 flags, bytes32 skips, bytes32[] memory decommitments) public {
+  function use_and_update(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
     uint256 using_element_count = elements.length;
     bytes32[] memory new_elements = new bytes32[](using_element_count);
     bytes32 data_used;
@@ -138,6 +150,9 @@ contract Flag_Multi_Proofs {
 
     emit Data_Used(data_used);
 
-    update(total_element_count, elements, new_elements, hash_count, flags, skips, decommitments);
+    (bytes32 old_element_root, bytes32 new_element_root) = get_roots(elements, new_elements, proof);
+    
+    validate(total_element_count, old_element_root);
+    set_root(total_element_count, new_element_root);
   }
 }

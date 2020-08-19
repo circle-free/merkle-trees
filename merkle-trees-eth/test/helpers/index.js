@@ -32,7 +32,7 @@ const generateRandomElement = () => {
 const generateElements = (elementCount, options = {}) => {
   const { seed, random = false } = options;
   const elements = [];
-  let seedBuffer = seed ? to32ByteBuffer(seed) : null;
+  let seedBuffer = seed ? Buffer.from(seed, 'hex') : null;
   let element = seedBuffer;
 
   for (let i = 0; i < elementCount; i++) {
@@ -59,9 +59,19 @@ const swap = (array, i, j) => {
   array[i] = xor(array[i], array[j]);
 };
 
+const randomNumberGenerator = (a) => {
+  return function() {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
 module.exports = {
   generateRandomElement,
   generateElements,
   shuffle,
   swap,
+  randomNumberGenerator,
 };

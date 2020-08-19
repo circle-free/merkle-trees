@@ -14,7 +14,7 @@ const generate = ({ tree, indices }) => {
   const leafCount = tree.length >> 1;
 
   for (let i = 0; i < indices.length; i++) {
-    assert(i === 0 || indices[i - 1] > indices[i], 'Indices must be in descending order');
+    assert(i === 0 || indices[i - 1] > indices[i], 'Indices must be in descending order.');
     known[leafCount + indices[i]] = true;
   }
 

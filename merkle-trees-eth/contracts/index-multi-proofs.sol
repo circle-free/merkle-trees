@@ -16,42 +16,51 @@ contract Index_Multi_Proofs {
     return hash;
   }
 
-  function set_root(bytes32 _root) public {
+  function _debug_set_root(bytes32 _root) public {
     root = _root;
   }
 
+  function set_root(uint256 total_element_count, bytes32 element_root) public {
+    root = hash_node(bytes32(total_element_count), element_root);
+  }
+
+  function validate(uint256 total_element_count, bytes32 element_root) internal view {
+    require(hash_node(bytes32(total_element_count), element_root) == root, "INVALID_PROOF");
+  }
+
   // Indices are required to be sorted highest to lowest.
-  // Does not work with unbalanced tree (i.e. total_element_count must be power of 2)
-  function verify(uint256 total_element_count, uint256[] memory indices, bytes32[] memory elements, bytes32[] memory decommitments) public view returns (bool) {
+  function get_root(uint256 total_element_count, uint256[] memory indices, bytes32[] memory elements, bytes32[] memory decommitments) public pure returns (bytes32) {
     uint256 index_count = indices.length;
 
-    if (index_count != elements.length) return false;
+    require(index_count == elements.length, "LENGTH_MISMATCH");
     
     bytes32[] memory hashes = new bytes32[](index_count);
     uint256[] memory tree_indices = new uint256[](index_count);
-
-    uint256 read_index;
     uint256 write_index;
-    uint256 decommitment_index;
-
-    for (; write_index < index_count; ++write_index) {
+    
+    while (write_index < index_count) {
       tree_indices[write_index] = total_element_count + indices[write_index];
-      hashes[write_index] = hash_node(bytes32(0), elements[write_index]);
+      hashes[write_index++] = hash_node(bytes32(0), elements[write_index]);
     }
 
     write_index = 0;
+    uint256 read_index;
+    uint256 decommitment_index;
     uint256 index;
     
     while (true) {
       index = tree_indices[read_index];
 
-      if (index == 1) return hash_node(bytes32(total_element_count), hashes[(write_index == 0 ? index_count : write_index) - 1]) == root;
+      if (index == 1) return hashes[(write_index == 0 ? index_count : write_index) - 1];
 
       bool index_is_odd = index & 1 == 1;
 
       bytes32 right = index_is_odd ? hashes[read_index++] : decommitments[decommitment_index++];
+
       read_index %= index_count;
-      bytes32 left = (index_is_odd && !(tree_indices[(read_index + 1) % index_count] == (index - 1))) ? decommitments[decommitment_index++] : hashes[read_index++];
+
+      bool nextIsSibling = tree_indices[(read_index + 1) % index_count] == (index - 1);
+      bytes32 left = (index_is_odd && !nextIsSibling) ? decommitments[decommitment_index++] : hashes[read_index++];
 
       tree_indices[write_index] = index >> 1;
       hashes[write_index++] = hash_node(left, right);
@@ -64,6 +73,8 @@ contract Index_Multi_Proofs {
   // Indices are required to be sorted highest to lowest.
   // Does not work with unbalanced tree (i.e. total_element_count must be power of 2)
   function use(uint256 total_element_count, uint256[] memory indices, bytes32[] memory elements, bytes32[] memory decommitments) public {
+    validate(total_element_count, get_root(total_element_count, indices, elements, decommitments));
+    
     uint256 index_count = indices.length;
     bytes32 data_used;
 
@@ -72,13 +83,10 @@ contract Index_Multi_Proofs {
     }
 
     emit Data_Used(data_used);
-
-    require(verify(total_element_count, indices, elements, decommitments), "INVALID_PROOF");
   }
 
   // Indices are required to be sorted highest to lowest.
-  // Does not work with unbalanced tree (i.e. total_element_count must be power of 2)
-  function update(uint256 total_element_count, uint256[] memory indices, bytes32[] memory elements, bytes32[] memory new_elements, bytes32[] memory decommitments) public {
+  function get_roots(uint256 total_element_count, uint256[] memory indices, bytes32[] memory elements, bytes32[] memory new_elements, bytes32[] memory decommitments) public pure returns (bytes32, bytes32) {
     uint256 index_count = indices.length;
     
     require(index_count == elements.length && new_elements.length == elements.length, "LENGTH_MISMATCH");
@@ -87,17 +95,17 @@ contract Index_Multi_Proofs {
     bytes32[] memory new_hashes = new bytes32[](index_count);
     uint256[] memory tree_indices = new uint256[](index_count);
 
-    uint256 read_index;
     uint256 write_index;
-    uint256 decommitment_index;
 
-    for (; write_index < index_count; ++write_index) {
+    while (write_index < index_count) {
       tree_indices[write_index] = total_element_count + indices[write_index];
       hashes[write_index] = hash_node(bytes32(0), elements[write_index]);
-      new_hashes[write_index] = hash_node(bytes32(0), new_elements[write_index]);
+      new_hashes[write_index++] = hash_node(bytes32(0), new_elements[write_index]);
     }
 
     write_index = 0;
+    uint256 read_index;
+    uint256 decommitment_index;
     uint256 index;
     
     while (true) {
@@ -105,25 +113,21 @@ contract Index_Multi_Proofs {
 
       if (index == 1) {
         read_index = (write_index == 0 ? index_count : write_index) - 1;
-        require(hash_node(bytes32(total_element_count), hashes[read_index]) == root, "INVALID_PROOF");
-        
-        root = hash_node(bytes32(total_element_count), new_hashes[read_index]);
+        return(hashes[read_index], new_hashes[read_index]);
       }
 
       bool index_is_odd = index & 1 == 1;
-      bool right_flag = index_is_odd && !(tree_indices[(read_index + 1) % index_count] == (index - 1));
-
       bytes32 right = index_is_odd ? hashes[read_index] : decommitments[decommitment_index];
       bytes32 new_right = index_is_odd ? new_hashes[read_index++] : decommitments[decommitment_index++];
-      read_index %= index_count;
 
-      bytes32 left = right_flag ? decommitments[decommitment_index] : hashes[read_index];
-      bytes32 new_left = right_flag ? decommitments[decommitment_index++] : hashes[read_index++];
       read_index %= index_count;
+      
+      bool left_flag = index_is_odd && !(tree_indices[read_index] == (index - 1));
+      hashes[write_index] = hash_node(left_flag ? decommitments[decommitment_index] : hashes[read_index], right);
+      new_hashes[write_index] = hash_node(left_flag ? decommitments[decommitment_index++] : hashes[read_index++], new_right);
+      tree_indices[write_index++] = index >> 1;
 
-      tree_indices[write_index] = index >> 1;
-      hashes[write_index] = hash_node(left, right);
-      new_hashes[write_index++] = hash_node(new_left, new_right);
+      read_index %= index_count;
       write_index %= index_count;
     }
   }
@@ -142,6 +146,9 @@ contract Index_Multi_Proofs {
 
     emit Data_Used(data_used);
 
-    update(total_element_count, indices, elements, new_elements, decommitments);
+    (bytes32 old_element_root, bytes32 new_element_root) = get_roots(total_element_count, indices, elements, new_elements, decommitments);
+
+    validate(total_element_count, old_element_root);
+    set_root(total_element_count, new_element_root);
   }
 }

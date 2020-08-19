@@ -35,11 +35,19 @@ contract Append_Proofs {
     return n + 1;
   }
 
-  function set_root(bytes32 _root) public {
+  function _debug_set_root(bytes32 _root) public {
     root = _root;
   }
 
-  function verify(uint256 total_element_count, bytes32[] memory decommitments) public view returns (bool) {
+  function set_root(uint256 total_element_count, bytes32 element_root) public {
+    root = hash_node(bytes32(total_element_count), element_root);
+  }
+
+  function validate(uint256 total_element_count, bytes32 element_root) internal view {
+    require(hash_node(bytes32(total_element_count), element_root) == root, "INVALID_PROOF");
+  }
+
+  function get_root(bytes32[] memory decommitments, uint256 total_element_count) public pure returns (bytes32) {
     uint256 decommitment_index = bit_count_32(uint32(total_element_count));
     bytes32 hash = decommitments[--decommitment_index];
 
@@ -47,10 +55,10 @@ contract Append_Proofs {
       hash = hash_node(decommitments[--decommitment_index], hash);
     }
 
-    return hash_node(bytes32(total_element_count), hash) == root;
+    return hash;
   }
 
-  function append_one(uint256 total_element_count, bytes32 new_element, bytes32[] memory decommitments) public {
+  function append_one(bytes32 new_element, bytes32[] memory decommitments, uint256 total_element_count) public {
     uint256 decommitment_index = bit_count_32(uint32(total_element_count));
     bytes32 hash = decommitments[--decommitment_index];
     bytes32 new_hash = hash_node(decommitments[decommitment_index], hash_node(bytes32(0), new_element));
@@ -60,39 +68,44 @@ contract Append_Proofs {
       hash = hash_node(decommitments[decommitment_index], hash);
     }
 
-    require(hash_node(bytes32(total_element_count), hash) == root, "INVALID_PROOF");
-
-    root = hash_node(bytes32(total_element_count + 1), new_hash);
+    validate(total_element_count, hash);
+    set_root(total_element_count + 1, new_hash);
   }
 
-  function append_many(uint256 total_element_count, bytes32[] memory new_elements, bytes32[] memory decommitments) public {
-    uint256 decommitment_index = bit_count_32(uint32(total_element_count)) - 1;
-    bytes32 hash = decommitments[decommitment_index];
-    bytes32[] memory new_hashes = new bytes32[]((new_elements.length >> 1) + 1);
-    uint256 new_total_element_count = total_element_count + new_elements.length;
-    uint256 upper_bound = new_total_element_count - 1;
+  function append_many(bytes32[] memory new_elements, bytes32[] memory decommitments, uint256 total_element_count) public {
+    uint256 new_elements_count = new_elements.length;
+    bytes32[] memory new_hashes = new bytes32[](new_elements_count);
     uint256 write_index;
+
+    while (write_index < new_elements_count) {
+      new_hashes[write_index++] = hash_node(bytes32(0), new_elements[write_index]);
+    }
+
+    write_index = 0;
     uint256 read_index;
+
+    // resuse new_elements_count var here, since old one no longer needed (is now total)
+    new_elements_count += total_element_count;
+    uint256 upper_bound = new_elements_count - 1;
     uint256 offset = total_element_count;
     uint256 index = offset;
-    bool use_elements;
+    uint256 decommitment_index = bit_count_32(uint32(total_element_count)) - 1;
+    bytes32 hash = decommitments[decommitment_index];
 
     while (upper_bound > 0) {
-      use_elements = offset >= total_element_count;
-
       if ((write_index == 0) && (index & 1 == 1)) {
-        new_hashes[write_index++] = hash_node(decommitments[decommitment_index--], use_elements ? hash_node(bytes32(0), new_elements[read_index++]) : new_hashes[read_index++]);
+        new_hashes[write_index++] = hash_node(decommitments[decommitment_index--], new_hashes[read_index++]);
 
         if (decommitment_index < total_element_count) hash = hash_node(decommitments[decommitment_index], hash);
 
         index++;
       } else if (index < upper_bound) {
-        new_hashes[write_index++] = hash_node(use_elements ? hash_node(bytes32(0), new_elements[read_index++]) : new_hashes[read_index++], use_elements ? hash_node(bytes32(0), new_elements[read_index++]) : new_hashes[read_index++]);
+        new_hashes[write_index++] = hash_node(new_hashes[read_index++], new_hashes[read_index++]);
         index += 2;
       }
 
       if (index >= upper_bound) {
-        if (index == upper_bound) new_hashes[write_index] = use_elements ? hash_node(bytes32(0), new_elements[read_index]) : new_hashes[read_index];
+        if (index == upper_bound) new_hashes[write_index] = new_hashes[read_index];
 
         read_index = 0;
         write_index = 0;
@@ -102,8 +115,7 @@ contract Append_Proofs {
       }
     }
 
-    require(hash_node(bytes32(total_element_count), hash) == root, "INVALID_PROOF");
-
-    root = hash_node(bytes32(new_total_element_count), new_hashes[0]);
+    validate(total_element_count, hash);
+    set_root(new_elements_count, new_hashes[0]);
   }
 }
