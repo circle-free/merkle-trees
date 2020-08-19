@@ -609,5 +609,6 @@ module.exports = { generate, getRoot, getNewRoot, getMinimumIndex };
 
 // TODO: use separate set of flags for left/right hash order, allowing this to work for non-sorted-hash trees
 //       Should be able to infer indices of elements based on proof hash order and flags
-// TODO: bitCount no longer really needed now that there is element->leaf hashing
 // TODO: consider another proof boolean-array informing when to take a hash as an append-decommitment
+// TODO: perhaps we can get rid of hashCount parameter with some combination of unused
+//       (flags[i], skips[i]) pair. (i.e. flags[i] is irrelevant if skips[i] is true)

@@ -261,9 +261,9 @@ class MerkleTree {
   }
 
   updateMulti(indices, elements) {
-    // TODO: Filter or throw on duplicate indices
-    indices.forEach((index) => {
+    indices.forEach((index, i) => {
       assert(index < this._elements.length, 'Index out of range.');
+      assert(indices.indexOf(index) === i, 'Duplicate in indices.');
     });
 
     const newElements = this.elements.map((e, i) => {

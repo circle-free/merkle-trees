@@ -126,8 +126,6 @@ const getRootBooleans = ({ leafs, flags, skips, decommitments, hashFunction }) =
 // This is identical to the above getRootBooleans algorithm, differing only in that the
 // the flag and skip bit-set is shifted and checked, rather than boolean arrays.
 // See getRootBooleans for relevant inline comments.
-// TODO: perhaps we can get rid of hashCount parameter with some combination of unused
-//       (flags[i], skips[i]) pair. (i.e. flags[i] is irrelevant if skips[i] is true)
 const getRootBits = ({ leafs, hashCount, flags, skips, decommitments, hashFunction }) => {
   const leafCount = leafs.length;
   const hashes = Array(leafCount).fill(null);
@@ -236,8 +234,6 @@ const getNewRootBooleans = ({ leafs, newLeafs, flags, skips, decommitments, hash
 // This is identical to the above getRootBits algorithm, differing only in that the
 // new root (due to the updated leafs), is computed along the way.
 // See getRootBits for relevant inline comments.
-// TODO: perhaps we can get rid of hashCount parameter with some combination of unused
-//       (flags[i], skips[i]) pair. (i.e. flags[i] is irrelevant if skips[i] is true)
 const getNewRootBits = ({ leafs, newLeafs, hashCount, flags, skips, decommitments, hashFunction }) => {
   const leafCount = leafs.length;
   const hashes = Array(leafCount).fill(null);
@@ -299,3 +295,5 @@ module.exports = { generate, getRoot, getNewRoot };
 
 // TODO: use separate set of flags for left/right hash order, allowing this to work for non-sorted-hash trees
 //       Should be able to infer indices of elements based on proof hash order and flags
+// TODO: perhaps we can get rid of hashCount parameter with some combination of unused
+//       (flags[i], skips[i]) pair. (i.e. flags[i] is irrelevant if skips[i] is true)
