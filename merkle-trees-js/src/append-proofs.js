@@ -26,11 +26,11 @@ const generate = ({ tree, elementCount }) => {
 // Note, it is implied that there is nothing to the right of the "right-most"
 // decommitment, explaining the departure from the SingleProof.getRoot algorithm.
 const getRoot = ({ elementCount, decommitments, hashFunction }) => {
-  let n = bitCount32(elementCount);
-  let hash = decommitments[--n];
+  let index = bitCount32(elementCount);
+  let hash = decommitments[--index];
 
-  while (n > 0) {
-    hash = hashFunction(decommitments[--n], hash);
+  while (index > 0) {
+    hash = hashFunction(decommitments[--index], hash);
   }
 
   return { root: hash };
@@ -42,13 +42,13 @@ const getRoot = ({ elementCount, decommitments, hashFunction }) => {
 // appended, explaining the departure from the SingleProof.getNewRoot algorithm.
 // See getRoot for relevant inline comments.
 const getNewRootSingle = ({ newLeaf, elementCount, decommitments, hashFunction }) => {
-  let n = bitCount32(elementCount);
-  let hash = decommitments[--n];
-  let newHash = hashFunction(decommitments[n], newLeaf);
+  let index = bitCount32(elementCount);
+  let hash = decommitments[--index];
+  let newHash = hashFunction(decommitments[index], newLeaf);
 
-  while (n > 0) {
-    newHash = hashFunction(decommitments[--n], newHash);
-    hash = hashFunction(decommitments[n], hash);
+  while (index > 0) {
+    newHash = hashFunction(decommitments[--index], newHash);
+    hash = hashFunction(decommitments[index], hash);
   }
 
   return { root: hash, newRoot: newHash };
@@ -60,8 +60,8 @@ const getNewRootSingle = ({ newLeaf, elementCount, decommitments, hashFunction }
 // even, hash with node to the right. An odd level-localized index is either at newHashes[0] or
 // index == upperBound. If upperBound == 0, we got to the new root.
 const getNewRootMulti = ({ newLeafs, elementCount, decommitments, hashFunction }) => {
-  let n = bitCount32(elementCount) - 1;
-  let hash = decommitments[n];
+  let decommitmentIndex = bitCount32(elementCount) - 1;
+  let hash = decommitments[decommitmentIndex];
   let newHashes = Array((newLeafs.length >> 1) + 1).fill(null);
   let upperBound = elementCount + newLeafs.length - 1;
   let writeIndex = 0;
@@ -74,11 +74,11 @@ const getNewRootMulti = ({ newLeafs, elementCount, decommitments, hashFunction }
 
     if (writeIndex === 0 && index & 1) {
       newHashes[writeIndex++] = hashFunction(
-        decommitments[n--],
+        decommitments[decommitmentIndex--],
         useLeafs ? newLeafs[readIndex++] : newHashes[readIndex++]
       );
 
-      if (n >= 0) hash = hashFunction(decommitments[n], hash);
+      if (decommitmentIndex >= 0) hash = hashFunction(decommitments[decommitmentIndex], hash);
 
       index++;
     } else if (index < upperBound) {

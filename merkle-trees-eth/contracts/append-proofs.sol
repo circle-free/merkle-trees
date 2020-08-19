@@ -40,24 +40,24 @@ contract Append_Proofs {
   }
 
   function verify(uint256 total_element_count, bytes32[] memory decommitments) public view returns (bool) {
-    uint256 n = bit_count_32(uint32(total_element_count));
-    bytes32 hash = decommitments[--n];
+    uint256 decommitment_index = bit_count_32(uint32(total_element_count));
+    bytes32 hash = decommitments[--decommitment_index];
 
-    while (n > 0) {
-      hash = hash_node(decommitments[--n], hash);
+    while (decommitment_index > 0) {
+      hash = hash_node(decommitments[--decommitment_index], hash);
     }
 
     return hash_node(bytes32(total_element_count), hash) == root;
   }
 
   function append_one(uint256 total_element_count, bytes32 new_element, bytes32[] memory decommitments) public {
-    uint256 n = bit_count_32(uint32(total_element_count));
-    bytes32 hash = decommitments[--n];
-    bytes32 new_hash = hash_node(decommitments[n], hash_node(bytes32(0), new_element));
+    uint256 decommitment_index = bit_count_32(uint32(total_element_count));
+    bytes32 hash = decommitments[--decommitment_index];
+    bytes32 new_hash = hash_node(decommitments[decommitment_index], hash_node(bytes32(0), new_element));
 
-    while (n > 0) {
-      new_hash = hash_node(decommitments[--n], new_hash);
-      hash = hash_node(decommitments[n], hash);
+    while (decommitment_index > 0) {
+      new_hash = hash_node(decommitments[--decommitment_index], new_hash);
+      hash = hash_node(decommitments[decommitment_index], hash);
     }
 
     require(hash_node(bytes32(total_element_count), hash) == root, "INVALID_PROOF");
@@ -66,8 +66,8 @@ contract Append_Proofs {
   }
 
   function append_many(uint256 total_element_count, bytes32[] memory new_elements, bytes32[] memory decommitments) public {
-    uint256 n = bit_count_32(uint32(total_element_count)) - 1;
-    bytes32 hash = decommitments[n];
+    uint256 decommitment_index = bit_count_32(uint32(total_element_count)) - 1;
+    bytes32 hash = decommitments[decommitment_index];
     bytes32[] memory new_hashes = new bytes32[]((new_elements.length >> 1) + 1);
     uint256 new_total_element_count = total_element_count + new_elements.length;
     uint256 upper_bound = new_total_element_count - 1;
@@ -81,9 +81,9 @@ contract Append_Proofs {
       use_elements = offset >= total_element_count;
 
       if ((write_index == 0) && (index & 1 == 1)) {
-        new_hashes[write_index++] = hash_node(decommitments[n--], use_elements ? hash_node(bytes32(0), new_elements[read_index++]) : new_hashes[read_index++]);
+        new_hashes[write_index++] = hash_node(decommitments[decommitment_index--], use_elements ? hash_node(bytes32(0), new_elements[read_index++]) : new_hashes[read_index++]);
 
-        if (n < total_element_count) hash = hash_node(decommitments[n], hash);
+        if (decommitment_index < total_element_count) hash = hash_node(decommitments[decommitment_index], hash);
 
         index++;
       } else if (index < upper_bound) {

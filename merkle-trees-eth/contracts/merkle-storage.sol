@@ -83,12 +83,12 @@ contract Merkle_Storage {
   }
 
   function verify_one(bytes32 _root, uint256 total_element_count, uint256 index, bytes32 element, bytes32[] memory decommitments) internal pure returns (bool) {
-    uint256 n = decommitments.length;
+    uint256 decommitment_index = decommitments.length;
     bytes32 hash = hash_node(bytes32(0), element);
     uint256 upperBound = total_element_count - 1;
 
-    while(n > 0) {
-      if (index != upperBound || (index & 1 == 1)) hash = hash_pair(decommitments[--n], hash);
+    while(decommitment_index > 0) {
+      if (index != upperBound || (index & 1 == 1)) hash = hash_pair(decommitments[--decommitment_index], hash);
 
       index = index >> 1;
       upperBound = upperBound >> 1;
@@ -103,45 +103,45 @@ contract Merkle_Storage {
     uint256 verifying_element_count = elements.length;
     bytes32[] memory hashes = new bytes32[](verifying_element_count);
 
-    uint256 hash_read_index;
-    uint256 hash_write_index;
+    uint256 read_index;
+    uint256 write_index;
     uint256 decommitment_index;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
 
-    for(; hash_write_index < verifying_element_count; ++hash_write_index) {
-      hashes[hash_write_index] = hash_node(bytes32(0), elements[hash_write_index]);
+    for(; write_index < verifying_element_count; ++write_index) {
+      hashes[write_index] = hash_node(bytes32(0), elements[write_index]);
     }
 
-    hash_write_index = 0;
+    write_index = 0;
     
     for (uint256 i; i < hash_count; i++) {
       if (skips & bit_check == bit_check) {
-        hashes[hash_write_index++] = hashes[hash_read_index++];
+        hashes[write_index++] = hashes[read_index++];
 
-        hash_read_index %= verifying_element_count;
-        hash_write_index %= verifying_element_count;
+        read_index %= verifying_element_count;
+        write_index %= verifying_element_count;
         bit_check = bit_check << 1;
         continue;
       }
 
-      bytes32 left = (flags & bit_check == bit_check) ? hashes[hash_read_index++] : decommitments[decommitment_index++];
-      hash_read_index %= verifying_element_count;
-      hashes[hash_write_index++] = hash_pair(left, hashes[hash_read_index++]);
+      bytes32 left = (flags & bit_check == bit_check) ? hashes[read_index++] : decommitments[decommitment_index++];
+      read_index %= verifying_element_count;
+      hashes[write_index++] = hash_pair(left, hashes[read_index++]);
 
-      hash_read_index %= verifying_element_count;
-      hash_write_index %= verifying_element_count;
+      read_index %= verifying_element_count;
+      write_index %= verifying_element_count;
       bit_check = bit_check << 1;
     }
 
-    return hash_node(bytes32(total_element_count), hashes[(hash_write_index == 0 ? verifying_element_count : hash_write_index) - 1]) == _root;
+    return hash_node(bytes32(total_element_count), hashes[(write_index == 0 ? verifying_element_count : write_index) - 1]) == _root;
   }
 
   function verify_append(bytes32 _root, uint256 total_element_count, bytes32[] memory decommitments) internal pure returns (bool) {
-    uint256 n = bit_count_32(uint32(total_element_count));
-    bytes32 hash = decommitments[--n];
+    uint256 decommitment_index = bit_count_32(uint32(total_element_count));
+    bytes32 hash = decommitments[--decommitment_index];
 
-    while (n > 0) {
-      hash = hash_node(decommitments[--n], hash);
+    while (decommitment_index > 0) {
+      hash = hash_node(decommitments[--decommitment_index], hash);
     }
 
     return hash_node(bytes32(total_element_count), hash) == _root;
@@ -153,13 +153,13 @@ contract Merkle_Storage {
       return;
     }
 
-    uint256 n = bit_count_32(uint32(total_element_count));
-    bytes32 hash = decommitments[--n];
-    bytes32 new_hash = hash_pair(decommitments[n], hash_node(bytes32(0), new_element));
+    uint256 decommitment_index = bit_count_32(uint32(total_element_count));
+    bytes32 hash = decommitments[--decommitment_index];
+    bytes32 new_hash = hash_pair(decommitments[decommitment_index], hash_node(bytes32(0), new_element));
 
-    while (n > 0) {
-      new_hash = hash_pair(decommitments[--n], new_hash);
-      hash = hash_pair(decommitments[n], hash);
+    while (decommitment_index > 0) {
+      new_hash = hash_pair(decommitments[--decommitment_index], new_hash);
+      hash = hash_pair(decommitments[decommitment_index], hash);
     }
 
     require(hash_node(bytes32(total_element_count), hash) == root, "INVALID_PROOF");
@@ -176,11 +176,11 @@ contract Merkle_Storage {
     uint256 new_total_leaf_count = round_up_to_power_of_2(uint32(total_element_count + new_elements.length));
     bytes32[] memory hashes = new bytes32[](new_elements.length);
     uint256 bit_count = bit_count_32(uint32(total_element_count));
-    uint256 n = bit_count;
-    hashes[0] = decommitments[--n];
+    uint256 decommitment_index = bit_count;
+    hashes[0] = decommitments[--decommitment_index];
 
-    while (n > 0) {
-      hashes[0] = hash_pair(decommitments[--n], hashes[0]);
+    while (decommitment_index > 0) {
+      hashes[0] = hash_pair(decommitments[--decommitment_index], hashes[0]);
     }
 
     require(hash_node(bytes32(total_element_count), hashes[0]) == root, "INVALID_PROOF");
@@ -192,7 +192,7 @@ contract Merkle_Storage {
     }
 
     write_index = 0;
-    n = bit_count;
+    decommitment_index = bit_count;
     uint256 lower_bound = new_total_leaf_count + total_element_count;
     uint256 upper_bound = lower_bound + new_elements.length - 1;
     uint256 offset = new_total_leaf_count + total_element_count;
@@ -208,7 +208,7 @@ contract Merkle_Storage {
       }
 
       if ((index == lower_bound) && (index & 1 == 1)) {
-        hashes[write_index++] = hash_pair(decommitments[--n], hashes[i++]);
+        hashes[write_index++] = hash_pair(decommitments[--decommitment_index], hashes[i++]);
         continue;
       }
 
@@ -247,15 +247,15 @@ contract Merkle_Storage {
   }
 
   function update_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32 new_element, bytes32[] memory decommitments) public {
-    uint256 n = decommitments.length;
+    uint256 decommitment_index = decommitments.length;
     bytes32 hash = hash_node(bytes32(0), element);
     bytes32 new_hash = hash_node(bytes32(0), new_element);
     uint256 upperBound = total_element_count - 1;
 
-    while(n > 0) {
+    while(decommitment_index > 0) {
       if ((index != upperBound) || (index & 1 == 1)) {
-        hash = hash_pair(decommitments[--n], hash);
-        new_hash = hash_pair(decommitments[n], new_hash);
+        hash = hash_pair(decommitments[--decommitment_index], hash);
+        new_hash = hash_pair(decommitments[decommitment_index], new_hash);
       }
 
       index = index >> 1;
@@ -274,47 +274,47 @@ contract Merkle_Storage {
     bytes32[] memory hashes = new bytes32[](new_element_count);
     bytes32[] memory new_hashes = new bytes32[](new_element_count);
 
-    uint256 hash_read_index;
-    uint256 hash_write_index;
+    uint256 read_index;
+    uint256 write_index;
     uint256 decommitment_index;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
 
-    for(; hash_write_index < new_element_count; ++hash_write_index) {
-      hashes[hash_write_index] = hash_node(bytes32(0), elements[hash_write_index]);
-      new_hashes[hash_write_index] = hash_node(bytes32(0), new_elements[hash_write_index]);
+    for(; write_index < new_element_count; ++write_index) {
+      hashes[write_index] = hash_node(bytes32(0), elements[write_index]);
+      new_hashes[write_index] = hash_node(bytes32(0), new_elements[write_index]);
     }
 
-    hash_write_index = 0;
+    write_index = 0;
     
     for (uint256 i; i < hash_count; i++) {
       if (skips & bit_check == bit_check) {
-        hashes[hash_write_index] = hashes[hash_read_index];
-        new_hashes[hash_write_index++] = new_hashes[hash_read_index++];
+        hashes[write_index] = hashes[read_index];
+        new_hashes[write_index++] = new_hashes[read_index++];
 
-        hash_read_index %= new_element_count;
-        hash_write_index %= new_element_count;
+        read_index %= new_element_count;
+        write_index %= new_element_count;
         bit_check = bit_check << 1;
         continue;
       }
 
       bool flag = flags & bit_check == bit_check;
-      bytes32 left = flag ? hashes[hash_read_index] : decommitments[decommitment_index];
-      bytes32 new_left = flag ? hashes[hash_read_index++] : decommitments[decommitment_index++];
-      hash_read_index %= new_element_count;
+      bytes32 left = flag ? hashes[read_index] : decommitments[decommitment_index];
+      bytes32 new_left = flag ? hashes[read_index++] : decommitments[decommitment_index++];
+      read_index %= new_element_count;
 
-      hashes[hash_write_index] = hash_pair(left, hashes[hash_read_index]);
-      new_hashes[hash_write_index++] = hash_pair(new_left, new_hashes[hash_read_index++]);
+      hashes[write_index] = hash_pair(left, hashes[read_index]);
+      new_hashes[write_index++] = hash_pair(new_left, new_hashes[read_index++]);
 
-      hash_read_index %= new_element_count;
-      hash_write_index %= new_element_count;
+      read_index %= new_element_count;
+      write_index %= new_element_count;
       bit_check = bit_check << 1;
     }
 
-    hash_read_index = (hash_write_index == 0 ? new_element_count : hash_write_index) - 1;
+    read_index = (write_index == 0 ? new_element_count : write_index) - 1;
 
-    require(hash_node(bytes32(total_element_count), hashes[hash_read_index]) == root, "INVALID_PROOF");
+    require(hash_node(bytes32(total_element_count), hashes[read_index]) == root, "INVALID_PROOF");
         
-    root = hash_node(bytes32(total_element_count), new_hashes[hash_read_index]);
+    root = hash_node(bytes32(total_element_count), new_hashes[read_index]);
   }
 
   function use_and_update_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32[] memory decommitments) public {

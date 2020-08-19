@@ -15,11 +15,11 @@ const generate = ({ tree, index }) => {
 
 // Compute the root given a leaf, its index, and a set of decommitments.
 const getRoot = ({ elementCount, index, leaf, decommitments, hashFunction }) => {
-  let n = decommitments.length;
+  let decommitmentIndex = decommitments.length;
   let hash = Buffer.from(leaf);
   let upperBound = elementCount - 1;
 
-  while (n > 0) {
+  while (decommitmentIndex > 0) {
     // If even and the "right-most" node at this level, the parent hash is this child
     if (index === upperBound && !(index & 1)) {
       index >>= 1;
@@ -28,7 +28,11 @@ const getRoot = ({ elementCount, index, leaf, decommitments, hashFunction }) => 
     }
 
     // Note that hash order is irrelevant if hash function sorts nodes
-    hash = index & 1 ? hashFunction(decommitments[--n], hash) : hashFunction(hash, decommitments[--n]);
+    hash =
+      index & 1
+        ? hashFunction(decommitments[--decommitmentIndex], hash)
+        : hashFunction(hash, decommitments[--decommitmentIndex]);
+
     index >>= 1;
     upperBound >>= 1;
   }
@@ -40,20 +44,28 @@ const getRoot = ({ elementCount, index, leaf, decommitments, hashFunction }) => 
 // and computes a new root, along the way, given a new leaf to take its place.
 // See getRoot for relevant inline comments.
 const getNewRoot = ({ elementCount, index, leaf, newLeaf, decommitments, hashFunction }) => {
-  let n = decommitments.length;
+  let decommitmentIndex = decommitments.length;
   let hash = Buffer.from(leaf);
   let newHash = Buffer.from(newLeaf);
   let upperBound = elementCount - 1;
 
-  while (n > 0) {
+  while (decommitmentIndex > 0) {
     if (index === upperBound && !(index & 1)) {
       index >>= 1;
       upperBound >>= 1;
       continue;
     }
 
-    hash = index & 1 ? hashFunction(decommitments[--n], hash) : hashFunction(hash, decommitments[--n]);
-    newHash = index & 1 ? hashFunction(decommitments[n], newHash) : hashFunction(newHash, decommitments[n]);
+    hash =
+      index & 1
+        ? hashFunction(decommitments[--decommitmentIndex], hash)
+        : hashFunction(hash, decommitments[--decommitmentIndex]);
+
+    newHash =
+      index & 1
+        ? hashFunction(decommitments[decommitmentIndex], newHash)
+        : hashFunction(newHash, decommitments[decommitmentIndex]);
+
     index >>= 1;
     upperBound >>= 1;
   }

@@ -30,37 +30,36 @@ contract Flag_Multi_Proofs {
     
     uint256 verifying_element_count = elements.length;
     bytes32[] memory hashes = new bytes32[](verifying_element_count);
-
-    uint256 hash_read_index;
-    uint256 hash_write_index;
+    uint256 read_index;
+    uint256 write_index;
     uint256 decommitment_index;
     bool use_elements = true;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     
     for (uint256 i; i < hash_count; i++) {
       if (skips & bit_check == bit_check) {
-        hashes[hash_write_index++] = use_elements ? hash_node(bytes32(0), elements[hash_read_index++]) : hashes[hash_read_index++];
+        hashes[write_index++] = use_elements ? hash_node(bytes32(0), elements[read_index++]) : hashes[read_index++];
 
-        if (use_elements && hash_read_index === verifying_element_count) use_elements = false;
+        if (use_elements && read_index == verifying_element_count) use_elements = false;
 
-        hash_read_index %= verifying_element_count;
-        hash_write_index %= verifying_element_count;
+        read_index %= verifying_element_count;
+        write_index %= verifying_element_count;
         bit_check = bit_check << 1;
         continue;
       }
 
-      bytes32 right = (flags & bit_check == bit_check) ? use_elements ? hash_node(bytes32(0), elements[hash_read_index++]) : hashes[hash_read_index++] : decommitments[decommitment_index++];
-      hash_read_index %= verifying_element_count;
-      hashes[hash_write_index++] = hash_pair(use_elements ? hash_node(bytes32(0), elements[hash_read_index++]) : hashes[hash_read_index++], right);
+      bytes32 right = (flags & bit_check == bit_check) ? use_elements ? hash_node(bytes32(0), elements[read_index++]) : hashes[read_index++] : decommitments[decommitment_index++];
+      read_index %= verifying_element_count;
+      hashes[write_index++] = hash_pair(use_elements ? hash_node(bytes32(0), elements[read_index++]) : hashes[read_index++], right);
 
-      if (use_elements && hash_read_index === verifying_element_count) use_elements = false;
+      if (use_elements && read_index == verifying_element_count) use_elements = false;
 
-      hash_read_index %= verifying_element_count;
-      hash_write_index %= verifying_element_count;
+      read_index %= verifying_element_count;
+      write_index %= verifying_element_count;
       bit_check = bit_check << 1;
     }
 
-    return hash_node(bytes32(total_element_count), hashes[(hash_write_index == 0 ? verifying_element_count : hash_write_index) - 1]) == root;
+    return hash_node(bytes32(total_element_count), hashes[(write_index == 0 ? verifying_element_count : write_index) - 1]) == root;
   }
 
   // Indices are required to be sorted highest to lowest.
@@ -85,45 +84,45 @@ contract Flag_Multi_Proofs {
     bytes32[] memory hashes = new bytes32[](new_element_count);
     bytes32[] memory new_hashes = new bytes32[](new_element_count);
 
-    uint256 hash_read_index;
-    uint256 hash_write_index;
+    uint256 read_index;
+    uint256 write_index;
     uint256 decommitment_index;
     bool use_elements = true;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     
     for (uint256 i; i < hash_count; i++) {
       if (skips & bit_check == bit_check) {
-        hashes[hash_write_index] = use_elements ? hash_node(bytes32(0), elements[hash_read_index]) : hashes[hash_read_index];
-        new_hashes[hash_write_index++] = use_elements ? hash_node(bytes32(0), new_elements[hash_read_index++]) : new_hashes[hash_read_index++];
+        hashes[write_index] = use_elements ? hash_node(bytes32(0), elements[read_index]) : hashes[read_index];
+        new_hashes[write_index++] = use_elements ? hash_node(bytes32(0), new_elements[read_index++]) : new_hashes[read_index++];
 
-        if (use_elements && hash_read_index === new_element_count) use_elements = false;
+        if (use_elements && read_index == new_element_count) use_elements = false;
 
-        hash_read_index %= new_element_count;
-        hash_write_index %= new_element_count;
+        read_index %= new_element_count;
+        write_index %= new_element_count;
         bit_check = bit_check << 1;
         continue;
       }
 
       bool flag = flags & bit_check == bit_check;
-      bytes32 right = flag ? use_elements ? hash_node(bytes32(0), elements[hash_read_index]) : hashes[hash_read_index] : decommitments[decommitment_index];
-      bytes32 new_right = flag ? use_elements ? hash_node(bytes32(0), new_elements[hash_read_index++]) : new_hashes[hash_read_index++] : decommitments[decommitment_index++];
-      hash_read_index %= new_element_count;
+      bytes32 right = flag ? use_elements ? hash_node(bytes32(0), elements[read_index]) : hashes[read_index] : decommitments[decommitment_index];
+      bytes32 new_right = flag ? use_elements ? hash_node(bytes32(0), new_elements[read_index++]) : new_hashes[read_index++] : decommitments[decommitment_index++];
+      read_index %= new_element_count;
 
-      hashes[hash_write_index] = hash_pair(use_elements ? hash_node(bytes32(0), elements[hash_read_index]) : hashes[hash_read_index], right);
-      new_hashes[hash_write_index++] = hash_pair(use_elements ? hash_node(bytes32(0), new_elements[hash_read_index++]) : new_hashes[hash_read_index++], new_right);
+      hashes[write_index] = hash_pair(use_elements ? hash_node(bytes32(0), elements[read_index]) : hashes[read_index], right);
+      new_hashes[write_index++] = hash_pair(use_elements ? hash_node(bytes32(0), new_elements[read_index++]) : new_hashes[read_index++], new_right);
 
-      if (use_elements && hashReadIndex === leafCount) use_elements = false;
+      if (use_elements && read_index == new_element_count) use_elements = false;
 
-      hash_read_index %= new_element_count;
-      hash_write_index %= new_element_count;
+      read_index %= new_element_count;
+      write_index %= new_element_count;
       bit_check = bit_check << 1;
     }
 
-    hash_read_index = (hash_write_index == 0 ? new_element_count : hash_write_index) - 1;
+    read_index = (write_index == 0 ? new_element_count : write_index) - 1;
 
-    require(hash_node(bytes32(total_element_count), hashes[hash_read_index]) == root, "INVALID_PROOF");
+    require(hash_node(bytes32(total_element_count), hashes[read_index]) == root, "INVALID_PROOF");
         
-    root = hash_node(bytes32(total_element_count), new_hashes[hash_read_index]);
+    root = hash_node(bytes32(total_element_count), new_hashes[read_index]);
   }
 
   // Indices are required to be sorted highest to lowest.

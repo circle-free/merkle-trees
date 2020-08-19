@@ -39,40 +39,40 @@ const generate = ({ tree, indices }) => {
 const getRoot = ({ indices, leafs, leafCount, decommitments, hashFunction }) => {
   // Keep verification minimal by using circular hashes queue with separate read and write heads
   // TODO: Consider an empty hashes array and referencing leafs parameter directly, while
-  // treeIndices[nextHashReadIndex] > leafCount, rather than copying all leafs to memory.
+  // treeIndices[nextReadIndex] > leafCount, rather than copying all leafs to memory.
   const hashes = leafs.map((leaf) => leaf);
   const treeIndices = indices.map((index) => leafCount + index);
   const indexCount = indices.length;
 
-  let hashReadIndex = 0;
-  let hashWriteIndex = 0;
+  let readIndex = 0;
+  let writeIndex = 0;
   let decommitmentIndex = 0;
 
   while (true) {
-    const index = treeIndices[hashReadIndex];
+    const index = treeIndices[readIndex];
 
     if (index === 1) {
-      // Given the circular nature of hashWriteIndex, get the last hashWriteIndex.
-      const rootIndex = (hashWriteIndex === 0 ? indexCount : hashWriteIndex) - 1;
+      // Given the circular nature of writeIndex, get the last writeIndex.
+      const rootIndex = (writeIndex === 0 ? indexCount : writeIndex) - 1;
 
       return { root: hashes[rootIndex] };
     }
 
-    const nextHashReadIndex = (hashReadIndex + 1) % indexCount;
+    const nextReadIndex = (readIndex + 1) % indexCount;
     const indexIsOdd = index & 1;
 
     // The next node is a sibling of the current one
-    const nextIsPair = treeIndices[nextHashReadIndex] === index - 1;
+    const nextIsPair = treeIndices[nextReadIndex] === index - 1;
 
-    const right = indexIsOdd ? hashes[hashReadIndex++] : decommitments[decommitmentIndex++];
-    hashReadIndex %= indexCount;
-    const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : hashes[hashReadIndex++];
+    const right = indexIsOdd ? hashes[readIndex++] : decommitments[decommitmentIndex++];
+    readIndex %= indexCount;
+    const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : hashes[readIndex++];
 
-    treeIndices[hashWriteIndex] = index >> 1;
-    hashes[hashWriteIndex++] = hashFunction(left, right);
+    treeIndices[writeIndex] = index >> 1;
+    hashes[writeIndex++] = hashFunction(left, right);
 
-    hashReadIndex %= indexCount;
-    hashWriteIndex %= indexCount;
+    readIndex %= indexCount;
+    writeIndex %= indexCount;
   }
 };
 
@@ -85,35 +85,35 @@ const getNewRoot = ({ indices, leafs, newLeafs, leafCount, decommitments, hashFu
   const treeIndices = indices.map((index) => leafCount + index);
   const indexCount = indices.length;
 
-  let hashReadIndex = 0;
-  let hashWriteIndex = 0;
+  let readIndex = 0;
+  let writeIndex = 0;
   let decommitmentIndex = 0;
 
   while (true) {
-    const index = treeIndices[hashReadIndex];
+    const index = treeIndices[readIndex];
 
     if (index === 1) {
-      const rootIndex = (hashWriteIndex === 0 ? indexCount : hashWriteIndex) - 1;
+      const rootIndex = (writeIndex === 0 ? indexCount : writeIndex) - 1;
 
       return { root: hashes[rootIndex], newRoot: newHashes[rootIndex] };
     }
 
-    const nextHashReadIndex = (hashReadIndex + 1) % indexCount;
+    const nextReadIndex = (readIndex + 1) % indexCount;
     const indexIsOdd = index & 1;
-    const nextIsPair = treeIndices[nextHashReadIndex] === index - 1;
+    const nextIsPair = treeIndices[nextReadIndex] === index - 1;
 
-    const right = indexIsOdd ? hashes[hashReadIndex] : decommitments[decommitmentIndex];
-    const newRight = indexIsOdd ? newHashes[hashReadIndex++] : decommitments[decommitmentIndex++];
-    hashReadIndex %= indexCount;
-    const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex] : hashes[hashReadIndex];
-    const newLeft = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : newHashes[hashReadIndex++];
+    const right = indexIsOdd ? hashes[readIndex] : decommitments[decommitmentIndex];
+    const newRight = indexIsOdd ? newHashes[readIndex++] : decommitments[decommitmentIndex++];
+    readIndex %= indexCount;
+    const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex] : hashes[readIndex];
+    const newLeft = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : newHashes[readIndex++];
 
-    treeIndices[hashWriteIndex] = index >> 1;
-    hashes[hashWriteIndex] = hashFunction(left, right);
-    newHashes[hashWriteIndex++] = hashFunction(newLeft, newRight);
+    treeIndices[writeIndex] = index >> 1;
+    hashes[writeIndex] = hashFunction(left, right);
+    newHashes[writeIndex++] = hashFunction(newLeft, newRight);
 
-    hashReadIndex %= indexCount;
-    hashWriteIndex %= indexCount;
+    readIndex %= indexCount;
+    writeIndex %= indexCount;
   }
 };
 

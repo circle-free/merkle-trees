@@ -87,38 +87,34 @@ const getRootBooleans = ({ leafs, flags, skips, decommitments, hashFunction }) =
   const leafCount = leafs.length;
   const hashes = Array(leafCount).fill(null);
 
-  let hashReadIndex = 0;
-  let hashWriteIndex = 0;
+  let readIndex = 0;
+  let writeIndex = 0;
   let decommitmentIndex = 0;
   let useLeafs = true;
 
   for (let i = 0; i < hashCount; i++) {
     if (skips[i]) {
-      hashes[hashWriteIndex++] = useLeafs ? leafs[hashReadIndex++] : hashes[hashReadIndex++];
+      hashes[writeIndex++] = useLeafs ? leafs[readIndex++] : hashes[readIndex++];
 
-      if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
+      if (useLeafs && readIndex === leafCount) useLeafs = false;
 
-      hashReadIndex %= leafCount;
-      hashWriteIndex %= leafCount;
+      readIndex %= leafCount;
+      writeIndex %= leafCount;
       continue;
     }
 
-    const right = flags[i]
-      ? useLeafs
-        ? leafs[hashReadIndex++]
-        : hashes[hashReadIndex++]
-      : decommitments[decommitmentIndex++];
-    hashReadIndex %= leafCount;
-    const left = useLeafs ? leafs[hashReadIndex++] : hashes[hashReadIndex++];
-    hashes[hashWriteIndex++] = hashFunction(left, right);
+    const right = flags[i] ? (useLeafs ? leafs[readIndex++] : hashes[readIndex++]) : decommitments[decommitmentIndex++];
+    readIndex %= leafCount;
+    const left = useLeafs ? leafs[readIndex++] : hashes[readIndex++];
+    hashes[writeIndex++] = hashFunction(left, right);
 
-    if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
+    if (useLeafs && readIndex === leafCount) useLeafs = false;
 
-    hashReadIndex %= leafCount;
-    hashWriteIndex %= leafCount;
+    readIndex %= leafCount;
+    writeIndex %= leafCount;
   }
 
-  const rootIndex = (hashWriteIndex === 0 ? leafCount : hashWriteIndex) - 1;
+  const rootIndex = (writeIndex === 0 ? leafCount : writeIndex) - 1;
 
   return { root: Buffer.from(useLeafs ? leafs[0] : hashes[rootIndex]) };
 };
@@ -130,42 +126,38 @@ const getRootBits = ({ leafs, hashCount, flags, skips, decommitments, hashFuncti
   const leafCount = leafs.length;
   const hashes = Array(leafCount).fill(null);
 
-  let hashReadIndex = 0;
-  let hashWriteIndex = 0;
+  let readIndex = 0;
+  let writeIndex = 0;
   let decommitmentIndex = 0;
   let useLeafs = true;
   let bitCheck = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
 
   for (let i = 0; i < hashCount; i++) {
     if (and(skips, bitCheck).equals(bitCheck)) {
-      hashes[hashWriteIndex++] = useLeafs ? leafs[hashReadIndex++] : hashes[hashReadIndex++];
+      hashes[writeIndex++] = useLeafs ? leafs[readIndex++] : hashes[readIndex++];
 
-      if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
+      if (useLeafs && readIndex === leafCount) useLeafs = false;
 
-      hashReadIndex %= leafCount;
-      hashWriteIndex %= leafCount;
+      readIndex %= leafCount;
+      writeIndex %= leafCount;
       bitCheck = leftShift(bitCheck, 1);
       continue;
     }
 
     const flag = and(flags, bitCheck).equals(bitCheck);
-    const right = flag
-      ? useLeafs
-        ? leafs[hashReadIndex++]
-        : hashes[hashReadIndex++]
-      : decommitments[decommitmentIndex++];
-    hashReadIndex %= leafCount;
-    const left = useLeafs ? leafs[hashReadIndex++] : hashes[hashReadIndex++];
-    hashes[hashWriteIndex++] = hashFunction(left, right);
+    const right = flag ? (useLeafs ? leafs[readIndex++] : hashes[readIndex++]) : decommitments[decommitmentIndex++];
+    readIndex %= leafCount;
+    const left = useLeafs ? leafs[readIndex++] : hashes[readIndex++];
+    hashes[writeIndex++] = hashFunction(left, right);
 
-    if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
+    if (useLeafs && readIndex === leafCount) useLeafs = false;
 
-    hashReadIndex %= leafCount;
-    hashWriteIndex %= leafCount;
+    readIndex %= leafCount;
+    writeIndex %= leafCount;
     bitCheck = leftShift(bitCheck, 1);
   }
 
-  const rootIndex = (hashWriteIndex === 0 ? leafCount : hashWriteIndex) - 1;
+  const rootIndex = (writeIndex === 0 ? leafCount : writeIndex) - 1;
 
   return { root: Buffer.from(useLeafs ? leafs[0] : hashes[rootIndex]) };
 };
@@ -183,47 +175,43 @@ const getNewRootBooleans = ({ leafs, newLeafs, flags, skips, decommitments, hash
   const hashes = Array(leafCount).fill(null);
   const newHashes = Array(leafCount).fill(null);
 
-  let hashReadIndex = 0;
-  let hashWriteIndex = 0;
+  let readIndex = 0;
+  let writeIndex = 0;
   let decommitmentIndex = 0;
   let useLeafs = true;
 
   for (let i = 0; i < hashCount; i++) {
     if (skips[i]) {
-      hashes[hashWriteIndex] = useLeafs ? leafs[hashReadIndex] : hashes[hashReadIndex];
-      newHashes[hashWriteIndex++] = useLeafs ? newLeafs[hashReadIndex++] : newHashes[hashReadIndex++];
+      hashes[writeIndex] = useLeafs ? leafs[readIndex] : hashes[readIndex];
+      newHashes[writeIndex++] = useLeafs ? newLeafs[readIndex++] : newHashes[readIndex++];
 
-      if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
+      if (useLeafs && readIndex === leafCount) useLeafs = false;
 
-      hashReadIndex %= leafCount;
-      hashWriteIndex %= leafCount;
+      readIndex %= leafCount;
+      writeIndex %= leafCount;
       continue;
     }
 
-    const right = flags[i]
-      ? useLeafs
-        ? leafs[hashReadIndex]
-        : hashes[hashReadIndex]
-      : decommitments[decommitmentIndex];
+    const right = flags[i] ? (useLeafs ? leafs[readIndex] : hashes[readIndex]) : decommitments[decommitmentIndex];
     const newRight = flags[i]
       ? useLeafs
-        ? newLeafs[hashReadIndex++]
-        : newHashes[hashReadIndex++]
+        ? newLeafs[readIndex++]
+        : newHashes[readIndex++]
       : decommitments[decommitmentIndex++];
-    hashReadIndex %= leafCount;
+    readIndex %= leafCount;
 
-    const left = useLeafs ? leafs[hashReadIndex] : hashes[hashReadIndex];
-    const newLeft = useLeafs ? newLeafs[hashReadIndex++] : newHashes[hashReadIndex++];
-    hashes[hashWriteIndex] = hashFunction(left, right);
-    newHashes[hashWriteIndex++] = hashFunction(newLeft, newRight);
+    const left = useLeafs ? leafs[readIndex] : hashes[readIndex];
+    const newLeft = useLeafs ? newLeafs[readIndex++] : newHashes[readIndex++];
+    hashes[writeIndex] = hashFunction(left, right);
+    newHashes[writeIndex++] = hashFunction(newLeft, newRight);
 
-    if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
+    if (useLeafs && readIndex === leafCount) useLeafs = false;
 
-    hashReadIndex %= leafCount;
-    hashWriteIndex %= leafCount;
+    readIndex %= leafCount;
+    writeIndex %= leafCount;
   }
 
-  const rootIndex = (hashWriteIndex === 0 ? leafCount : hashWriteIndex) - 1;
+  const rootIndex = (writeIndex === 0 ? leafCount : writeIndex) - 1;
 
   return {
     root: Buffer.from(useLeafs ? leafs[0] : hashes[rootIndex]),
@@ -239,47 +227,47 @@ const getNewRootBits = ({ leafs, newLeafs, hashCount, flags, skips, decommitment
   const hashes = Array(leafCount).fill(null);
   const newHashes = Array(leafCount).fill(null);
 
-  let hashReadIndex = 0;
-  let hashWriteIndex = 0;
+  let readIndex = 0;
+  let writeIndex = 0;
   let decommitmentIndex = 0;
   let useLeafs = true;
   let bitCheck = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
 
   for (let i = 0; i < hashCount; i++) {
     if (and(skips, bitCheck).equals(bitCheck)) {
-      hashes[hashWriteIndex] = useLeafs ? leafs[hashReadIndex] : hashes[hashReadIndex];
-      newHashes[hashWriteIndex++] = useLeafs ? newLeafs[hashReadIndex++] : newHashes[hashReadIndex++];
+      hashes[writeIndex] = useLeafs ? leafs[readIndex] : hashes[readIndex];
+      newHashes[writeIndex++] = useLeafs ? newLeafs[readIndex++] : newHashes[readIndex++];
 
-      if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
+      if (useLeafs && readIndex === leafCount) useLeafs = false;
 
-      hashReadIndex %= leafCount;
-      hashWriteIndex %= leafCount;
+      readIndex %= leafCount;
+      writeIndex %= leafCount;
       bitCheck = leftShift(bitCheck, 1);
       continue;
     }
 
     const flag = and(flags, bitCheck).equals(bitCheck);
-    const right = flag ? (useLeafs ? leafs[hashReadIndex] : hashes[hashReadIndex]) : decommitments[decommitmentIndex];
+    const right = flag ? (useLeafs ? leafs[readIndex] : hashes[readIndex]) : decommitments[decommitmentIndex];
     const newRight = flag
       ? useLeafs
-        ? newLeafs[hashReadIndex++]
-        : newHashes[hashReadIndex++]
+        ? newLeafs[readIndex++]
+        : newHashes[readIndex++]
       : decommitments[decommitmentIndex++];
-    hashReadIndex %= leafCount;
+    readIndex %= leafCount;
 
-    const left = useLeafs ? leafs[hashReadIndex] : hashes[hashReadIndex];
-    const newLeft = useLeafs ? newLeafs[hashReadIndex++] : newHashes[hashReadIndex++];
-    hashes[hashWriteIndex] = hashFunction(left, right);
-    newHashes[hashWriteIndex++] = hashFunction(newLeft, newRight);
+    const left = useLeafs ? leafs[readIndex] : hashes[readIndex];
+    const newLeft = useLeafs ? newLeafs[readIndex++] : newHashes[readIndex++];
+    hashes[writeIndex] = hashFunction(left, right);
+    newHashes[writeIndex++] = hashFunction(newLeft, newRight);
 
-    if (useLeafs && hashReadIndex === leafCount) useLeafs = false;
+    if (useLeafs && readIndex === leafCount) useLeafs = false;
 
-    hashReadIndex %= leafCount;
-    hashWriteIndex %= leafCount;
+    readIndex %= leafCount;
+    writeIndex %= leafCount;
     bitCheck = leftShift(bitCheck, 1);
   }
 
-  const rootIndex = (hashWriteIndex === 0 ? leafCount : hashWriteIndex) - 1;
+  const rootIndex = (writeIndex === 0 ? leafCount : writeIndex) - 1;
 
   return {
     root: Buffer.from(useLeafs ? leafs[0] : hashes[rootIndex]),
