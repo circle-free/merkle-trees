@@ -34,7 +34,7 @@ contract Index_Multi_Proofs {
     uint256 hash_write_index;
     uint256 decommitment_index;
 
-    for(; hash_write_index < index_count; ++hash_write_index) {
+    for (; hash_write_index < index_count; ++hash_write_index) {
       tree_indices[hash_write_index] = total_element_count + indices[hash_write_index];
       hashes[hash_write_index] = hash_node(bytes32(0), elements[hash_write_index]);
     }
@@ -67,7 +67,7 @@ contract Index_Multi_Proofs {
     uint256 index_count = indices.length;
     bytes32 data_used;
 
-    for(uint256 i; i < index_count; ++i) {
+    for (uint256 i; i < index_count; ++i) {
       data_used = hash_node(data_used, elements[i]);
     }
 
@@ -91,7 +91,7 @@ contract Index_Multi_Proofs {
     uint256 hash_write_index;
     uint256 decommitment_index;
 
-    for(; hash_write_index < index_count; ++hash_write_index) {
+    for (; hash_write_index < index_count; ++hash_write_index) {
       tree_indices[hash_write_index] = total_element_count + indices[hash_write_index];
       hashes[hash_write_index] = hash_node(bytes32(0), elements[hash_write_index]);
       new_hashes[hash_write_index] = hash_node(bytes32(0), new_elements[hash_write_index]);
@@ -135,7 +135,7 @@ contract Index_Multi_Proofs {
     bytes32[] memory new_elements = new bytes32[](index_count);
     bytes32 data_used;
 
-    for(uint256 i; i < index_count; ++i) {
+    for (uint256 i; i < index_count; ++i) {
       data_used = hash_node(data_used, elements[i]);
       new_elements[i] = data_used;
     }

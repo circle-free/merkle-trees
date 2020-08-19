@@ -21,7 +21,7 @@ contract Simple_Storage {
 
     if (index_count != _elements.length) return false;
 
-    for(uint256 i; i < index_count; ++i) {
+    for (uint256 i; i < index_count; ++i) {
       if (elements[indices[i]] != _elements[i]) return false;
     }
 
@@ -32,7 +32,7 @@ contract Simple_Storage {
     uint256 index_count = indices.length;
     bytes32 data_used;
 
-    for(uint256 i; i < index_count; ++i) {
+    for (uint256 i; i < index_count; ++i) {
       data_used = hash_node(data_used, elements[indices[i]]);
     }
 
@@ -46,7 +46,7 @@ contract Simple_Storage {
   function update_many(uint256[] memory indices, bytes32[] memory new_elements) public {
     uint256 index_count = indices.length;
 
-    for(uint256 i; i < index_count; ++i) {
+    for (uint256 i; i < index_count; ++i) {
       elements[indices[i]] = new_elements[i];
     }
   }
@@ -55,7 +55,7 @@ contract Simple_Storage {
     uint256 index_count = indices.length;
     bytes32 data_used;
 
-    for(uint256 i; i < index_count; ++i) {
+    for (uint256 i; i < index_count; ++i) {
       data_used = hash_node(data_used, elements[indices[i]]);
       elements[indices[i]] = data_used;
     }
