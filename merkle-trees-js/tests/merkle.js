@@ -69,14 +69,13 @@ const testSingleUpdate = (elementCount, index, options) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const newElement = generateElements(1, { seed: '11' })[0];
-  const proof = merkleTree.generateSingleUpdateProof(index, newElement);
+  const { newMerkleTree, proof } = merkleTree.updateSingle(index, newElement, options);
   const { root } = MerkleTree.updateWithSingleProof(proof, options);
   const newElements = elements.map((e, i) => (i === index ? newElement : e));
-  const newMerkleTree1 = new MerkleTree(newElements, options);
-  const newMerkleTree2 = merkleTree.updateSingle(index, newElement);
+  const freshMerkleTree = new MerkleTree(newElements, options);
 
-  expect(root.equals(newMerkleTree1.root)).to.be.true;
-  expect(root.equals(newMerkleTree2.root)).to.be.true;
+  expect(root.equals(newMerkleTree.root)).to.be.true;
+  expect(root.equals(freshMerkleTree.root)).to.be.true;
 };
 
 const testConsecutiveSingleUpdate = (iterations, elementCount, options) => {
@@ -87,10 +86,10 @@ const testConsecutiveSingleUpdate = (iterations, elementCount, options) => {
   for (let i = 0; i < iterations; i++) {
     const index = Math.floor(Math.random() * elementCount);
     const newElement = generateElements(1, { random: true })[0];
-    const proof = merkleTree.generateSingleUpdateProof(index, newElement);
+    const { newMerkleTree, proof } = merkleTree.updateSingle(index, newElement, options);
+    merkleTree = newMerkleTree;
     root = MerkleTree.updateWithSingleProof(proof, options).root;
     elements[index] = newElement;
-    merkleTree = merkleTree.updateSingle(index, newElement);
 
     expect(root.equals(merkleTree.root)).to.be.true;
   }
@@ -169,7 +168,7 @@ const testMultiUpdate = (elementCount, indices, options) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const newElements = generateElements(indices.length, { seed: '11' });
-  const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
+  const { newMerkleTree, proof } = merkleTree.updateMulti(indices, newElements, options);
   const { root } = MerkleTree.updateWithMultiProof(proof, options);
 
   const newTreeElements = elements.map((e, i) => {
@@ -178,11 +177,10 @@ const testMultiUpdate = (elementCount, indices, options) => {
     return index >= 0 ? newElements[index] : e;
   });
 
-  const newMerkleTree1 = new MerkleTree(newTreeElements, options);
-  const newMerkleTree2 = merkleTree.updateMulti(indices, newElements);
+  const freshMerkleTree = new MerkleTree(newTreeElements, options);
 
-  expect(root.equals(newMerkleTree1.root)).to.be.true;
-  expect(root.equals(newMerkleTree2.root)).to.be.true;
+  expect(root.equals(newMerkleTree.root)).to.be.true;
+  expect(root.equals(freshMerkleTree.root)).to.be.true;
 };
 
 const testConsecutiveMultiUpdate = (iterations, elementCount, updateSize, options) => {
@@ -196,7 +194,8 @@ const testConsecutiveMultiUpdate = (iterations, elementCount, updateSize, option
     const indices = rawIndices.filter((index, i) => rawIndices.indexOf(index) === i).sort((a, b) => b - a);
     const newElements = rawNewElements.slice(0, indices.length);
 
-    const proof = merkleTree.generateMultiUpdateProof(indices, newElements, options);
+    const { newMerkleTree, proof } = merkleTree.updateMulti(indices, newElements, options);
+    merkleTree = newMerkleTree;
     root = MerkleTree.updateWithMultiProof(proof, options).root;
 
     elements = elements.map((element, i) => {
@@ -204,8 +203,6 @@ const testConsecutiveMultiUpdate = (iterations, elementCount, updateSize, option
 
       return index >= 0 ? newElements[index] : element;
     });
-
-    merkleTree = merkleTree.updateMulti(indices, newElements);
 
     expect(root.equals(merkleTree.root)).to.be.true;
   }
@@ -239,17 +236,15 @@ const testSingleAppend = (elementCount, options) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const newElement = generateElements(1, { seed: '11' })[0];
-  const proof = merkleTree.generateSingleAppendProof(newElement);
+  const { newMerkleTree, proof } = merkleTree.appendSingle(newElement, options);
   const { root, elementCount: newElementCount } = MerkleTree.appendSingleWithProof(proof, options);
-
   const newElements = elements.concat(newElement);
-  const newMerkleTree1 = new MerkleTree(newElements, options);
-  const newMerkleTree2 = merkleTree.appendSingle(newElement);
+  const freshMerkleTree = new MerkleTree(newElements, options);
 
-  expect(root.equals(newMerkleTree1.root)).to.be.true;
-  expect(root.equals(newMerkleTree2.root)).to.be.true;
-  expect(newElementCount).to.equal(newMerkleTree1.elements.length);
-  expect(newElementCount).to.equal(newMerkleTree2.elements.length);
+  expect(root.equals(newMerkleTree.root)).to.be.true;
+  expect(root.equals(freshMerkleTree.root)).to.be.true;
+  expect(newElementCount).to.equal(newMerkleTree.elements.length);
+  expect(newElementCount).to.equal(freshMerkleTree.elements.length);
 };
 
 const testConsecutiveSingleAppend = (iterations, elementCount, options) => {
@@ -259,12 +254,11 @@ const testConsecutiveSingleAppend = (iterations, elementCount, options) => {
 
   for (let i = 0; i < iterations; i++) {
     const newElement = generateElements(1, { random: true })[0];
-    const proof = merkleTree.generateSingleAppendProof(newElement);
+    const { newMerkleTree, proof } = merkleTree.appendSingle(newElement, options);
+    merkleTree = newMerkleTree;
     const results = MerkleTree.appendSingleWithProof(proof, options);
     root = results.root;
-
     elements.push(newElement);
-    merkleTree = merkleTree.appendSingle(newElement);
 
     expect(root.equals(merkleTree.root)).to.equal(true);
     expect(results.elementCount).to.equal(merkleTree.elements.length);
@@ -279,16 +273,15 @@ const testMultiAppend = (elementCount, appendSize, options) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const appendElements = generateElements(appendSize, { seed: '11' });
-  const proof = merkleTree.generateMultiAppendProof(appendElements);
+  const { newMerkleTree, proof } = merkleTree.appendMulti(appendElements, options);
   const { root, elementCount: newElementCount } = MerkleTree.appendMultiWithProof(proof, options);
   const newElements = elements.concat(appendElements);
-  const newMerkleTree1 = new MerkleTree(newElements, options);
-  const newMerkleTree2 = merkleTree.appendMulti(appendElements);
+  const freshMerkleTree = new MerkleTree(newElements, options);
 
-  expect(root.equals(newMerkleTree1.root)).to.be.true;
-  expect(root.equals(newMerkleTree2.root)).to.be.true;
-  expect(newElementCount).to.equal(newMerkleTree1.elements.length);
-  expect(newElementCount).to.equal(newMerkleTree2.elements.length);
+  expect(root.equals(newMerkleTree.root)).to.be.true;
+  expect(root.equals(freshMerkleTree.root)).to.be.true;
+  expect(newElementCount).to.equal(newMerkleTree.elements.length);
+  expect(newElementCount).to.equal(freshMerkleTree.elements.length);
 };
 
 const testConsecutiveMultiAppend = (iterations, elementCount, appendSize, options) => {
@@ -298,12 +291,11 @@ const testConsecutiveMultiAppend = (iterations, elementCount, appendSize, option
 
   for (let i = 0; i < iterations; i++) {
     const newElements = generateElements(Math.ceil(Math.random() * appendSize));
-    const proof = merkleTree.generateMultiAppendProof(newElements);
+    const { newMerkleTree, proof } = merkleTree.appendMulti(newElements, options);
+    merkleTree = newMerkleTree;
     const results = MerkleTree.appendMultiWithProof(proof, options);
     root = results.root;
-
     elements = elements.concat(newElements);
-    merkleTree = merkleTree.appendMulti(newElements);
 
     expect(root.equals(merkleTree.root)).to.be.true;
     expect(results.elementCount).to.equal(merkleTree.elements.length);
@@ -317,7 +309,7 @@ const testConsecutiveMultiAppend = (iterations, elementCount, appendSize, option
 const testCombinedProofMinimumIndex = (elementCount, expected, options) => {
   const elements = generateElements(elementCount);
   const merkleTree = new MerkleTree(elements, options);
-  const minimumIndex = merkleTree.getMinimumCombinedProofIndex();
+  const minimumIndex = merkleTree.minimumCombinedProofIndex;
 
   expect(minimumIndex).to.equal(expected.minimumIndex);
 };
@@ -364,7 +356,7 @@ const testCombinedUpdateAndAppend = (elementCount, updateIndices, appendSize, op
   const merkleTree = new MerkleTree(elements, options);
   const uElements = generateElements(updateIndices.length, { seed: '11' });
   const aElements = generateElements(appendSize, { seed: '22' });
-  const proof = merkleTree.generateMultiAppendUpdateProof(updateIndices, uElements, aElements, options);
+  const { newMerkleTree, proof } = merkleTree.updateAndAppendMulti(updateIndices, uElements, aElements, options);
   const { root, elementCount: newElementCount } = MerkleTree.updateAndAppendWithCombinedProof(proof, options);
 
   const updatedElements = elements.map((e, i) => {
@@ -374,19 +366,12 @@ const testCombinedUpdateAndAppend = (elementCount, updateIndices, appendSize, op
   });
 
   const newElements = updatedElements.concat(aElements);
-  const newMerkleTree1 = new MerkleTree(newElements, options);
-  const newMerkleTree2 = merkleTree.updateAndAppendMulti(updateIndices, uElements, aElements);
-  const newMerkleTree3 = merkleTree.updateMulti(updateIndices, uElements).appendMulti(aElements);
-  const newMerkleTree4 = merkleTree.appendMulti(aElements).updateMulti(updateIndices, uElements);
+  const freshMerkleTree = new MerkleTree(newElements, options);
 
-  expect(root.equals(newMerkleTree1.root)).to.be.true;
-  expect(root.equals(newMerkleTree2.root)).to.be.true;
-  expect(root.equals(newMerkleTree3.root)).to.be.true;
-  expect(root.equals(newMerkleTree4.root)).to.be.true;
-  expect(newElementCount).to.equal(newMerkleTree1.elements.length);
-  expect(newElementCount).to.equal(newMerkleTree2.elements.length);
-  expect(newElementCount).to.equal(newMerkleTree3.elements.length);
-  expect(newElementCount).to.equal(newMerkleTree4.elements.length);
+  expect(root.equals(newMerkleTree.root)).to.be.true;
+  expect(root.equals(freshMerkleTree.root)).to.be.true;
+  expect(newElementCount).to.equal(newMerkleTree.elements.length);
+  expect(newElementCount).to.equal(freshMerkleTree.elements.length);
 };
 
 const testConsecutiveUpdateAndAppend = (iterations, elementCount, updateSize, appendSize, options) => {
@@ -397,13 +382,19 @@ const testConsecutiveUpdateAndAppend = (iterations, elementCount, updateSize, ap
   for (let i = 0; i < iterations; i++) {
     const rawUpdateElements = generateElements(updateSize, { random: true });
     const rawUpdateIndices = rawUpdateElements.map(() => Math.floor(Math.random() * elements.length));
-    const minimumIndex = merkleTree.getMinimumCombinedProofIndex();
+    const minimumIndex = merkleTree.minimumCombinedProofIndex;
     rawUpdateIndices[0] = Math.floor(Math.random() * (elements.length - minimumIndex) + minimumIndex);
     const updateIndices = rawUpdateIndices.filter((index, i, arr) => arr.indexOf(index) === i).sort((a, b) => b - a);
     const updateElements = rawUpdateElements.slice(0, updateIndices.length);
     const appendElements = generateElements(Math.ceil(Math.random() * appendSize), { random: true });
 
-    const proof = merkleTree.generateMultiAppendUpdateProof(updateIndices, updateElements, appendElements, options);
+    const { newMerkleTree, proof } = merkleTree.updateAndAppendMulti(
+      updateIndices,
+      updateElements,
+      appendElements,
+      options
+    );
+    merkleTree = newMerkleTree;
     const results = MerkleTree.updateAndAppendWithCombinedProof(proof);
     root = results.root;
 
@@ -414,8 +405,6 @@ const testConsecutiveUpdateAndAppend = (iterations, elementCount, updateSize, ap
         return index >= 0 ? updateElements[index] : element;
       })
       .concat(appendElements);
-
-    merkleTree = merkleTree.updateAndAppendMulti(updateIndices, updateElements, appendElements);
 
     expect(root.equals(merkleTree.root)).to.be.true;
     expect(results.elementCount).to.equal(merkleTree.elements.length);

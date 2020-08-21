@@ -208,36 +208,44 @@ class MerkleTree {
     return this._elements.map(Buffer.from);
   }
 
-  generateSingleProof(index) {
+  get minimumCombinedProofIndex() {
+    return CombinedProofs.getMinimumIndex(this._elements.length);
+  }
+
+  generateSingleProof(index, options = {}) {
     assert(index < this._elements.length, 'Index out of range.');
 
-    const { decommitments } = SingleProofs.generate({ tree: this._tree, index });
+    const proof = SingleProofs.generate({ tree: this._tree, index });
 
-    return {
+    const base = {
       root: Buffer.from(this._tree[0]),
       elementCount: this._elements.length,
       index,
       element: Buffer.from(this._elements[index]),
-      decommitments,
     };
+
+    return Object.assign(base, proof);
   }
 
-  generateSingleUpdateProof(index, element) {
-    return Object.assign({ newElement: Buffer.from(element) }, this.generateSingleProof(index));
+  generateSingleUpdateProof(index, element, options = {}) {
+    return Object.assign({ newElement: Buffer.from(element) }, this.generateSingleProof(index, options));
   }
 
-  updateSingle(index, element) {
+  updateSingle(index, element, proofOptions = {}) {
     assert(index < this._elements.length, 'Index out of range.');
 
     const newElements = this._elements.map((e, i) => (i === index ? element : e));
 
-    const options = {
+    const treeOptions = {
       sortedHash: this._sortedHash,
       unbalanced: this._unbalanced,
       elementPrefix: this._elementPrefix,
     };
 
-    return new MerkleTree(newElements, options);
+    return {
+      newMerkleTree: new MerkleTree(newElements, treeOptions),
+      proof: this.generateSingleUpdateProof(index, element, proofOptions),
+    };
   }
 
   generateMultiProof(indices, options = {}) {
@@ -257,10 +265,11 @@ class MerkleTree {
 
   generateMultiUpdateProof(indices, elements, options = {}) {
     const newElements = elements.map(Buffer.from);
+
     return Object.assign({ newElements }, this.generateMultiProof(indices, options));
   }
 
-  updateMulti(indices, elements) {
+  updateMulti(indices, elements, proofOptions = {}) {
     indices.forEach((index, i) => {
       assert(index < this._elements.length, 'Index out of range.');
       assert(indices.indexOf(index) === i, 'Duplicate in indices.');
@@ -272,59 +281,62 @@ class MerkleTree {
       return index >= 0 ? elements[index] : e;
     });
 
-    const options = {
+    const treeOptions = {
       sortedHash: this._sortedHash,
       unbalanced: this._unbalanced,
       elementPrefix: this._elementPrefix,
     };
 
-    return new MerkleTree(newElements, options);
+    return {
+      newMerkleTree: new MerkleTree(newElements, treeOptions),
+      proof: this.generateMultiUpdateProof(indices, elements, proofOptions),
+    };
   }
 
-  generateAppendProof() {
-    const { elementCount, decommitments } = AppendProofs.generate({
-      tree: this._tree,
-      elementCount: this._elements.length,
-    });
+  generateAppendProof(options = {}) {
+    const params = { tree: this._tree, elementCount: this._elements.length };
+    const proof = AppendProofs.generate(params);
 
-    return { root: Buffer.from(this._tree[0]), elementCount, decommitments };
+    return Object.assign({ root: Buffer.from(this._tree[0]) }, proof);
   }
 
-  generateSingleAppendProof(element) {
-    return Object.assign({ newElement: Buffer.from(element) }, this.generateAppendProof());
+  generateSingleAppendProof(element, options = {}) {
+    return Object.assign({ newElement: Buffer.from(element) }, this.generateAppendProof(options));
   }
 
-  generateMultiAppendProof(elements) {
-    return Object.assign({ newElements: elements.map(Buffer.from) }, this.generateAppendProof());
+  generateMultiAppendProof(elements, options = {}) {
+    return Object.assign({ newElements: elements.map(Buffer.from) }, this.generateAppendProof(options));
   }
 
-  appendSingle(element) {
+  appendSingle(element, proofOptions = {}) {
     const newElements = this.elements.map((e) => e);
     newElements.push(element);
 
-    const options = {
+    const treeOptions = {
       sortedHash: this._sortedHash,
       unbalanced: this._unbalanced,
       elementPrefix: this._elementPrefix,
     };
 
-    return new MerkleTree(newElements, options);
+    return {
+      newMerkleTree: new MerkleTree(newElements, treeOptions),
+      proof: this.generateSingleAppendProof(element, proofOptions),
+    };
   }
 
-  appendMulti(elements) {
+  appendMulti(elements, proofOptions = {}) {
     const newElements = this.elements.concat(elements);
 
-    const options = {
+    const treeOptions = {
       sortedHash: this._sortedHash,
       unbalanced: this._unbalanced,
       elementPrefix: this._elementPrefix,
     };
 
-    return new MerkleTree(newElements, options);
-  }
-
-  getMinimumCombinedProofIndex() {
-    return CombinedProofs.getMinimumIndex(this._elements.length);
+    return {
+      newMerkleTree: new MerkleTree(newElements, treeOptions),
+      proof: this.generateMultiAppendProof(elements, proofOptions),
+    };
   }
 
   generateCombinedProof(indices, options = {}) {
@@ -355,8 +367,14 @@ class MerkleTree {
     return Object.assign(base, this.generateCombinedProof(indices, options));
   }
 
-  updateAndAppendMulti(indices, updateElements, appendElements) {
-    return this.updateMulti(indices, updateElements).appendMulti(appendElements);
+  updateAndAppendMulti(indices, updateElements, appendElements, proofOptions = {}) {
+    const { newMerkleTree: updatedTree } = this.updateMulti(indices, updateElements, proofOptions);
+    const { newMerkleTree } = updatedTree.appendMulti(appendElements, proofOptions);
+
+    return {
+      newMerkleTree,
+      proof: this.generateMultiAppendUpdateProof(indices, updateElements, appendElements, proofOptions),
+    };
   }
 }
 
@@ -374,4 +392,3 @@ module.exports = MerkleTree;
 // TODO: consider a Proof class
 // TODO: verify and update single proof can probably be cheaper with sortedHash given that element count is required
 // TODO: mutually exclusive options (indexed and bitFlags)
-// TODO: return new merkle tree with "mutating" methods

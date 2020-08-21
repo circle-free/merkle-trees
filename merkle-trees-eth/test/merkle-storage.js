@@ -18,7 +18,7 @@ let contractInstance = null;
 let merkleTree = null
 
 const testUseOne = async (index, expectedGas) => {
-  const { elementCount, element, decommitments } = merkleTree.generateSingleProof(index);
+  const { elementCount, element, decommitments } = merkleTree.generateSingleProof(index, options);
   const hexElement = '0x' + element.toString('hex');
   const hexDecommitments = decommitments.map(d => '0x' + d.toString('hex'));
   const { receipt } = await contractInstance.use_one(elementCount, index, hexElement, hexDecommitments);
@@ -29,17 +29,19 @@ const testUseOne = async (index, expectedGas) => {
 const testUpdateOne = async (index, seed, expectedGas) => {
   const newElement = generateElements(1, { seed })[0];
   const hexNewElement = '0x' + newElement.toString('hex');
-  const { elementCount, element, decommitments } = merkleTree.generateSingleUpdateProof(index, newElement);
+  const { newMerkleTree, proof } = merkleTree.updateSingle(index, newElement, options);
+  const { elementCount, element, decommitments } = proof;
   const hexElement = '0x' + element.toString('hex');
   const hexDecommitments = decommitments.map(d => '0x' + d.toString('hex'));
   const { receipt } = await contractInstance.update_one(elementCount, index, hexElement, hexNewElement, hexDecommitments);
 
   expect(receipt.gasUsed).to.equal(expectedGas);
-
-  merkleTree = merkleTree.updateSingle(index, newElement);
+  
   const retrievedRoot = await contractInstance.root();
 
-  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
+  expect(retrievedRoot).to.equal('0x' + newMerkleTree.root.toString('hex'));
+
+  merkleTree = newMerkleTree;
 };
 
 const testUseAndUpdateOne = async (index, expectedGas) => {
@@ -67,17 +69,19 @@ const testUseMany = async (indices, expectedGas) => {
 const testUpdateMany = async (indices, seed, expectedGas) => {
   const newElements = generateElements(indices.length, { seed });
   const hexNewElements = newElements.map(e => '0x' + e.toString('hex'));
-  const { elementCount, elements, proof } = merkleTree.generateMultiUpdateProof(indices, newElements, options);
+  const { newMerkleTree, proof } = merkleTree.updateMulti(indices, newElements, options);
+  const { elementCount, elements, proof: compactProof } = proof;
   const hexElements = elements.map(e => '0x' + e.toString('hex'));
-  const hexProof = proof.map(p => '0x' + p.toString('hex'));
+  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
   const { receipt } = await contractInstance.update_many(elementCount, hexElements, hexNewElements, hexProof);
 
   expect(receipt.gasUsed).to.equal(expectedGas);
-
-  merkleTree = merkleTree.updateMulti(indices, newElements);
+  
   const retrievedRoot = await contractInstance.root();
 
-  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
+  expect(retrievedRoot).to.equal('0x' + newMerkleTree.root.toString('hex'));
+
+  merkleTree = newMerkleTree;
 };
 
 const testUseAndUpdateMany = async (indices, expectedGas) => {
@@ -96,16 +100,18 @@ const testUseAndUpdateMany = async (indices, expectedGas) => {
 const testAppendOne = async (seed, expectedGas) => {
   const newElement = generateElements(1, { seed })[0];
   const hexNewElement = '0x' + newElement.toString('hex');
-  const { elementCount, decommitments } = merkleTree.generateSingleAppendProof(newElement);
+  const { newMerkleTree, proof } = merkleTree.appendSingle(newElement, options);
+  const { elementCount, decommitments } = proof;
   const hexDecommitments = decommitments.map(d => '0x' + d.toString('hex'));
   const { receipt } = await contractInstance.append_one(elementCount, hexNewElement, hexDecommitments);
 
   expect(receipt.gasUsed).to.equal(expectedGas);
   
-  merkleTree = merkleTree.appendSingle(newElement);
   const retrievedRoot = await contractInstance.root();
 
-  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
+  expect(retrievedRoot).to.equal('0x' + newMerkleTree.root.toString('hex'));
+
+  merkleTree = newMerkleTree;
 };
 
 const testAppendOneConsecutively = async (iterations, seed, expectedGas) => {
@@ -114,10 +120,11 @@ const testAppendOneConsecutively = async (iterations, seed, expectedGas) => {
   const cumulativeGasUsed = await newElements.reduce(async (cGasUsed, newElement) => {
     const cumulativeGasUsed = await cGasUsed;
     const hexNewElement = '0x' + newElement.toString('hex');
-    const { elementCount, decommitments } = merkleTree.generateSingleAppendProof(newElement);
+    const { newMerkleTree, proof } = merkleTree.appendSingle(newElement, options);
+    const { elementCount, decommitments } = proof;
+    merkleTree = newMerkleTree;
     const hexDecommitments = decommitments.map(d => '0x' + d.toString('hex'));
     const { receipt } = await contractInstance.append_one(elementCount, hexNewElement, hexDecommitments);
-    merkleTree = merkleTree.appendSingle(newElement);
     
     return cumulativeGasUsed + receipt.gasUsed;
   }, 0);
@@ -132,16 +139,18 @@ const testAppendOneConsecutively = async (iterations, seed, expectedGas) => {
 const testAppendMany = async (appendSize, seed, expectedGas) => {
   const newElements = generateElements(appendSize, { seed });
   const hexNewElements = newElements.map(e => '0x' + e.toString('hex'));
-  const { elementCount, decommitments } = merkleTree.generateMultiAppendProof(newElements);
+  const { newMerkleTree, proof } = merkleTree.appendMulti(newElements, options);
+  const { elementCount, decommitments } = proof;
   const hexDecommitments = decommitments.map(d => '0x' + d.toString('hex'));
   const { receipt } = await contractInstance.append_many(elementCount, hexNewElements, hexDecommitments);
 
   expect(receipt.gasUsed).to.equal(expectedGas);
   
-  merkleTree = merkleTree.appendMulti(newElements);
   const retrievedRoot = await contractInstance.root();
 
-  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
+  expect(retrievedRoot).to.equal('0x' + newMerkleTree.root.toString('hex'));
+
+  merkleTree = newMerkleTree;
 };
 
 const testAppendManyConsecutively = async (iterations, appendSize, seed, expectedGas) => {
@@ -157,10 +166,11 @@ const testAppendManyConsecutively = async (iterations, appendSize, seed, expecte
   for (let i = 0; i < iterations; i++) {
     const newElements = newElementsMatrix[i];
     const hexNewElements = newElements.map(e => '0x' + e.toString('hex'));
-    const { elementCount, decommitments } = merkleTree.generateMultiAppendProof(newElements);
+    const { newMerkleTree, proof } = merkleTree.appendMulti(newElements, options);
+    const { elementCount, decommitments } = proof;
+    merkleTree = newMerkleTree;
     const hexDecommitments = decommitments.map(d => '0x' + d.toString('hex'));
     const { receipt } = await contractInstance.append_many(elementCount, hexNewElements, hexDecommitments);
-    merkleTree = merkleTree.appendMulti(newElements);
     cumulativeGasUsed = cumulativeGasUsed + receipt.gasUsed;
   }
 
