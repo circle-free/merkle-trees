@@ -69,11 +69,7 @@ const generateBits = ({ tree, indices }) => {
   const flagsAsBits = or(to32ByteBoolBuffer(flags), stopMask);
   const skipsAsBits = or(to32ByteBoolBuffer(skips), stopMask);
 
-  return {
-    decommitments,
-    flags: flagsAsBits,
-    skips: skipsAsBits,
-  };
+  return { proof: [flagsAsBits, skipsAsBits].concat(decommitments) };
 };
 
 const generate = (parameters) => {
@@ -125,7 +121,10 @@ const getRootBooleans = ({ leafs, flags, skips, decommitments, hashFunction }) =
 // This is identical to the above getRootBooleans algorithm, differing only in that the
 // the flag and skip bit-set is shifted and checked, rather than boolean arrays.
 // See getRootBooleans for relevant inline comments.
-const getRootBits = ({ leafs, flags, skips, decommitments, hashFunction }) => {
+const getRootBits = ({ leafs, proof, hashFunction }) => {
+  const flags = proof[0];
+  const skips = proof[1];
+  const decommitments = proof.slice(2);
   const leafCount = leafs.length;
   const hashes = Array(leafCount).fill(null);
 
@@ -169,7 +168,7 @@ const getRootBits = ({ leafs, flags, skips, decommitments, hashFunction }) => {
 };
 
 const getRoot = (parameters) => {
-  return Buffer.isBuffer(parameters.flags) ? getRootBits(parameters) : getRootBooleans(parameters);
+  return parameters.proof ? getRootBits(parameters) : getRootBooleans(parameters);
 };
 
 // This is identical to the above getRootBooleans algorithm, differing only in that the
@@ -228,7 +227,10 @@ const getNewRootBooleans = ({ leafs, newLeafs, flags, skips, decommitments, hash
 // This is identical to the above getRootBits algorithm, differing only in that the
 // new root (due to the updated leafs), is computed along the way.
 // See getRootBits for relevant inline comments.
-const getNewRootBits = ({ leafs, newLeafs, flags, skips, decommitments, hashFunction }) => {
+const getNewRootBits = ({ leafs, newLeafs, proof, hashFunction }) => {
+  const flags = proof[0];
+  const skips = proof[1];
+  const decommitments = proof.slice(2);
   const leafCount = leafs.length;
   const hashes = Array(leafCount).fill(null);
   const newHashes = Array(leafCount).fill(null);
@@ -285,7 +287,7 @@ const getNewRootBits = ({ leafs, newLeafs, flags, skips, decommitments, hashFunc
 };
 
 const getNewRoot = (parameters) => {
-  return Buffer.isBuffer(parameters.flags) ? getNewRootBits(parameters) : getNewRootBooleans(parameters);
+  return parameters.proof ? getNewRootBits(parameters) : getNewRootBooleans(parameters);
 };
 
 module.exports = { generate, getRoot, getNewRoot };

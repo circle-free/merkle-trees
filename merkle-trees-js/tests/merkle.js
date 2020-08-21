@@ -109,8 +109,6 @@ const testMultiProofGeneration = (elementCount, seed, indices, expected, options
   expect(proof.elementCount).to.equal(elementCount);
   expect(proof.elements.length).to.equal(indices.length);
   proof.elements.forEach((e, i) => expect(e.equals(elements[indices[i]])).to.be.true);
-  expect(proof.decommitments.length).to.equal(expected.decommitments.length);
-  proof.decommitments.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.decommitments[i]));
 
   if (options.indexed) {
     expect(proof.indices).to.deep.equal(indices);
@@ -118,11 +116,13 @@ const testMultiProofGeneration = (elementCount, seed, indices, expected, options
   }
 
   if (options.bitFlags) {
-    expect(proof.flags.toString('hex')).to.equal(expected.flags);
-    expect(proof.skips.toString('hex')).to.equal(expected.skips);
+    expect(proof.proof.length).to.equal(expected.proof.length);
+    proof.proof.forEach((p, i) => expect(p.toString('hex')).to.equal(expected.proof[i]));
     return;
   }
 
+  expect(proof.decommitments.length).to.equal(expected.decommitments.length);
+  proof.decommitments.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.decommitments[i]));
   expect(proof.flags).to.deep.equal(expected.flags);
   expect(proof.skips).to.deep.equal(expected.skips);
 };
@@ -138,8 +138,6 @@ const compareMultiProofs = (elementCount, indices, optionsA, optionsB) => {
   expect(proofA.elementCount).to.equal(proofB.elementCount);
   proofA.elements.forEach((e, i) => expect(e.equals(proofB.elements[i])).to.be.true);
   expect(proofA.elements.length).to.equal(proofB.elements.length);
-  proofA.decommitments.forEach((d, i) => expect(d.equals(proofB.decommitments[i])).to.be.true);
-  expect(proofA.decommitments.length).to.equal(proofB.decommitments.length);
 
   if (optionsA.indexed && optionsB.indexed) {
     expect(proofA.indices).to.deep.equal(proofB.indices);
@@ -147,11 +145,13 @@ const compareMultiProofs = (elementCount, indices, optionsA, optionsB) => {
   }
 
   if (optionsA.bitFlags && optionsB.bitFlags) {
-    expect(proofA.flags.equals(proofB.flags)).to.be.true;
-    expect(proofA.skips.equals(proofB.skips)).to.be.true;
+    proofA.proof.forEach((p, i) => expect(p.equals(proofB.proof[i])).to.be.true);
+    expect(proofA.proof.length).to.equal(proofB.proof.length);
     return;
   }
 
+  proofA.decommitments.forEach((d, i) => expect(d.equals(proofB.decommitments[i])).to.be.true);
+  expect(proofA.decommitments.length).to.equal(proofB.decommitments.length);
   expect(proofA.flags).to.deep.equal(proofB.flags);
   expect(proofA.skips).to.deep.equal(proofB.skips);
 };
@@ -318,6 +318,7 @@ const testCombinedProofMinimumIndex = (elementCount, expected, options) => {
   const elements = generateElements(elementCount);
   const merkleTree = new MerkleTree(elements, options);
   const minimumIndex = merkleTree.getMinimumCombinedProofIndex();
+
   expect(minimumIndex).to.equal(expected.minimumIndex);
 };
 
@@ -330,14 +331,23 @@ const testCombinedProofGeneration = (elementCount, seed, updateIndices, appendSi
   const { elements, updateElements, appendElements } = combinedProof;
   const multiProof = merkleTree.generateMultiProof(updateIndices, options);
 
-  combinedProof.decommitments.forEach((d, i) => expect(d.equals(multiProof.decommitments[i])).to.be.true);
-  expect(combinedProof.decommitments.length).to.equal(multiProof.decommitments.length);
   elements.forEach((e, i) => expect(e.equals(originalElements[updateIndices[i]])).to.be.true);
   expect(elements.length).to.equal(updateIndices.length);
   updateElements.forEach((e, i) => expect(e.equals(uElements[i])).to.be.true);
   expect(updateElements.length).to.equal(uElements.length);
   appendElements.forEach((e, i) => expect(e.equals(aElements[i])).to.be.true);
   expect(appendElements.length).to.equal(aElements.length);
+
+  if (options.bitFlags) {
+    combinedProof.proof.forEach((p, i) => expect(p.equals(multiProof.proof[i])).to.be.true);
+    expect(combinedProof.proof.length).to.equal(multiProof.proof.length);
+    return;
+  }
+
+  combinedProof.decommitments.forEach((d, i) => expect(d.equals(multiProof.decommitments[i])).to.be.true);
+  expect(combinedProof.decommitments.length).to.equal(multiProof.decommitments.length);
+  expect(combinedProof.flags).to.deep.equal(multiProof.flags);
+  expect(combinedProof.skips).to.deep.equal(multiProof.skips);
 };
 
 const testCombinedProofVerification = (elementCount, updateIndices, options) => {
@@ -1087,13 +1097,13 @@ describe('Merkle-Tree', () => {
             it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
               const expected = {
-                decommitments: [
+                proof: [
+                  '0000000000000000000000000000000000000000000000000000000000000031',
+                  '0000000000000000000000000000000000000000000000000000000000000020',
                   '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
                   'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
                   'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
                 ],
-                flags: '0000000000000000000000000000000000000000000000000000000000000031',
-                skips: '0000000000000000000000000000000000000000000000000000000000000020',
               };
 
               testMultiProofGeneration(8, 'ff', [5, 4, 1], expected, options);
@@ -1102,9 +1112,10 @@ describe('Merkle-Tree', () => {
             it('should generate a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
               const expected = {
-                decommitments: [],
-                flags: '0000000000000000000000000000000000000000000000000000000000000001',
-                skips: '0000000000000000000000000000000000000000000000000000000000000001',
+                proof: [
+                  '0000000000000000000000000000000000000000000000000000000000000001',
+                  '0000000000000000000000000000000000000000000000000000000000000001',
+                ],
               };
 
               testMultiProofGeneration(1, 'ff', [0], expected, options);
@@ -1115,9 +1126,10 @@ describe('Merkle-Tree', () => {
             it('should generate a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               const expected = {
-                decommitments: [],
-                flags: '000000000000000000000000000000000000000000000000000000000000000e',
-                skips: '0000000000000000000000000000000000000000000000000000000000000009',
+                proof: [
+                  '000000000000000000000000000000000000000000000000000000000000000e',
+                  '0000000000000000000000000000000000000000000000000000000000000009',
+                ],
               };
 
               testMultiProofGeneration(3, 'ff', [2, 1, 0], expected, options);
@@ -1126,9 +1138,11 @@ describe('Merkle-Tree', () => {
             it('should generate a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               const expected = {
-                decommitments: ['0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60'],
-                flags: '000000000000000000000000000000000000000000000000000000000000000c',
-                skips: '0000000000000000000000000000000000000000000000000000000000000009',
+                proof: [
+                  '000000000000000000000000000000000000000000000000000000000000000c',
+                  '0000000000000000000000000000000000000000000000000000000000000009',
+                  '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
+                ],
               };
 
               testMultiProofGeneration(3, 'ff', [2, 1], expected, options);
@@ -1137,9 +1151,11 @@ describe('Merkle-Tree', () => {
             it('should generate a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               const expected = {
-                decommitments: ['a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27'],
-                flags: '0000000000000000000000000000000000000000000000000000000000000004',
-                skips: '0000000000000000000000000000000000000000000000000000000000000005',
+                proof: [
+                  '0000000000000000000000000000000000000000000000000000000000000004',
+                  '0000000000000000000000000000000000000000000000000000000000000005',
+                  'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+                ],
               };
 
               testMultiProofGeneration(3, 'ff', [2], expected, options);
@@ -1148,14 +1164,14 @@ describe('Merkle-Tree', () => {
             it('should generate a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               const expected = {
-                decommitments: [
+                proof: [
+                  '000000000000000000000000000000000000000000000000000000000000018c',
+                  '0000000000000000000000000000000000000000000000000000000000000120',
                   '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
                   'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
                   'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
                   'bc481a454a66b25fd1adf8b6b88cbcac3783d39d5ab1e4c45d114846da10274c',
                 ],
-                flags: '000000000000000000000000000000000000000000000000000000000000018c',
-                skips: '0000000000000000000000000000000000000000000000000000000000000120',
               };
 
               testMultiProofGeneration(12, 'ff', [11, 8, 3, 2], expected, options);
@@ -1164,7 +1180,9 @@ describe('Merkle-Tree', () => {
             it('should generate a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               const expected = {
-                decommitments: [
+                proof: [
+                  '000000000000000000000000000000000000000000000000000000000001d800',
+                  '0000000000000000000000000000000000000000000000000000000000012400',
                   '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
                   '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
                   'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
@@ -1176,8 +1194,6 @@ describe('Merkle-Tree', () => {
                   'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
                   'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
                 ],
-                flags: '000000000000000000000000000000000000000000000000000000000001d800',
-                skips: '0000000000000000000000000000000000000000000000000000000000012400',
               };
 
               testMultiProofGeneration(19, 'ff', [17, 12, 9, 4, 2], expected, options);

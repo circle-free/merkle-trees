@@ -47,6 +47,7 @@ const testUseAndUpdateOne = async (index, expectedGas) => {
   const hexElement = '0x' + element.toString('hex');
   const hexDecommitments = decommitments.map(d => '0x' + d.toString('hex'));
   const { receipt } = await contractInstance.use_and_update_one(elementCount, index, hexElement, hexDecommitments);
+
   expect(receipt.gasUsed).to.equal(expectedGas);
 
   const retrievedRoot = await contractInstance.root();
@@ -55,24 +56,22 @@ const testUseAndUpdateOne = async (index, expectedGas) => {
 };
 
 const testUseMany = async (indices, expectedGas) => {
-  const { elementCount, elements, decommitments, flags, skips } = merkleTree.generateMultiProof(indices, options);
+  const { elementCount, elements, proof } = merkleTree.generateMultiProof(indices, options);
   const hexElements = elements.map(e => '0x' + e.toString('hex'));
-  const hexDecommitments = decommitments.map(d => '0x' + d.toString('hex'));
-  const proof = ['0x' + flags.toString('hex'), '0x' + skips.toString('hex')].concat(hexDecommitments);
+  const hexProof = proof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.use_many(elementCount, hexElements, hexProof);
 
-  const { receipt } = await contractInstance.use_many(elementCount, hexElements, proof);
   expect(receipt.gasUsed).to.equal(expectedGas);
 };
 
 const testUpdateMany = async (indices, seed, expectedGas) => {
   const newElements = generateElements(indices.length, { seed });
   const hexNewElements = newElements.map(e => '0x' + e.toString('hex'));
-  const { elementCount, elements, decommitments, flags, skips } = merkleTree.generateMultiUpdateProof(indices, newElements, options);
+  const { elementCount, elements, proof } = merkleTree.generateMultiUpdateProof(indices, newElements, options);
   const hexElements = elements.map(e => '0x' + e.toString('hex'));
-  const hexDecommitments = decommitments.map(d => '0x' + d.toString('hex'));
-  const proof = ['0x' + flags.toString('hex'), '0x' + skips.toString('hex')].concat(hexDecommitments);
+  const hexProof = proof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.update_many(elementCount, hexElements, hexNewElements, hexProof);
 
-  const { receipt } = await contractInstance.update_many(elementCount, hexElements, hexNewElements, proof);
   expect(receipt.gasUsed).to.equal(expectedGas);
 
   merkleTree = merkleTree.updateMulti(indices, newElements);
@@ -82,12 +81,11 @@ const testUpdateMany = async (indices, seed, expectedGas) => {
 };
 
 const testUseAndUpdateMany = async (indices, expectedGas) => {
-  const { elementCount, elements, decommitments, flags, skips } = merkleTree.generateMultiProof(indices, options);
+  const { elementCount, elements, proof } = merkleTree.generateMultiProof(indices, options);
   const hexElements = elements.map(e => '0x' + e.toString('hex'));
-  const hexDecommitments = decommitments.map(d => '0x' + d.toString('hex'));
-  const proof = ['0x' + flags.toString('hex'), '0x' + skips.toString('hex')].concat(hexDecommitments);
+  const hexProof = proof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.use_and_update_many(elementCount, hexElements, hexProof);
 
-  const { receipt } = await contractInstance.use_and_update_many(elementCount, hexElements, proof);
   expect(receipt.gasUsed).to.equal(expectedGas);
 
   const retrievedRoot = await contractInstance.root();
@@ -174,12 +172,11 @@ const testAppendManyConsecutively = async (iterations, appendSize, seed, expecte
 };
 
 const testUseUpdateAndAppendMany = async (indices, expectedGas) => {
-  const { elementCount, elements, decommitments, flags, skips } = merkleTree.generateMultiProof(indices, options);
+  const { elementCount, elements, proof } = merkleTree.generateMultiProof(indices, options);
   const hexElements = elements.map(e => '0x' + e.toString('hex'));
-  const hexDecommitments = decommitments.map(d => '0x' + d.toString('hex'));
-  const proof = ['0x' + flags.toString('hex'), '0x' + skips.toString('hex')].concat(hexDecommitments);
-  const { receipt } = await contractInstance.use_and_update_and_append_many(elementCount, hexElements, proof);
-  
+  const hexProof = proof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.use_and_update_and_append_many(elementCount, hexElements, hexProof);
+
   expect(receipt.gasUsed).to.equal(expectedGas);
   
   const retrievedRoot = await contractInstance.root();
@@ -192,7 +189,7 @@ const testUseUpdateAndAppendManyConsecutively = async (iterations, seed, count, 
   return;
 };
 
-describe("Merkle_Storage", async accounts => {
+describe.only("Merkle_Storage", async accounts => {
   beforeEach(async () => {
     contractInstance = await Merkle_Storage.new();
     const elements = generateElements(20, { seed: 'ff' });

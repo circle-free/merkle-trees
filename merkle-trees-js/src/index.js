@@ -84,9 +84,9 @@ class MerkleTree {
     const leafs = parameters.elements.map((element) => hashNode(prefixBuffer, element));
     const params = Object.assign({ leafs, hashFunction, leafCount: parameters.elementCount }, parameters);
 
-    const { root: recoveredRoot } = parameters.flags
-      ? MultiFlagProofs.getRoot(params)
-      : MultiIndexedProofs.getRoot(params);
+    const { root: recoveredRoot } = parameters.indices
+      ? MultiIndexedProofs.getRoot(params)
+      : MultiFlagProofs.getRoot(params);
 
     return MerkleTree.verifyMixedRoot(parameters.root, parameters.elementCount, recoveredRoot);
   }
@@ -99,9 +99,9 @@ class MerkleTree {
     const newLeafs = parameters.newElements.map((element) => hashNode(prefixBuffer, element));
     const params = Object.assign({ leafs, newLeafs, hashFunction, leafCount: parameters.elementCount }, parameters);
 
-    const { root: recoveredRoot, newRoot } = parameters.flags
-      ? MultiFlagProofs.getNewRoot(params)
-      : MultiIndexedProofs.getNewRoot(params);
+    const { root: recoveredRoot, newRoot } = parameters.indices
+      ? MultiIndexedProofs.getNewRoot(params)
+      : MultiFlagProofs.getNewRoot(params);
 
     assert(MerkleTree.verifyMixedRoot(parameters.root, parameters.elementCount, recoveredRoot), 'Invalid Proof.');
 
@@ -368,4 +368,4 @@ module.exports = MerkleTree;
 // TODO: verify and update single proof can probably be cheaper with sortedHash given that element count is required
 // TODO: use zero fill right shift (>>>) for proper divide by 2 in all algorithms
 // TODO: create generateMultiUpdateAndAppendProof that generateCombinedProof(indices)
-// TODO: pull in bit flags, skips, and decommitments into a single proof array
+// TODO: mutually exclusive options (indexed and bitFlags)
