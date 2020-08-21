@@ -327,7 +327,7 @@ class MerkleTree {
     return CombinedProofs.getMinimumIndex(this._elements.length);
   }
 
-  generateCombinedProof(indices, updateElements, appendElements, options = {}) {
+  generateCombinedProof(indices, options = {}) {
     const elementCount = this._elements.length;
     const minimumIndex = CombinedProofs.getMinimumIndex(elementCount);
     assert(indices[0] >= minimumIndex, `First index must be larger than ${minimumIndex}.`);
@@ -341,11 +341,18 @@ class MerkleTree {
       root: Buffer.from(this._tree[0]),
       elementCount,
       elements,
+    };
+
+    return Object.assign(base, proof);
+  }
+
+  generateMultiAppendUpdateProof(indices, updateElements, appendElements, options = {}) {
+    const base = {
       updateElements: updateElements.map(Buffer.from),
       appendElements: appendElements.map(Buffer.from),
     };
 
-    return Object.assign(base, proof);
+    return Object.assign(base, this.generateCombinedProof(indices, options));
   }
 
   updateAndAppendMulti(indices, updateElements, appendElements) {
@@ -366,5 +373,5 @@ module.exports = MerkleTree;
 //       - proving that elements exist at specific indices (index based)
 // TODO: consider a Proof class
 // TODO: verify and update single proof can probably be cheaper with sortedHash given that element count is required
-// TODO: create generateMultiUpdateAndAppendProof that generateCombinedProof(indices)
 // TODO: mutually exclusive options (indexed and bitFlags)
+// TODO: return new merkle tree with "mutating" methods

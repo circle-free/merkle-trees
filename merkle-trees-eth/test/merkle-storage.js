@@ -172,7 +172,7 @@ const testAppendManyConsecutively = async (iterations, appendSize, seed, expecte
 };
 
 const testUseUpdateAndAppendMany = async (indices, expectedGas) => {
-  const { elementCount, elements, proof } = merkleTree.generateMultiProof(indices, options);
+  const { elementCount, elements, proof } = merkleTree.generateCombinedProof(indices, options);
   const hexElements = elements.map(e => '0x' + e.toString('hex'));
   const hexProof = proof.map(p => '0x' + p.toString('hex'));
   const { receipt } = await contractInstance.use_and_update_and_append_many(elementCount, hexElements, hexProof);

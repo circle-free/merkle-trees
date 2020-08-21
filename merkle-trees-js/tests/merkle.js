@@ -327,7 +327,7 @@ const testCombinedProofGeneration = (elementCount, seed, updateIndices, appendSi
   const merkleTree = new MerkleTree(originalElements, options);
   const uElements = generateElements(updateIndices.length, { seed: '11' });
   const aElements = generateElements(appendSize, { seed: '22' });
-  const combinedProof = merkleTree.generateCombinedProof(updateIndices, uElements, aElements, options);
+  const combinedProof = merkleTree.generateMultiAppendUpdateProof(updateIndices, uElements, aElements, options);
   const { elements, updateElements, appendElements } = combinedProof;
   const multiProof = merkleTree.generateMultiProof(updateIndices, options);
 
@@ -353,7 +353,7 @@ const testCombinedProofGeneration = (elementCount, seed, updateIndices, appendSi
 const testCombinedProofVerification = (elementCount, updateIndices, options) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
-  const proof = merkleTree.generateCombinedProof(updateIndices, [], [], options);
+  const proof = merkleTree.generateCombinedProof(updateIndices, options);
   const proofValid = MerkleTree.verifyCombinedProof(proof, options);
 
   expect(proofValid).to.be.true;
@@ -364,7 +364,7 @@ const testCombinedUpdateAndAppend = (elementCount, updateIndices, appendSize, op
   const merkleTree = new MerkleTree(elements, options);
   const uElements = generateElements(updateIndices.length, { seed: '11' });
   const aElements = generateElements(appendSize, { seed: '22' });
-  const proof = merkleTree.generateCombinedProof(updateIndices, uElements, aElements, options);
+  const proof = merkleTree.generateMultiAppendUpdateProof(updateIndices, uElements, aElements, options);
   const { root, elementCount: newElementCount } = MerkleTree.updateAndAppendWithCombinedProof(proof, options);
 
   const updatedElements = elements.map((e, i) => {
@@ -403,7 +403,7 @@ const testConsecutiveUpdateAndAppend = (iterations, elementCount, updateSize, ap
     const updateElements = rawUpdateElements.slice(0, updateIndices.length);
     const appendElements = generateElements(Math.ceil(Math.random() * appendSize), { random: true });
 
-    const proof = merkleTree.generateCombinedProof(updateIndices, updateElements, appendElements);
+    const proof = merkleTree.generateMultiAppendUpdateProof(updateIndices, updateElements, appendElements, options);
     const results = MerkleTree.updateAndAppendWithCombinedProof(proof);
     root = results.root;
 
