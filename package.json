@@ -1,6 +1,6 @@
 {
   "name": "merkle-trees",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "`merkle-trees-js` in the `js` directory for the compact-multi-proof appendable Merkle tree class.",
   "main": "/js/index.js",
   "scripts": {
