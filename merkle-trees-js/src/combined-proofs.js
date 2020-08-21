@@ -62,7 +62,7 @@ const getRootBooleans = ({ leafs, elementCount, flags, skips, decommitments, has
       readIndexOfAppendNode = writeIndex;
 
       // The index is localized to the level/depth, so the next one is it divided by 2
-      appendNodeIndex >>= 1;
+      appendNodeIndex >>>= 1;
 
       hashes[writeIndex++] = skippedHash;
 
@@ -99,7 +99,7 @@ const getRootBooleans = ({ leafs, elementCount, flags, skips, decommitments, has
       readIndexOfAppendNode = writeIndex;
 
       // The index is localized to the level/depth, so the next one is it divided by 2
-      appendNodeIndex >>= 1;
+      appendNodeIndex >>>= 1;
     }
 
     const right = flags[i] ? (useLeafs ? leafs[readIndex++] : hashes[readIndex++]) : decommitments[decommitmentIndex++];
@@ -163,7 +163,7 @@ const getRootBits = ({ leafs, elementCount, proof, hashFunction }) => {
       }
 
       readIndexOfAppendNode = writeIndex;
-      appendNodeIndex >>= 1;
+      appendNodeIndex >>>= 1;
 
       hashes[writeIndex++] = skippedHash;
 
@@ -190,7 +190,7 @@ const getRootBits = ({ leafs, elementCount, proof, hashFunction }) => {
       }
 
       readIndexOfAppendNode = writeIndex;
-      appendNodeIndex >>= 1;
+      appendNodeIndex >>>= 1;
     }
 
     const right = flag ? (useLeafs ? leafs[readIndex++] : hashes[readIndex++]) : decommitments[decommitmentIndex++];
@@ -231,7 +231,7 @@ const getNewRootBooleans = ({
   const hashes = Array(leafCount).fill(null);
 
   // Will be used as a circular queue, then a stack, so needs to be large enough for either use.
-  const newHashes = Array(Math.max(leafCount, (appendLeafs.length >> 1) + 1)).fill(null);
+  const newHashes = Array(Math.max(leafCount, (appendLeafs.length >>> 1) + 1)).fill(null);
 
   let readIndex = 0;
   let writeIndex = 0;
@@ -257,7 +257,7 @@ const getNewRootBooleans = ({
       }
 
       readIndexOfAppendNode = writeIndex;
-      appendNodeIndex >>= 1;
+      appendNodeIndex >>>= 1;
 
       hashes[writeIndex] = skippedHash;
       newHashes[writeIndex++] = newSkippedHash;
@@ -293,7 +293,7 @@ const getNewRootBooleans = ({
       }
 
       readIndexOfAppendNode = writeIndex;
-      appendNodeIndex >>= 1;
+      appendNodeIndex >>>= 1;
     }
 
     const right = flags[i] ? (useLeafs ? leafs[readIndex] : hashes[readIndex]) : decommitments[decommitmentIndex];
@@ -361,8 +361,8 @@ const getNewRootBooleans = ({
 
       readIndex = 0;
       writeIndex = 0;
-      upperBound >>= 1;
-      offset >>= 1;
+      upperBound >>>= 1;
+      offset >>>= 1;
       index = offset;
     }
   }
@@ -379,7 +379,7 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, proof, 
   const decommitments = proof.slice(2);
   const leafCount = leafs.length;
   const hashes = Array(leafCount).fill(null);
-  const newHashes = Array(Math.max(leafCount, (appendLeafs.length >> 1) + 1)).fill(null);
+  const newHashes = Array(Math.max(leafCount, (appendLeafs.length >>> 1) + 1)).fill(null);
 
   let readIndex = 0;
   let writeIndex = 0;
@@ -419,7 +419,7 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, proof, 
       }
 
       readIndexOfAppendNode = writeIndex;
-      appendNodeIndex >>= 1;
+      appendNodeIndex >>>= 1;
 
       hashes[writeIndex] = skippedHash;
       newHashes[writeIndex++] = newSkippedHash;
@@ -453,7 +453,7 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, proof, 
       }
 
       readIndexOfAppendNode = writeIndex;
-      appendNodeIndex >>= 1;
+      appendNodeIndex >>>= 1;
     }
 
     const right = flag ? (useLeafs ? leafs[readIndex] : hashes[readIndex]) : decommitments[decommitmentIndex];
@@ -510,7 +510,7 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, proof, 
       readIndex = 0;
       writeIndex = 0;
       upperBound >>= 1;
-      offset >>= 1;
+      offset >>>= 1;
       index = offset;
     }
   }
@@ -529,7 +529,7 @@ const getMinimumIndex = (elementCount) => {
   for (let shifts = 0; shifts < 32; shifts++) {
     if (elementCount & 1) return (elementCount & 0xfffffffe) << shifts;
 
-    elementCount >>= 1;
+    elementCount >>>= 1;
   }
 };
 

@@ -366,6 +366,5 @@ module.exports = MerkleTree;
 //       - proving that elements exist at specific indices (index based)
 // TODO: consider a Proof class
 // TODO: verify and update single proof can probably be cheaper with sortedHash given that element count is required
-// TODO: use zero fill right shift (>>>) for proper divide by 2 in all algorithms
 // TODO: create generateMultiUpdateAndAppendProof that generateCombinedProof(indices)
 // TODO: mutually exclusive options (indexed and bitFlags)

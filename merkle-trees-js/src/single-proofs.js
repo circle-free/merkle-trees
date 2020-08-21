@@ -3,9 +3,9 @@
 // Generates a set of decommitments to prove the existence of a leaf at a given index.
 const generate = ({ tree, index }) => {
   const decommitments = [];
-  const leafCount = tree.length >> 1;
+  const leafCount = tree.length >>> 1;
 
-  for (let i = leafCount + index; i > 1; i >>= 1) {
+  for (let i = leafCount + index; i > 1; i >>>= 1) {
     decommitments.unshift(i & 1 ? tree[i - 1] : tree[i + 1]);
   }
 
@@ -22,8 +22,8 @@ const getRoot = ({ elementCount, index, leaf, decommitments, hashFunction }) => 
   while (decommitmentIndex > 0) {
     // If even and the "right-most" node at this level, the parent hash is this child
     if (index === upperBound && !(index & 1)) {
-      index >>= 1;
-      upperBound >>= 1;
+      index >>>= 1;
+      upperBound >>>= 1;
       continue;
     }
 
@@ -33,8 +33,8 @@ const getRoot = ({ elementCount, index, leaf, decommitments, hashFunction }) => 
         ? hashFunction(decommitments[--decommitmentIndex], hash)
         : hashFunction(hash, decommitments[--decommitmentIndex]);
 
-    index >>= 1;
-    upperBound >>= 1;
+    index >>>= 1;
+    upperBound >>>= 1;
   }
 
   return { root: hash };
@@ -51,8 +51,8 @@ const getNewRoot = ({ elementCount, index, leaf, newLeaf, decommitments, hashFun
 
   while (decommitmentIndex > 0) {
     if (index === upperBound && !(index & 1)) {
-      index >>= 1;
-      upperBound >>= 1;
+      index >>>= 1;
+      upperBound >>>= 1;
       continue;
     }
 
@@ -66,8 +66,8 @@ const getNewRoot = ({ elementCount, index, leaf, newLeaf, decommitments, hashFun
         ? hashFunction(decommitments[decommitmentIndex], newHash)
         : hashFunction(newHash, decommitments[decommitmentIndex]);
 
-    index >>= 1;
-    upperBound >>= 1;
+    index >>>= 1;
+    upperBound >>>= 1;
   }
 
   return { root: hash, newRoot: newHash };

@@ -9,9 +9,9 @@ const { bitCount32, roundUpToPowerOf2 } = require('./utils');
 // required, as every single append is "to the right" of it, by definition.
 const generate = ({ tree, elementCount }) => {
   const decommitments = [];
-  const leafCount = tree.length >> 1;
+  const leafCount = tree.length >>> 1;
 
-  for (let i = leafCount + elementCount; i > 1; i >>= 1) {
+  for (let i = leafCount + elementCount; i > 1; i >>>= 1) {
     if (i & 1 || i === 2) {
       decommitments.unshift(tree[i - 1]);
     }
@@ -62,7 +62,7 @@ const getNewRootSingle = ({ newLeaf, elementCount, decommitments, hashFunction }
 const getNewRootMulti = ({ newLeafs, elementCount, decommitments, hashFunction }) => {
   let decommitmentIndex = bitCount32(elementCount) - 1;
   let hash = decommitments[decommitmentIndex];
-  let newHashes = Array((newLeafs.length >> 1) + 1).fill(null);
+  let newHashes = Array((newLeafs.length >>> 1) + 1).fill(null);
   let upperBound = elementCount + newLeafs.length - 1;
   let writeIndex = 0;
   let readIndex = 0;
@@ -94,8 +94,8 @@ const getNewRootMulti = ({ newLeafs, elementCount, decommitments, hashFunction }
 
       readIndex = 0;
       writeIndex = 0;
-      upperBound >>= 1;
-      offset >>= 1;
+      upperBound >>>= 1;
+      offset >>>= 1;
       index = offset;
     }
   }

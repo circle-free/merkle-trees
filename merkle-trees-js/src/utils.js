@@ -15,10 +15,10 @@ const to32ByteBuffer = (number) => {
 };
 
 const bitCount32 = (n) => {
-  let m = n - ((n >> 1) & 0x55555555);
-  m = (m & 0x33333333) + ((m >> 2) & 0x33333333);
+  let m = n - ((n >>> 1) & 0x55555555);
+  m = (m & 0x33333333) + ((m >>> 2) & 0x33333333);
 
-  return (((m + (m >> 4)) & 0xf0f0f0f) * 0x1010101) >> 24;
+  return (((m + (m >>> 4)) & 0xf0f0f0f) * 0x1010101) >>> 24;
 };
 
 // NOTE: arguments must already be buffer, preferably 32 bytes
@@ -73,11 +73,11 @@ const to32ByteBoolBuffer = (booleans) => {
 const roundUpToPowerOf2 = (number) => {
   if (bitCount32(number) === 1) return number;
 
-  number |= number >> 1;
-  number |= number >> 2;
-  number |= number >> 4;
-  number |= number >> 8;
-  number |= number >> 16;
+  number |= number >>> 1;
+  number |= number >>> 2;
+  number |= number >>> 4;
+  number |= number >>> 8;
+  number |= number >>> 16;
 
   return number + 1;
 };

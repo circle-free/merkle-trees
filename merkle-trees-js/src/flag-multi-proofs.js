@@ -20,14 +20,14 @@ const generateBooleans = ({ tree, indices }) => {
   const decommitments = [];
   const flags = [];
   const skips = [];
-  const leafCount = tree.length >> 1;
+  const leafCount = tree.length >>> 1;
 
   for (let i = 0; i < indices.length; i++) {
     assert(i === 0 || indices[i - 1] > indices[i], 'Indices must be in descending order.');
     known[leafCount + indices[i]] = true;
 
     // The parent of this node is relevant, as there will be a hash computed at verify-time.
-    relevant[(leafCount + indices[i]) >> 1] = true;
+    relevant[(leafCount + indices[i]) >>> 1] = true;
   }
 
   for (let i = leafCount - 1; i > 0; i--) {
@@ -46,7 +46,7 @@ const generateBooleans = ({ tree, indices }) => {
     if (relevant[i]) {
       flags.push(left === right);
       skips.push(!sibling);
-      relevant[i >> 1] = true;
+      relevant[i >>> 1] = true;
     }
 
     known[i] = left || right;

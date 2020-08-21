@@ -11,7 +11,7 @@ const assert = require('assert');
 const generate = ({ tree, indices }) => {
   const known = Array(tree.length).fill(false);
   const decommitments = [];
-  const leafCount = tree.length >> 1;
+  const leafCount = tree.length >>> 1;
 
   for (let i = 0; i < indices.length; i++) {
     assert(i === 0 || indices[i - 1] > indices[i], 'Indices must be in descending order.');
@@ -68,7 +68,7 @@ const getRoot = ({ indices, leafs, leafCount, decommitments, hashFunction }) => 
     readIndex %= indexCount;
     const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : hashes[readIndex++];
 
-    treeIndices[writeIndex] = index >> 1;
+    treeIndices[writeIndex] = index >>> 1;
     hashes[writeIndex++] = hashFunction(left, right);
 
     readIndex %= indexCount;
@@ -108,7 +108,7 @@ const getNewRoot = ({ indices, leafs, newLeafs, leafCount, decommitments, hashFu
     const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex] : hashes[readIndex];
     const newLeft = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : newHashes[readIndex++];
 
-    treeIndices[writeIndex] = index >> 1;
+    treeIndices[writeIndex] = index >>> 1;
     hashes[writeIndex] = hashFunction(left, right);
     newHashes[writeIndex++] = hashFunction(newLeft, newRight);
 
