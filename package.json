@@ -1,14 +1,14 @@
 {
   "name": "merkle-trees",
   "version": "0.1.0",
-  "description": "`merkle-trees-js` in the `js` directory for the compact-multi-proof appendable Merkle tree class.",
-  "main": "/js/index.js",
+  "description": "js and solidity suite for compact multi-proof appendable Merkle trees.",
+  "main": "/js/src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/circle-free/merkle-research.git"
+    "url": "git+https://github.com/circle-free/merkle-trees.git"
   },
   "keywords": [
     "merkle-tree",
@@ -17,7 +17,7 @@
   "author": "Circle-Free",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/circle-free/merkle-research/issues"
+    "url": "https://github.com/circle-free/merkle-trees/issues"
   },
-  "homepage": "https://github.com/circle-free/merkle-research#readme"
+  "homepage": "https://github.com/circle-free/merkle-trees#readme"
 }

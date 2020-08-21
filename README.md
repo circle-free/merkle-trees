@@ -1,14 +1,14 @@
 # merkle-trees
 
-`merkle-trees-js` in the `js` directory for the compact-multi-proof appendable Merkle tree class.
+`merkle-trees/js` in the `js` directory for the compact-multi-proof appendable Merkle tree class.
 
-`merkle-trees-eth` in the `eth` directory for compatible smart contracts and library.
+`merkle-trees/js` in the `eth` directory for compatible smart contracts and library.
 
 
 ## A glimpse ##
 
 ```js
-const MerkleTree = require('../../js/src');
+const MerkleTree = require('merkle-trees/js');
 
 const elementCount = 20;
 const indices = [19, 14, 13, 12, 3, 2, 1, 0];

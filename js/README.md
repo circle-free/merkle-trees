@@ -16,7 +16,7 @@ Will construct a Merkle Tree object from a set of elements with the following op
 The tree's exposed root is the hash of the element count and the element root (which is not exposed).
 
 ```js
-const MerkleTree = require('./src');
+const MerkleTree = require('merkle-trees/js');
 
 const options = { unbalanced: true, sortedHash: true, elementPrefix: '00' };
 
@@ -33,7 +33,7 @@ console.log(myTree.elements);   // copies of items in someArrayOf32ByteBuffers
 * Single-element Merkle proof can be used to update the root with a replacement element.
 
 ```js
-const MerkleTree = require('./src');
+const MerkleTree = require('merkle-trees/js');
 
 const myTree = new MerkleTree(someArrayOf32ByteBuffers);
 
@@ -56,7 +56,7 @@ console.log(myUpdatedTree.root.equals(root)); // true
 * Multi-element Merkle proof can be used to update the root with a replacement elements.
 
 ```js
-const MerkleTree = require('./src');
+const MerkleTree = require('merkle-trees/js');
 
 const myTree = new MerkleTree(someArrayOf32ByteBuffers);
 
@@ -79,7 +79,7 @@ console.log(myUpdatedTree.root.equals(root)); // still true
 * For unbalanced Merkle Trees, Merkle proof can be generated to update a root by appending multiple elements.
 
 ```js
-const MerkleTree = require('./src');
+const MerkleTree = require('merkle-trees/js');
 
 const myTree = new MerkleTree(someArrayOf32ByteBuffers);
 
@@ -106,7 +106,7 @@ console.log(`myTree had ${myTree.elements.length} elements, an now myUpdatedTree
 * Limitation is that one of the elements being proven (or updated) must be within a certain range from the end/right.
 
 ```js
-const MerkleTree = require('./src');
+const MerkleTree = require('merkle-trees/js');
 
 const myTree = new MerkleTree(someArrayOf32ByteBuffersOfLength20);
 
@@ -136,7 +136,7 @@ Given an unbalanced tree, where elements to the right of the append index do not
 * index-less single-proofs
 * deleting elements
 * re-balancing a tree (that has undergone several deletions)
-* some automagic mechanism that keeps prioritized elements "to the right"
+* some auto-magic mechanism that keeps prioritized elements "to the right"
 * recursive proofs (arrays of arrays)
 * recursive proofs (objects of objects)
 
