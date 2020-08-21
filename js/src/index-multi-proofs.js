@@ -1,6 +1,8 @@
 'use strict';
 
 // NOTE: indices must be in descending order
+// NOTE: indexIsOdd is like a left flag, (indexIsOdd && !nextIsPair) is like a right flag, so do we
+//       need indices? Or rather, can they be inferred from flags?
 
 const assert = require('assert');
 
@@ -118,7 +120,3 @@ const getNewRoot = ({ indices, leafs, newLeafs, leafCount, decommitments, hashFu
 };
 
 module.exports = { generate, getRoot, getNewRoot };
-
-// TODO: indexIsOdd is like a left flag, (indexIsOdd && !nextIsPair) is like a right flag, so do we need
-//       indices? Or rather, can they be inferred from flags?
-// TODO: implement and test for unbalanced trees

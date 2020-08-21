@@ -130,15 +130,31 @@ console.log(newMerkleTree.root.equals(root)); // still true
 Given an unbalanced tree, where elements to the right of the append index do not exist, there may be some single and multi-proof optimizations, particularly with verifications.
 
 
-## Various TODOs ##
+## Various TODOs and Notes ##
 
-* Unbalanced proofs for indexed multi-proofs
-* index-less single-proofs
-* deleting elements
-* re-balancing a tree (that has undergone several deletions)
-* some auto-magic mechanism that keeps prioritized elements "to the right"
-* recursive proofs (arrays of arrays)
-* recursive proofs (objects of objects)
+- [ ] serialize method (likely just elements, possibly redundant)
+- [ ] test elements greater than 32 bytes
+- [ ] argument validation (i.e. parameter lengths, mutually exclusive options like indexed and bitFlags)
+- [ ] unbalanced proofs for indexed multi-proofs (with tests)
+- [ ] index-less (existence-only) single-proofs
+- [ ] verify and update single proof can probably be cheaper with sortedHash given that element count is required
+- [ ] deleting elements
+- [ ] re-balancing a tree (that has undergone several deletions)
+- [ ] some auto-magic mechanism that keeps prioritized elements "to the right"
+- [ ] consider separate set of js implementations easily translatable to solidity (16 local vars, no maps, etc)
+- [ ] recursive proofs (arrays of arrays)
+- [ ] recursive proofs (objects of objects)
+- [ ] TypeScript (possibly with a Proof class)
+- [ ] option ot output all data as eth-compatible prefixed hex strings
+- [ ] benchmarking
+- [ ] bitCount256
+- [ ] giving options better names (i.e. flag > existence-proof vs. indexed > index-proof)
+- [ ] visual documentation of how individual proofs work
+- [ ] test how null/undefined elements before the append index affect trees/proofs
+- [ ] explorer, test, and document failure cases (or rather, cases with invalid proofs)
+- [ ] explorer combined and existence-only (flag) multi-proofs without sorted hashing (possibly separate set of flags, might be able to infer indices)
+- [ ] explorer efficiency of separate boolean-array (flags) to inform when to take a hash as an append-decommitment
+- [ ] enable bitFlags for large trees (proof hash count > 255) with multiple 32-byte flags, given stop bits
 
 
 ## Tests ##

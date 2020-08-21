@@ -13,6 +13,9 @@
   },
   "author": "Circle-Free",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/circle-free/merkle-trees/issues"
+  },
   "dependencies": {
     "truffle": "^5.1.36"
   },

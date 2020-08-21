@@ -2,7 +2,7 @@
 
 `merkle-trees/js` in the `js` directory for the compact-multi-proof appendable Merkle tree class.
 
-`merkle-trees/js` in the `eth` directory for compatible smart contracts and library.
+`merkle-trees/eth` in the `eth` directory for compatible smart contracts and library.
 
 
 ## A glimpse ##

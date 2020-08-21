@@ -17,8 +17,6 @@ library Merkle_Library {
     return a < b ? hash_node(a, b) : hash_node(b, a);
   }
 
-  // TODO: bit_count_256
-
   function bit_count_32(uint32 n) internal pure returns (uint32) {
     uint32 m = n - ((n >> 1) & 0x55555555);
     m = (m & 0x33333333) + ((m >> 2) & 0x33333333);
