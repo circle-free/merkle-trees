@@ -1,4 +1,8 @@
-# Merkle Tree Class
+# merkle-trees-js (An appendable, compact multi-provable, Merkle tree class)
+
+## The Goal ##
+
+A robust and well tested class to be used as the basis for dynamic lists (an eventually nested objects) to roll up to one Merkle root.
 
 
 ## Generic Merkle Tree Construction ##
@@ -126,6 +130,26 @@ console.log(newMerkleTree.root.equals(root)); // still true
 Given an unbalanced tree, where elements to the right of the append index do not exist, there may be some single and multi-proof optimizations, particularly with verifications.
 
 
-## The Goal ##
+## Various TODOs ##
 
-A robust and well tested class to be used as the basis for dynamic lists (an eventually nested objects) to roll up to one Merkle root.
+* Unbalanced proofs for indexed multi-proofs
+* index-less single-proofs
+* deleting elements
+* re-balancing a tree (that has undergone several deletions)
+* some automagic mechanism that keeps prioritized elements "to the right"
+* recursive proofs (arrays of arrays)
+* recursive proofs (objects of objects)
+
+
+## Tests ##
+
+```console
+foo@bar:~$ nvm use 14.8.0
+Now using node v14.8.0 (npm v6.14.7)
+foo@bar:~$ yarn install
+...
+Done in 0.16s.
+foo@bar:~$ yarn test
+...
+295 passing (7s)
+```

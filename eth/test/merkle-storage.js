@@ -2,7 +2,7 @@ const chai = require('chai');
 const { expect } = chai;
 
 const { generateElements, randomNumberGenerator } = require('./helpers');
-const MerkleTree = require('../../merkle-trees-js/src');
+const MerkleTree = require('../../js/src');
 
 const Merkle_Storage = artifacts.require("Merkle_Storage");
 

@@ -1,7 +1,7 @@
 {
-  "name": "eth-merkle",
+  "name": "merkle-trees-eth",
   "version": "0.1.0",
-  "description": "",
+  "description": "Smart contracts and libraries compatible with merkle-trees-js, allowing for compact multi-proofs to prove, update, and append elements.",
   "directories": {
     "test": "test"
   },
