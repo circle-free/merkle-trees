@@ -118,7 +118,6 @@ const testMultiProofGeneration = (elementCount, seed, indices, expected, options
   }
 
   if (options.bitFlags) {
-    expect(proof.hashCount).to.equal(expected.hashCount);
     expect(proof.flags.toString('hex')).to.equal(expected.flags);
     expect(proof.skips.toString('hex')).to.equal(expected.skips);
     return;
@@ -148,7 +147,6 @@ const compareMultiProofs = (elementCount, indices, optionsA, optionsB) => {
   }
 
   if (optionsA.bitFlags && optionsB.bitFlags) {
-    expect(proofA.hashCount).to.deep.equal(proofB.hashCount);
     expect(proofA.flags.equals(proofB.flags)).to.be.true;
     expect(proofA.skips.equals(proofB.skips)).to.be.true;
     return;
@@ -1094,9 +1092,8 @@ describe('Merkle-Tree', () => {
                   'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
                   'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
                 ],
-                hashCount: 5,
-                flags: '0000000000000000000000000000000000000000000000000000000000000011',
-                skips: '0000000000000000000000000000000000000000000000000000000000000000',
+                flags: '0000000000000000000000000000000000000000000000000000000000000031',
+                skips: '0000000000000000000000000000000000000000000000000000000000000020',
               };
 
               testMultiProofGeneration(8, 'ff', [5, 4, 1], expected, options);
@@ -1106,9 +1103,8 @@ describe('Merkle-Tree', () => {
               const options = { unbalanced: false, sortedHash: true, indexed: false, bitFlags: true };
               const expected = {
                 decommitments: [],
-                hashCount: 0,
-                flags: '0000000000000000000000000000000000000000000000000000000000000000',
-                skips: '0000000000000000000000000000000000000000000000000000000000000000',
+                flags: '0000000000000000000000000000000000000000000000000000000000000001',
+                skips: '0000000000000000000000000000000000000000000000000000000000000001',
               };
 
               testMultiProofGeneration(1, 'ff', [0], expected, options);
@@ -1116,6 +1112,39 @@ describe('Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
+            it('should generate a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              const expected = {
+                decommitments: [],
+                flags: '000000000000000000000000000000000000000000000000000000000000000e',
+                skips: '0000000000000000000000000000000000000000000000000000000000000009',
+              };
+
+              testMultiProofGeneration(3, 'ff', [2, 1, 0], expected, options);
+            });
+
+            it('should generate a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              const expected = {
+                decommitments: ['0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60'],
+                flags: '000000000000000000000000000000000000000000000000000000000000000c',
+                skips: '0000000000000000000000000000000000000000000000000000000000000009',
+              };
+
+              testMultiProofGeneration(3, 'ff', [2, 1], expected, options);
+            });
+
+            it('should generate a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              const expected = {
+                decommitments: ['a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27'],
+                flags: '0000000000000000000000000000000000000000000000000000000000000004',
+                skips: '0000000000000000000000000000000000000000000000000000000000000005',
+              };
+
+              testMultiProofGeneration(3, 'ff', [2], expected, options);
+            });
+
             it('should generate a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               const expected = {
@@ -1125,9 +1154,8 @@ describe('Merkle-Tree', () => {
                   'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
                   'bc481a454a66b25fd1adf8b6b88cbcac3783d39d5ab1e4c45d114846da10274c',
                 ],
-                hashCount: 8,
-                flags: '000000000000000000000000000000000000000000000000000000000000008c',
-                skips: '0000000000000000000000000000000000000000000000000000000000000020',
+                flags: '000000000000000000000000000000000000000000000000000000000000018c',
+                skips: '0000000000000000000000000000000000000000000000000000000000000120',
               };
 
               testMultiProofGeneration(12, 'ff', [11, 8, 3, 2], expected, options);
@@ -1148,9 +1176,8 @@ describe('Merkle-Tree', () => {
                   'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
                   'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
                 ],
-                hashCount: 16,
-                flags: '000000000000000000000000000000000000000000000000000000000000d800',
-                skips: '0000000000000000000000000000000000000000000000000000000000002400',
+                flags: '000000000000000000000000000000000000000000000000000000000001d800',
+                skips: '0000000000000000000000000000000000000000000000000000000000012400',
               };
 
               testMultiProofGeneration(19, 'ff', [17, 12, 9, 4, 2], expected, options);
@@ -1186,12 +1213,27 @@ describe('Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
-            it('should generate a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
+            it('should verify a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              testMultiProofVerification(3, [2, 1, 0], options);
+            });
+
+            it('should verify a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              testMultiProofVerification(3, [2, 1], options);
+            });
+
+            it('should verify a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              testMultiProofVerification(3, [2], options);
+            });
+
+            it('should verify a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               testMultiProofVerification(12, [11, 8, 3, 2], options);
             });
 
-            it('should generate a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+            it('should verify a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               testMultiProofVerification(19, [17, 12, 9, 4, 2], options);
             });
@@ -1219,6 +1261,21 @@ describe('Merkle-Tree', () => {
           });
 
           describe('Unbalanced', () => {
+            it('should use a Multi Proof for a sorted-hash 3-element Merkle Tree, to update elements.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              testMultiUpdate(3, [2, 1, 0], options);
+            });
+
+            it('should use a Multi Proof for a sorted-hash 3-element Merkle Tree, to update elements.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              testMultiUpdate(3, [2, 1], options);
+            });
+
+            it('should use a Multi Proof for a sorted-hash 3-element Merkle Tree, to update elements.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              testMultiUpdate(3, [2], options);
+            });
+
             it('should use a Multi Proof for a sorted-hash 12-element Merkle Tree, to update elements.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               testMultiUpdate(12, [11, 8, 3, 0], options);
@@ -1250,6 +1307,11 @@ describe('Merkle-Tree', () => {
             it('should use 100 Multi Proofs for a 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
               testConsecutiveMultiUpdate(100, 19, 6, options);
+            });
+
+            it('should use 50 Multi Proofs for a 89-element Merkle Tree, to perform 50 updates of up to 13 random elements.', () => {
+              const options = { unbalanced: true, sortedHash: true, indexed: false, bitFlags: true };
+              testConsecutiveMultiUpdate(50, 89, 13, options);
             });
           });
         });

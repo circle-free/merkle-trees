@@ -19,7 +19,7 @@ class MerkleTree {
     this._depth = MerkleTree.getDepthFromElements(this._elements);
     this._leafCount = MerkleTree.getLeafCountFromElements(this._elements);
 
-    assert(this._unbalanced || this._elements.length === this._leafCount, 'Incorrect element count for balanced tree');
+    assert(this._unbalanced || this._elements.length === this._leafCount, 'Incorrect element count for balanced tree.');
 
     const leafs = Array(this._leafCount).fill(null);
     this._elements.forEach((element, index) => (leafs[index] = hashNode(this._elementPrefix, element)));
@@ -366,3 +366,6 @@ module.exports = MerkleTree;
 //       - proving that elements exist at specific indices (index based)
 // TODO: consider a Proof class
 // TODO: verify and update single proof can probably be cheaper with sortedHash given that element count is required
+// TODO: use zero fill right shift (>>>) for proper divide by 2 in all algorithms
+// TODO: create generateMultiUpdateAndAppendProof that generateCombinedProof(indices)
+// TODO: pull in bit flags, skips, and decommitments into a single proof array

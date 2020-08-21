@@ -5,9 +5,9 @@
 const { bitCount32 } = require('./utils');
 
 const assert = require('assert');
-const { leftShift, and } = require('bitwise-buffer');
+const { leftShift, and, or } = require('bitwise-buffer');
 
-const { to32ByteBoolBuffer } = require('./utils');
+const { to32ByteBuffer, to32ByteBoolBuffer } = require('./utils');
 
 // This is the MultiFlagProof.generateBooleans algorithm. Later on, decommitments for the
 // append proof can be inferred during the steps needed to verify this proof.
@@ -21,7 +21,7 @@ const generateBooleans = ({ tree, indices }) => {
   const leafCount = tree.length >> 1;
 
   for (let i = 0; i < indices.length; i++) {
-    assert(i === 0 || indices[i - 1] > indices[i], 'Indices must be in descending order');
+    assert(i === 0 || indices[i - 1] > indices[i], 'Indices must be in descending order.');
     known[leafCount + indices[i]] = true;
     relevant[(leafCount + indices[i]) >> 1] = true;
   }
@@ -54,13 +54,16 @@ const generateBooleans = ({ tree, indices }) => {
 const generateBits = ({ tree, indices }) => {
   const { decommitments, flags, skips } = generateBooleans({ tree, indices });
 
-  assert(flags.length <= 256, 'Proof too large for bit flags.');
+  assert(flags.length <= 255, 'Proof too large for bit flags.');
+
+  const stopMask = leftShift(to32ByteBuffer(1), flags.length);
+  const flagsAsBits = or(to32ByteBoolBuffer(flags), stopMask);
+  const skipsAsBits = or(to32ByteBoolBuffer(skips), stopMask);
 
   return {
     decommitments,
-    flags: to32ByteBoolBuffer(flags),
-    skips: to32ByteBoolBuffer(skips),
-    hashCount: flags.length,
+    flags: flagsAsBits,
+    skips: skipsAsBits,
   };
 };
 
@@ -176,7 +179,7 @@ const getRootBooleans = ({ leafs, elementCount, flags, skips, decommitments, has
   const root = useLeafs ? leafs[0] : hashes[(writeIndex === 0 ? leafCount : writeIndex) - 1];
 
   // For a balanced tree, there is only 1 append-proof decommitment: the root itself
-  assert(appendDecommitmentIndex === 1 || hash.equals(root));
+  assert(appendDecommitmentIndex === 1 || hash.equals(root), 'Invalid Proof.');
 
   return { root: Buffer.from(root) };
 };
@@ -184,9 +187,7 @@ const getRootBooleans = ({ leafs, elementCount, flags, skips, decommitments, has
 // This is identical to the above getRootBooleans algorithm, differing only in that the
 // the flag and skip bit-set is shifted and checked, rather than boolean arrays.
 // See getRootBooleans for relevant inline comments.
-// TODO: perhaps we can get rid of hashCount parameter with some combination of unused
-//       (flags[i], skips[i]) pair. (i.e. flags[i] is irrelevant if skips[i] is true)
-const getRootBits = ({ leafs, elementCount, hashCount, flags, skips, decommitments, hashFunction }) => {
+const getRootBits = ({ leafs, elementCount, flags, skips, decommitments, hashFunction }) => {
   const leafCount = leafs.length;
   const hashes = Array(leafCount).fill(null);
 
@@ -202,8 +203,18 @@ const getRootBits = ({ leafs, elementCount, hashCount, flags, skips, decommitmen
   const appendDecommitments = Array(appendDecommitmentIndex).fill(null);
   let hash;
 
-  for (let i = 0; i < hashCount; i++) {
+  while (true) {
+    const flag = and(flags, bitCheck).equals(bitCheck);
+
     if (and(skips, bitCheck).equals(bitCheck)) {
+      if (flag) {
+        const root = useLeafs ? leafs[0] : hashes[(writeIndex === 0 ? leafCount : writeIndex) - 1];
+
+        assert(appendDecommitmentIndex === 1 || hash.equals(root), 'Invalid Proof.');
+
+        return { root: Buffer.from(root) };
+      }
+
       const skippedHash = useLeafs ? leafs[readIndex++] : hashes[readIndex++];
 
       if (appendNodeIndex & 1) {
@@ -224,7 +235,6 @@ const getRootBits = ({ leafs, elementCount, hashCount, flags, skips, decommitmen
       continue;
     }
 
-    const flag = and(flags, bitCheck).equals(bitCheck);
     const nextReadIndex = (readIndex + 1) % leafCount;
 
     const appendHash = flag
@@ -254,12 +264,6 @@ const getRootBits = ({ leafs, elementCount, hashCount, flags, skips, decommitmen
     writeIndex %= leafCount;
     bitCheck = leftShift(bitCheck, 1);
   }
-
-  const root = useLeafs ? leafs[0] : hashes[(writeIndex === 0 ? leafCount : writeIndex) - 1];
-
-  assert(appendDecommitmentIndex === 1 || hash.equals(root));
-
-  return { root: Buffer.from(root) };
 };
 
 const getRoot = (parameters) => {
@@ -378,7 +382,7 @@ const getNewRootBooleans = ({
   const oldRoot = useLeafs ? leafs[0] : hashes[rootIndex];
   const newRoot = useLeafs ? updateLeafs[0] : newHashes[rootIndex];
 
-  assert(appendDecommitmentIndex === 1 || hash.equals(oldRoot));
+  assert(appendDecommitmentIndex === 1 || hash.equals(oldRoot), 'Invalid Proof.');
 
   // The new append decommitments is simply thew new root, for a balanced tree.
   if (appendDecommitmentIndex === 1) appendDecommitments[0] = newRoot;
@@ -429,14 +433,11 @@ const getNewRootBooleans = ({
 // This is identical to the above getNewRootBooleans algorithm, differing only in that the
 // the flag and skip bit-set is shifted and checked, rather than boolean arrays.
 // See getNewRootBooleans for relevant inline comments.
-// TODO: perhaps we can get rid of hashCount parameter with some combination of unused
-//       (flags[i], skips[i]) pair. (i.e. flags[i] is irrelevant if skips[i] is true)
 const getNewRootBits = ({
   leafs,
   updateLeafs,
   appendLeafs,
   elementCount,
-  hashCount,
   flags,
   skips,
   decommitments,
@@ -457,8 +458,24 @@ const getNewRootBits = ({
   const appendDecommitments = Array(appendDecommitmentIndex).fill(null);
   let hash;
 
-  for (let i = 0; i < hashCount; i++) {
+  while (true) {
+    const flag = and(flags, bitCheck).equals(bitCheck);
+
     if (and(skips, bitCheck).equals(bitCheck)) {
+      if (flag) {
+        const rootIndex = (writeIndex === 0 ? leafCount : writeIndex) - 1;
+        const oldRoot = useLeafs ? leafs[0] : hashes[rootIndex];
+        const newRoot = useLeafs ? updateLeafs[0] : newHashes[rootIndex];
+
+        assert(appendDecommitmentIndex === 1 || hash.equals(oldRoot), 'Invalid Proof.');
+
+        hash = oldRoot;
+
+        if (appendDecommitmentIndex === 1) appendDecommitments[0] = newRoot;
+
+        break;
+      }
+
       const skippedHash = useLeafs ? leafs[readIndex] : hashes[readIndex];
       const newSkippedHash = useLeafs ? updateLeafs[readIndex++] : newHashes[readIndex++];
 
@@ -481,23 +498,22 @@ const getNewRootBits = ({
       continue;
     }
 
-    const flag = and(flags, bitCheck).equals(bitCheck);
-    const nextReadIndex = (readIndex + 1) % leafCount;
-
-    const appendHash = flag
-      ? useLeafs
-        ? leafs[nextReadIndex]
-        : hashes[nextReadIndex]
-      : decommitments[decommitmentIndex];
-
-    const newAppendHash = flag
-      ? useLeafs
-        ? updateLeafs[nextReadIndex]
-        : newHashes[nextReadIndex]
-      : decommitments[decommitmentIndex];
-
     if (readIndexOfAppendNode === readIndex) {
       if (appendNodeIndex & 1) {
+        const nextReadIndex = (readIndex + 1) % leafCount;
+
+        const appendHash = flag
+          ? useLeafs
+            ? leafs[nextReadIndex]
+            : hashes[nextReadIndex]
+          : decommitments[decommitmentIndex];
+
+        const newAppendHash = flag
+          ? useLeafs
+            ? updateLeafs[nextReadIndex]
+            : newHashes[nextReadIndex]
+          : decommitments[decommitmentIndex];
+
         appendDecommitments[--appendDecommitmentIndex] = newAppendHash;
         hash = hashFunction(appendHash, hash);
       }
@@ -528,14 +544,6 @@ const getNewRootBits = ({
     writeIndex %= leafCount;
     bitCheck = leftShift(bitCheck, 1);
   }
-
-  const rootIndex = (writeIndex === 0 ? leafCount : writeIndex) - 1;
-  const oldRoot = useLeafs ? leafs[0] : hashes[rootIndex];
-  const newRoot = useLeafs ? updateLeafs[0] : newHashes[rootIndex];
-
-  assert(appendDecommitmentIndex === 1 || hash.equals(oldRoot));
-
-  if (appendDecommitmentIndex === 1) appendDecommitments[0] = newRoot;
 
   appendDecommitmentIndex = bitCount32(elementCount) - 1;
   let upperBound = elementCount + appendLeafs.length - 1;
@@ -573,7 +581,7 @@ const getNewRootBits = ({
     }
   }
 
-  return { root: Buffer.from(oldRoot), newRoot: newHashes[0] };
+  return { root: Buffer.from(hash), newRoot: newHashes[0] };
 };
 
 const getNewRoot = (parameters) => {
@@ -596,5 +604,3 @@ module.exports = { generate, getRoot, getNewRoot, getMinimumIndex };
 // TODO: use separate set of flags for left/right hash order, allowing this to work for non-sorted-hash trees
 //       Should be able to infer indices of elements based on proof hash order and flags
 // TODO: consider another proof boolean-array informing when to take a hash as an append-decommitment
-// TODO: perhaps we can get rid of hashCount parameter with some combination of unused
-//       (flags[i], skips[i]) pair. (i.e. flags[i] is irrelevant if skips[i] is true)
