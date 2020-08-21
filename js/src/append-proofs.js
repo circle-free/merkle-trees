@@ -108,6 +108,3 @@ const getNewRoot = (parameters) => {
 };
 
 module.exports = { generate, getRoot, getNewRoot };
-
-// TODO: test how this handles null elements/leafs before the append index
-// TODO: test how this fails for incorrect element counts (and ths bit counts)

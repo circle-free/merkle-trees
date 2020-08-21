@@ -6,6 +6,9 @@
   "repository": "https://github.com/circle-free/merkle-trees",
   "author": "Circle-Free",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/circle-free/merkle-trees/issues"
+  },
   "private": false,
   "scripts": {
     "test": "mocha 'tests'",

@@ -474,7 +474,6 @@ contract Merkle_Storage {
     set_root(new_elements_count, new_hashes[0]);
   }
 
-  // TODO: use_many_and_append_many (no update)
   function use_and_update_and_append_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
     require(root != bytes32(0), "LIST_EMPTY");
     

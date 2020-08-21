@@ -291,6 +291,3 @@ const getNewRoot = (parameters) => {
 };
 
 module.exports = { generate, getRoot, getNewRoot };
-
-// TODO: use separate set of flags for left/right hash order, allowing this to work for non-sorted-hash trees
-//       Should be able to infer indices of elements based on proof hash order and flags
