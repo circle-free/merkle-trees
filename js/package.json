@@ -1,6 +1,6 @@
 {
   "name": "merkle-trees-js",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Builds complete Merkle Trees, generates and verifies single-proofs, multi-proofs, append-proofs, and combined-proofs.",
   "main": "src/index.js",
   "repository": "https://github.com/circle-free/merkle-trees",
