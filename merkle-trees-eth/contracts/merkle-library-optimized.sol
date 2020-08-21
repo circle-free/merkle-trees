@@ -271,6 +271,87 @@ library Merkle_Library_Optimized {
     return (hash, new_hashes[0]);
   }
 
+  function get_append_decommitments_from_multi_proof(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32[] memory append_decommitments) {
+    uint256 element_count = elements.length;
+    require(elements.length == element_count, "LENGTH_MISMATCH");
+
+    bytes32[] memory hashes = new bytes32[](element_count);
+    uint256 write_index;
+
+    while (write_index < element_count) {
+      hashes[write_index++] = hash_node(bytes32(0), elements[write_index]);
+    }
+
+    write_index = 0;
+    uint256 read_index;
+    uint256 decommitment_index = 2;
+    bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
+    uint256 append_node_index = total_element_count;
+    uint256 read_index_of_append_node = 0;
+    uint256 append_decommitment_index = bit_count_32(uint32(total_element_count));
+    append_decommitments = new bytes32[](append_decommitment_index);
+    bytes32 hash;
+    bytes32 flags = proof[0];
+    bytes32 skips = proof[1];
+    uint256 scratch1;
+
+    while (true) {
+      if (skips & bit_check == bit_check) {
+        if (flags & bit_check == bit_check) {
+          read_index = (write_index == 0 ? element_count : write_index) - 1;
+
+          require(append_decommitment_index == 1 || hash == hashes[read_index], "INVALID_PROOF");
+
+          if (append_decommitment_index == 1) append_decommitments[0] = hashes[read_index];
+
+          return (hashes[read_index], append_decommitments);
+        }
+
+        if (append_node_index & 1 == 1) {
+          hash = hashes[read_index];
+          append_decommitments[--append_decommitment_index] = hash;
+        }
+
+        read_index_of_append_node = write_index;
+        append_node_index = append_node_index >> 1;
+
+        hashes[write_index] = hashes[read_index];
+
+        read_index = (read_index + 1) % element_count;
+        write_index = (write_index + 1) % element_count;
+        bit_check = bit_check << 1;
+        continue;
+      }
+
+      if (read_index_of_append_node == read_index) {
+        if (append_node_index & 1 == 1) {
+          if (flags & bit_check == bit_check) {
+            scratch1 = (read_index + 1) % element_count;
+            hash = hash_pair(hashes[scratch1], hash);
+            append_decommitments[--append_decommitment_index] = hashes[scratch1];
+          } else {
+            hash = hash_pair(proof[decommitment_index], hash);
+            append_decommitments[--append_decommitment_index] = proof[decommitment_index];
+          }
+        }
+
+        read_index_of_append_node = write_index;
+        append_node_index = append_node_index >> 1;
+      }
+
+      if (flags & bit_check == bit_check) {
+        hashes[write_index++] = hash_pair(hashes[read_index], hashes[((read_index + 1) % element_count)]);
+        read_index = read_index + 2;
+      } else {
+        hashes[write_index++] = hash_pair(hashes[read_index++], proof[decommitment_index]);
+      }
+
+      read_index %= element_count;
+      write_index %= element_count;
+      bit_check = bit_check << 1;
+    }
+  }
+
   function get_append_decommitments_from_multi_proof_update(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32[] memory) {
     uint256 update_element_count = update_elements.length;
     require(elements.length == update_element_count, "LENGTH_MISMATCH");
@@ -280,8 +361,7 @@ library Merkle_Library_Optimized {
 
     while (write_index < update_element_count) {
       hashes[write_index] = hash_node(bytes32(0), elements[write_index]);
-      hashes[write_index + update_element_count] = hash_node(bytes32(0), update_elements[write_index]);
-      write_index++;
+      hashes[write_index++ + update_element_count] = hash_node(bytes32(0), update_elements[write_index]);
     }
 
     write_index = 0;
@@ -398,6 +478,13 @@ library Merkle_Library_Optimized {
     return new_hashes[0];
   }
 
+  function get_roots_from_combined_proof_and_append(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32) {
+    (bytes32 old_element_root, bytes32[] memory append_decommitments) = get_append_decommitments_from_multi_proof(total_element_count, elements, proof);
+    bytes32 new_element_root = get_new_root_from_append_proof_multi_append(total_element_count, append_elements, append_decommitments);
+
+    return (old_element_root, new_element_root);
+  }
+
   function get_roots_from_combined_proof_update_and_append(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32) {
     (bytes32 old_element_root, bytes32[] memory append_decommitments) = get_append_decommitments_from_multi_proof_update(total_element_count, elements, update_elements, proof);
     bytes32 new_element_root = get_new_root_from_append_proof_multi_append(total_element_count, append_elements, append_decommitments);
@@ -469,6 +556,16 @@ library Merkle_Library_Optimized {
     require(root != bytes32(0) || total_element_count == 0, "EMPTY_TREE");
     
     (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_combined_proof_update_and_append(total_element_count, elements, update_elements, append_elements, proof);
+
+    require(hash_node(bytes32(total_element_count), old_element_root) == root, "INVALID_PROOF");
+
+    return hash_node(bytes32(total_element_count + append_elements.length), new_element_root);
+  }
+
+  function try_exist_and_append_many(bytes32 root, uint256 total_element_count, bytes32[] memory elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32) {
+    require(root != bytes32(0) || total_element_count == 0, "EMPTY_TREE");
+    
+    (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_combined_proof_and_append(total_element_count, elements, append_elements, proof);
 
     require(hash_node(bytes32(total_element_count), old_element_root) == root, "INVALID_PROOF");
 
