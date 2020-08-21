@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
-contract Merkle_Storage {
-  bytes32 public root;
-
-  event Some_Data(bytes32 some_data);
-
-  function hash_node(bytes32 left, bytes32 right) internal pure returns (bytes32 hash) {
+library Merkle_Library {
+  function hash_node(bytes32 a, bytes32 b) internal pure returns (bytes32 hash) {
     assembly {
-      mstore(0x00, left)
-      mstore(0x20, right)
+      mstore(0x00, a)
+      mstore(0x20, b)
       hash := keccak256(0x00, 0x40)
     }
 
@@ -21,6 +17,8 @@ contract Merkle_Storage {
     return a < b ? hash_node(a, b) : hash_node(b, a);
   }
 
+  // TODO: bit_count_256
+
   function bit_count_32(uint32 n) internal pure returns (uint32) {
     uint32 m = n - ((n >> 1) & 0x55555555);
     m = (m & 0x33333333) + ((m >> 2) & 0x33333333);
@@ -28,35 +26,11 @@ contract Merkle_Storage {
     return ((m + (m >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
   }
 
-  function round_up_to_power_of_2(uint32 n) internal pure returns (uint32) {
-    if (bit_count_32(n) == 1) return n;
-
-    n |= n >> 1;
-    n |= n >> 2;
-    n |= n >> 4;
-    n |= n >> 8;
-    n |= n >> 16;
-
-    return n + 1;
+  function get_root_from_one(bytes32 element) internal pure returns (bytes32) {
+    return hash_node(bytes32(0), element);
   }
 
-  function _debug_set_root(bytes32 _root) public {
-    root = _root;
-  }
-
-  function set_root(uint256 total_element_count, bytes32 element_root) public {
-    root = hash_node(bytes32(total_element_count), element_root);
-  }
-
-  function validate(uint256 total_element_count, bytes32 element_root) internal view {
-    require(hash_node(bytes32(total_element_count), element_root) == root, "INVALID_PROOF");
-  }
-
-  function build_root_with_one(bytes32 element) internal {
-    set_root(1, hash_node(bytes32(0), element));
-  }
-
-  function build_root_with_many(bytes32[] memory elements) internal {
+  function get_root_from_many(bytes32[] memory elements) internal pure returns (bytes32) {
     uint256 total_element_count = elements.length;
     uint256 hashes_size = (total_element_count >> 1) + (total_element_count & 1);
     bytes32[] memory hashes = new bytes32[](hashes_size);
@@ -92,12 +66,12 @@ contract Merkle_Storage {
       hashes[write_index++] = hash_pair(hashes[left_index], hashes[left_index + 1]);
     }
 
-    set_root(total_element_count, hashes[0]);
+    return hashes[0];
   }
 
-  function verify_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32[] memory decommitments) internal view {
+  function get_root_from_single_proof(uint256 total_element_count, uint256 index, bytes32 element, bytes32[] memory decommitments) internal pure returns (bytes32 hash) {
     uint256 decommitment_index = decommitments.length;
-    bytes32 hash = hash_node(bytes32(0), element);
+    hash = hash_node(bytes32(0), element);
     uint256 upperBound = total_element_count - 1;
 
     while(decommitment_index > 0) {
@@ -107,21 +81,13 @@ contract Merkle_Storage {
       upperBound = upperBound >> 1;
     }
 
-    validate(total_element_count, hash);
+    return hash;
   }
 
-  function use_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32[] memory decommitments) public {
-    verify_one(total_element_count, index, element, decommitments);
-    
-    emit Some_Data(hash_node(0x0000000000000000000000000000000000000000000000000000000000000001, element));
-  }
-
-  function update_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32 new_element, bytes32[] memory decommitments) public {
-    require(root != bytes32(0), "LIST_EMPTY");
-
+  function get_roots_from_single_proof_update(uint256 total_element_count, uint256 index, bytes32 element, bytes32 new_element, bytes32[] memory decommitments) internal pure returns (bytes32 hash, bytes32 new_hash) {
     uint256 decommitment_index = decommitments.length;
-    bytes32 hash = hash_node(bytes32(0), element);
-    bytes32 new_hash = hash_node(bytes32(0), new_element);
+    hash = hash_node(bytes32(0), element);
+    new_hash = hash_node(bytes32(0), new_element);
     uint256 upperBound = total_element_count - 1;
 
     while(decommitment_index > 0) {
@@ -134,17 +100,10 @@ contract Merkle_Storage {
       upperBound = upperBound >> 1;
     }
 
-    validate(total_element_count, hash);
-    set_root(total_element_count, new_hash);
+    return (hash, new_hash);
   }
 
-  function use_and_update_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32[] memory decommitments) public {
-    emit Some_Data(hash_node(0x0000000000000000000000000000000000000000000000000000000000000001, element));
-
-    update_one(total_element_count, index, element, hash_node(0x0000000000000000000000000000000000000000000000000000000000000002, element), decommitments);
-  }
-
-  function verify_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) internal view {
+  function get_root_from_multi_proof(bytes32[] memory elements, bytes32[] memory proof) internal pure returns (bytes32) {
     uint256 verifying_element_count = elements.length;
     bytes32[] memory hashes = new bytes32[](verifying_element_count);
 
@@ -159,12 +118,11 @@ contract Merkle_Storage {
     uint256 decommitment_index;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     bytes32 right;
-    
+
     while (true) {
       if (proof[1] & bit_check == bit_check) {
         if (proof[0] & bit_check == bit_check) {
-          validate(total_element_count, hashes[(write_index == 0 ? verifying_element_count : write_index) - 1]);
-          return;
+          return hashes[(write_index == 0 ? verifying_element_count : write_index) - 1];
         }
 
         hashes[write_index++] = hashes[read_index++];
@@ -187,22 +145,7 @@ contract Merkle_Storage {
     }
   }
 
-  function use_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
-    verify_many(total_element_count, elements, proof);
-    
-    uint256 using_element_count = elements.length;
-    bytes32 some_data = 0x0000000000000000000000000000000000000000000000000000000000000001;
-
-    for (uint256 i; i < using_element_count; ++i) {
-      some_data = hash_node(some_data, elements[i]);
-    }
-
-    emit Some_Data(some_data);
-  }
-
-  function update_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory new_elements, bytes32[] memory proof) public {
-    require(root != bytes32(0), "LIST_EMPTY");
-
+  function get_roots_from_multi_proof_update(bytes32[] memory elements, bytes32[] memory new_elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32) {
     uint256 new_element_count = new_elements.length;
     require(elements.length == new_element_count, "LENGTH_MISMATCH");
     
@@ -224,10 +167,8 @@ contract Merkle_Storage {
       if (proof[1] & bit_check == bit_check) {
         if (proof[0] & bit_check == bit_check) {
           read_index = (write_index == 0 ? new_element_count : write_index) - 1;
-          validate(total_element_count, hashes[read_index]);
-          set_root(total_element_count, hashes[read_index + new_element_count]);
 
-          return;
+          return (hashes[read_index], hashes[read_index + new_element_count]);
         }
 
         hashes[write_index] = hashes[read_index];
@@ -255,53 +196,31 @@ contract Merkle_Storage {
     }
   }
 
-  function use_and_update_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
-    uint256 using_element_count = elements.length;
-    bytes32[] memory new_elements = new bytes32[](using_element_count);
-    bytes32 some_data = 0x0000000000000000000000000000000000000000000000000000000000000001;
-    bytes32 element;
-
-    for (uint256 i; i < using_element_count; ++i) {
-      element = elements[i];
-      new_elements[i] = hash_node(0x0000000000000000000000000000000000000000000000000000000000000002, element);
-      some_data = hash_node(some_data, element);
-    }
-
-    emit Some_Data(some_data);
-
-    update_many(total_element_count, elements, new_elements, proof);
-  }
-
-  function verify_append(uint256 total_element_count, bytes32[] memory decommitments) internal view {
+  function get_root_from_append_proof(uint256 total_element_count, bytes32[] memory decommitments) internal pure returns (bytes32 hash) {
     uint256 decommitment_index = bit_count_32(uint32(total_element_count));
-    bytes32 hash = decommitments[--decommitment_index];
+    hash = decommitments[--decommitment_index];
 
     while (decommitment_index > 0) {
       hash = hash_pair(decommitments[--decommitment_index], hash);
     }
 
-    validate(total_element_count, hash);
+    return hash;
   }
 
-  function append_one(uint256 total_element_count, bytes32 new_element, bytes32[] memory decommitments) public {
-    if (root == bytes32(0)) return build_root_with_one(new_element);
-
+  function get_roots_from_append_proof_single_append(uint256 total_element_count, bytes32 new_element, bytes32[] memory decommitments) internal pure returns (bytes32 hash, bytes32 new_hash) {
     uint256 decommitment_index = bit_count_32(uint32(total_element_count));
-    bytes32 hash = decommitments[--decommitment_index];
-    bytes32 new_hash = hash_pair(decommitments[decommitment_index], hash_node(bytes32(0), new_element));
+    hash = decommitments[--decommitment_index];
+    new_hash = hash_pair(decommitments[decommitment_index], hash_node(bytes32(0), new_element));
 
     while (decommitment_index > 0) {
       new_hash = hash_pair(decommitments[--decommitment_index], new_hash);
       hash = hash_pair(decommitments[decommitment_index], hash);
     }
 
-    validate(total_element_count, hash);
-    set_root(total_element_count + 1, new_hash);
+    return (hash, new_hash);
   }
 
-  function append_many(uint256 total_element_count, bytes32[] memory new_elements, bytes32[] memory decommitments) public {
-    if (root == bytes32(0)) return build_root_with_many(new_elements);
-
+  function get_roots_from_append_proof_multi_append(uint256 total_element_count, bytes32[] memory new_elements, bytes32[] memory decommitments) internal pure returns (bytes32 hash, bytes32) {
     uint256 new_elements_count = new_elements.length;
     bytes32[] memory new_hashes = new bytes32[](new_elements_count);
     uint256 write_index;
@@ -319,7 +238,7 @@ contract Merkle_Storage {
     uint256 offset = total_element_count;
     uint256 index = offset;
     uint256 decommitment_index = bit_count_32(uint32(total_element_count)) - 1;
-    bytes32 hash = decommitments[decommitment_index];
+    hash = decommitments[decommitment_index];
 
     while (upper_bound > 0) {
       if ((write_index == 0) && (index & 1 == 1)) {
@@ -345,11 +264,10 @@ contract Merkle_Storage {
       }
     }
 
-    validate(total_element_count, hash);
-    set_root(new_elements_count, new_hashes[0]);
+    return (hash, new_hashes[0]);
   }
 
-  function get_append_decommitments_with_update(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32[] memory) {
+  function get_append_decommitments_from_multi_proof_update(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32[] memory) {
     uint256 update_element_count = update_elements.length;
     require(elements.length == update_element_count, "LENGTH_MISMATCH");
 
@@ -431,7 +349,7 @@ contract Merkle_Storage {
     }
   }
 
-  function append_many_without_checks(uint256 total_element_count, bytes32[] memory new_elements, bytes32[] memory decommitments) internal {
+  function get_new_root_from_append_proof_multi_append(uint256 total_element_count, bytes32[] memory new_elements, bytes32[] memory decommitments) internal pure returns (bytes32) {
     uint256 new_elements_count = new_elements.length;
     bytes32[] memory new_hashes = new bytes32[](new_elements_count);
     uint256 write_index;
@@ -471,31 +389,83 @@ contract Merkle_Storage {
       }
     }
 
-    set_root(new_elements_count, new_hashes[0]);
+    return new_hashes[0];
   }
 
-  // TODO: use_many_and_append_many (no update)
-  function use_and_update_and_append_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
-    require(root != bytes32(0), "LIST_EMPTY");
+  function get_roots_from_combined_proof_update_and_append(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32) {
+    (bytes32 old_element_root, bytes32[] memory append_decommitments) = get_append_decommitments_from_multi_proof_update(total_element_count, elements, update_elements, proof);
+    bytes32 new_element_root = get_new_root_from_append_proof_multi_append(total_element_count, append_elements, append_decommitments);
+
+    return (old_element_root, new_element_root);
+  }
+
+  function element_exists(bytes32 root, uint256 total_element_count, uint256 index, bytes32 element, bytes32[] memory decommitments) internal pure returns (bool) {
+    if (root == bytes32(0) || total_element_count == 0) return false;
     
-    uint256 using_element_count = elements.length;
-    bytes32[] memory update_elements = new bytes32[](using_element_count);
-    bytes32[] memory append_elements = new bytes32[](using_element_count);
-    bytes32 some_data = 0x0000000000000000000000000000000000000000000000000000000000000001;
-    bytes32 element;
+    return hash_node(bytes32(total_element_count), get_root_from_single_proof(total_element_count, index, element, decommitments)) == root;
+  }
 
-    for (uint256 i; i < using_element_count; ++i) {
-      element = elements[i];
-      update_elements[i] = hash_node(0x0000000000000000000000000000000000000000000000000000000000000002, element);
-      append_elements[i] = hash_node(0x0000000000000000000000000000000000000000000000000000000000000003, element);
-      some_data = hash_node(some_data, element);
-    }
+  function elements_exist(bytes32 root, uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) internal pure returns (bool) {
+    if (root == bytes32(0) || total_element_count == 0) return false;
 
-    emit Some_Data(some_data);
+    return hash_node(bytes32(total_element_count), get_root_from_multi_proof(elements, proof)) == root;
+  }
 
-    (bytes32 old_element_root, bytes32[] memory append_decommitments) = get_append_decommitments_with_update(total_element_count, elements, update_elements, proof);
+  function try_update_one(bytes32 root, uint256 total_element_count, uint256 index, bytes32 element, bytes32 new_element, bytes32[] memory decommitments) internal pure returns (bytes32) {
+    require(root != bytes32(0) || total_element_count == 0, "EMPTY_TREE");
+    
+    (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_single_proof_update(total_element_count, index, element, new_element, decommitments);
 
-    validate(total_element_count, old_element_root);
-    append_many_without_checks(total_element_count, update_elements, append_decommitments);
+    bytes32 total_element_count_b32 = bytes32(total_element_count);
+
+    require(hash_node(total_element_count_b32, old_element_root) == root, "INVALID_PROOF");
+
+    return hash_node(total_element_count_b32, new_element_root);
+  }
+
+  function try_update_many(bytes32 root, uint256 total_element_count, bytes32[] memory elements, bytes32[] memory new_elements, bytes32[] memory proof) internal pure returns (bytes32) {
+    require(root != bytes32(0) || total_element_count == 0, "EMPTY_TREE");
+    
+    (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_multi_proof_update(elements, new_elements, proof);
+
+    bytes32 total_element_count_b32 = bytes32(total_element_count);
+
+    require(hash_node(total_element_count_b32, old_element_root) == root, "INVALID_PROOF");
+
+    return hash_node(total_element_count_b32, new_element_root);
+  }
+
+  function try_append_one(bytes32 root, uint256 total_element_count, bytes32 new_element, bytes32[] memory decommitments) internal pure returns (bytes32) {
+    require((root == bytes32(0)) == (total_element_count == 0), "INVALID_TREE");
+
+    if (root == bytes32(0)) return hash_node(bytes32(uint256(1)), get_root_from_one(new_element));
+    
+    (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_append_proof_single_append(total_element_count, new_element, decommitments);
+
+    require(hash_node(bytes32(total_element_count), old_element_root) == root, "INVALID_PROOF");
+
+    return hash_node(bytes32(total_element_count + 1), new_element_root);
+  }
+
+  function try_append_many(bytes32 root, uint256 total_element_count, bytes32[] memory new_elements, bytes32[] memory decommitments) internal pure returns (bytes32) {
+    require((root == bytes32(0)) == (total_element_count == 0), "INVALID_TREE");
+    
+    if (root == bytes32(0)) return hash_node(bytes32(new_elements.length), get_root_from_many(new_elements));
+    
+    (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_append_proof_multi_append(total_element_count, new_elements, decommitments);
+
+    require(hash_node(bytes32(total_element_count), old_element_root) == root, "INVALID_PROOF");
+
+    return hash_node(bytes32(total_element_count + new_elements.length), new_element_root);
+  }
+
+  function try_update_and_append_many(bytes32 root, uint256 total_element_count, bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32) {
+    require(root != bytes32(0) || total_element_count == 0, "EMPTY_TREE");
+    
+    (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_combined_proof_update_and_append(total_element_count, elements, update_elements, append_elements, proof);
+
+    require(hash_node(bytes32(total_element_count), old_element_root) == root, "INVALID_PROOF");
+
+    return hash_node(bytes32(total_element_count + append_elements.length), new_element_root);
   }
 }
