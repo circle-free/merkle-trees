@@ -1,7 +1,9 @@
 'use strict';
 
+const { hashNode } = require('./utils');
+
 // Generates a set of decommitments to prove the existence of a leaf at a given index.
-const generate = ({ tree, index }) => {
+const generate = ({ tree, index }, options = {}) => {
   const decommitments = [];
   const leafCount = tree.length >>> 1;
 
@@ -14,7 +16,8 @@ const generate = ({ tree, index }) => {
 };
 
 // Compute the root given a leaf, its index, and a set of decommitments.
-const getRoot = ({ elementCount, index, leaf, decommitments, hashFunction }) => {
+const getRoot = ({ elementCount, index, leaf, decommitments }, options = {}) => {
+  const { hashFunction = hashNode } = options;
   let decommitmentIndex = decommitments.length;
   let hash = Buffer.from(leaf);
   let upperBound = elementCount - 1;
@@ -43,7 +46,8 @@ const getRoot = ({ elementCount, index, leaf, decommitments, hashFunction }) => 
 // Compute the existing root given a leaf, its index, and a set of decommitments
 // and computes a new root, along the way, given a new leaf to take its place.
 // See getRoot for relevant inline comments.
-const getNewRoot = ({ elementCount, index, leaf, newLeaf, decommitments, hashFunction }) => {
+const getNewRoot = ({ elementCount, index, leaf, newLeaf, decommitments }, options = {}) => {
+  const { hashFunction = hashNode } = options;
   let decommitmentIndex = decommitments.length;
   let hash = Buffer.from(leaf);
   let newHash = Buffer.from(newLeaf);

@@ -1,9 +1,10 @@
 'use strict';
 
-const { roundUpToPowerOf2 } = require('./utils');
+const { roundUpToPowerOf2, hashNode } = require('./utils');
 
 // common algorithm to build a serialized merkle tree from an array of leafs
-const buildTree = ({ leafs, hashFunction }) => {
+const buildTree = ({ leafs }, options = {}) => {
+  const { hashFunction = hashNode } = options;
   const leafCount = leafs.length;
   const tree = Array(leafCount << 1).fill(null);
 

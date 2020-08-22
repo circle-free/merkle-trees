@@ -2,9 +2,11 @@
 
 // NOTE: indices must be in descending order
 // NOTE: indexIsOdd is like a left flag, (indexIsOdd && !nextIsPair) is like a right flag, so do we
-//       need indices? Or rather, can they be inferred from flags?
+//       need indices? Or rather, can they be inferred from flags? When no sortedHash, they can!
 
 const assert = require('assert');
+
+const { hashNode } = require('./utils');
 
 // Generates a set of decommitments to prove the existence of leaves at a given indices.
 // Accomplishes this by tracking the indices of the leafs in the serialized tree, and
@@ -38,7 +40,9 @@ const generate = ({ tree, indices }) => {
 // Compute the root given a set of leafs, their indices, and a set of decommitments
 // Uses a circular queue to accumulate the parent nodes and another circular to track
 // the serialized tree indices of those nodes.
-const getRoot = ({ indices, leafs, leafCount, decommitments, hashFunction }) => {
+const getRoot = ({ indices, leafs, leafCount, decommitments }, options = {}) => {
+  const { hashFunction = hashNode } = options;
+
   // Keep verification minimal by using circular hashes queue with separate read and write heads
   // TODO: Consider an empty hashes array and referencing leafs parameter directly, while
   // treeIndices[nextReadIndex] > leafCount, rather than copying all leafs to memory.
@@ -81,7 +85,8 @@ const getRoot = ({ indices, leafs, leafCount, decommitments, hashFunction }) => 
 // Compute the existing root given a set of leafs, their indices, and a set of decommitments
 // and computes a new root, along the way, given new leafs to take their place.
 // See getRoot for relevant inline comments.
-const getNewRoot = ({ indices, leafs, newLeafs, leafCount, decommitments, hashFunction }) => {
+const getNewRoot = ({ indices, leafs, newLeafs, leafCount, decommitments }, options = {}) => {
+  const { hashFunction = hashNode } = options;
   const hashes = leafs.map((leaf) => leaf);
   const newHashes = newLeafs.map((leaf) => leaf);
   const treeIndices = indices.map((index) => leafCount + index);

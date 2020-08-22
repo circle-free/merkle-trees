@@ -152,9 +152,11 @@ Given an unbalanced tree, where elements to the right of the append index do not
 - [ ] visual documentation of how individual proofs work
 - [ ] test how null/undefined elements before the append index affect trees/proofs
 - [ ] explorer, test, and document failure cases (or rather, cases with invalid proofs)
-- [ ] explorer combined and existence-only (flag) multi-proofs without sorted hashing (possibly separate set of flags, might be able to infer indices)
-- [ ] explorer efficiency of separate boolean-array (flags) to inform when to take a hash as an append-decommitment
-- [ ] enable bitFlags for large trees (proof hash count > 255) with multiple 32-byte flags, given stop bits
+- [x] ~~explorer combined and existence-only (flag) multi-proofs, without sorted hashing, (possibly separate set of hash order booleans)~~
+- [ ] given hash order booleans, implement index inferring for multi-proofs without sorted hashing (it is possible)
+- [ ] explorer efficiency of separate boolean-array, in the multi-proof, to inform when to take a hash as an append-decommitment
+- [ ] enable compact proofs for large trees (proof hash count > 255) with multiple 32-byte flags, given stop bits
+- [ ] Bring Your Own Hash Function
 
 
 ## Tests ##
