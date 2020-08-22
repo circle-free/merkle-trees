@@ -134,7 +134,7 @@ Given an unbalanced tree, where elements to the right of the append index do not
 
 - [ ] serialize method (likely just elements, possibly redundant)
 - [ ] test elements greater than 32 bytes
-- [ ] argument validation (i.e. parameter lengths, mutually exclusive options like indexed and bitFlags)
+- [ ] argument validation (i.e. parameter lengths, mutually exclusive options like indexed and compact)
 - [ ] unbalanced proofs for indexed multi-proofs (with tests)
 - [ ] index-less (existence-only) single-proofs
 - [ ] verify and update single proof can probably be cheaper with sortedHash given that element count is required

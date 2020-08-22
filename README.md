@@ -25,18 +25,21 @@ console.log(simpleStorageReceipt.gasUsed); // 236,384
 
 // Launch a merkle storage contract with just the Merkle root of the 20 elements in storage
 const merkleStorageContractInstance = await Merkle_Storage.new();
-merkleTree = new MerkleTree(elements, options);
+const merkleOptions = { unbalance: true, sortedhash: true };
+merkleTree = new MerkleTree(elements, merkleOptions);
 await merkleStorageContractInstance._debug_set_root('0x' + merkleTree.root.toString('hex'));
 
 // Prepare the compact multi-proof
-const { elements, proof } = merkleTree.generateCombinedProof(indices, { bitFlags: true });
+const { elements, compactProof } = merkleTree.generateCombinedProof(indices, { compact: true });
 const hexElements = elements.map(e => '0x' + e.toString('hex'));
-const hexProof = proof.map(p => '0x' + p.toString('hex'));
+const hexCompactProof = compactProof.map(p => '0x' + p.toString('hex'));
 
 // use the elements at the 8 above indices (by proving them), update them, append 8 more, and save the merkle root to storage
-const { receipt: merkleStorageReceipt } = await merkleStorageContractInstance.use_and_update_and_append_many(elementCount, hexElements, hexProof);
+const { receipt: merkleStorageReceipt } = await merkleStorageContractInstance.use_and_update_and_append_many(elementCount, hexElements, hexCompactProof);
 console.log(merkleStorageReceipt.gasUsed); // 70,408  (less than 30% the cost)
 
 const retrievedRoot = await contractInstance.root();
 console.log(retrievedRoot === '0x' + merkleTree.root.toString('hex'));  // true
 ```
+
+For more, see tests.
