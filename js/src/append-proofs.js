@@ -1,6 +1,6 @@
 'use strict';
 
-const { bitCount32, roundUpToPowerOf2 } = require('./utils');
+const { hashNode, bitCount32 } = require('./utils');
 
 // This is the SingleProof.generate algorithm, using the elementCount as index,
 // thereby generating a subset of those same decommitments, but only those
@@ -25,7 +25,8 @@ const generate = ({ tree, elementCount }) => {
 // root that can be built from the decommitments, hashed from "right" to "left".
 // Note, it is implied that there is nothing to the right of the "right-most"
 // decommitment, explaining the departure from the SingleProof.getRoot algorithm.
-const getRoot = ({ elementCount, decommitments, hashFunction }) => {
+const getRoot = ({ elementCount, decommitments }, options = {}) => {
+  const { hashFunction = hashNode } = options;
   let index = bitCount32(elementCount);
   let hash = decommitments[--index];
 
@@ -41,7 +42,8 @@ const getRoot = ({ elementCount, decommitments, hashFunction }) => {
 // Note, it is implied that there is nothing to the right of the leaf being
 // appended, explaining the departure from the SingleProof.getNewRoot algorithm.
 // See getRoot for relevant inline comments.
-const getNewRootSingle = ({ newLeaf, elementCount, decommitments, hashFunction }) => {
+const getNewRootSingle = ({ newLeaf, elementCount, decommitments }, options = {}) => {
+  const { hashFunction = hashNode } = options;
   let index = bitCount32(elementCount);
   let hash = decommitments[--index];
   let newHash = hashFunction(decommitments[index], newLeaf);
@@ -59,7 +61,8 @@ const getNewRootSingle = ({ newLeaf, elementCount, decommitments, hashFunction }
 // to 0, and no longer be merged with decommitments. If newHashes[0]'s level-localized index is
 // even, hash with node to the right. An odd level-localized index is either at newHashes[0] or
 // index == upperBound. If upperBound == 0, we got to the new root.
-const getNewRootMulti = ({ newLeafs, elementCount, decommitments, hashFunction }) => {
+const getNewRootMulti = ({ newLeafs, elementCount, decommitments }, options = {}) => {
+  const { hashFunction = hashNode } = options;
   let decommitmentIndex = bitCount32(elementCount) - 1;
   let hash = decommitments[decommitmentIndex];
   let newHashes = Array((newLeafs.length >>> 1) + 1).fill(null);
@@ -103,8 +106,8 @@ const getNewRootMulti = ({ newLeafs, elementCount, decommitments, hashFunction }
   return { root: hash, newRoot: newHashes[0] };
 };
 
-const getNewRoot = (parameters) => {
-  return parameters.newLeafs ? getNewRootMulti(parameters) : getNewRootSingle(parameters);
+const getNewRoot = (parameters, options = {}) => {
+  return parameters.newLeafs ? getNewRootMulti(parameters, options) : getNewRootSingle(parameters, options);
 };
 
 module.exports = { generate, getRoot, getNewRoot };

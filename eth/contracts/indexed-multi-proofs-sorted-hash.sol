@@ -2,7 +2,7 @@
 
 pragma solidity >=0.5.0 <0.7.0;
 
-contract Index_Multi_Proofs {
+contract Indexed_Multi_Proofs_Sorted_Hash {
   bytes32 public root;
 
   event Data_Used(bytes32 data_used);
@@ -15,6 +15,10 @@ contract Index_Multi_Proofs {
     }
 
     return hash;
+  }
+
+  function hash_pair(bytes32 a, bytes32 b) internal pure returns (bytes32) {
+    return a < b ? hash_node(a, b) : hash_node(b, a);
   }
 
   function _debug_set_root(bytes32 _root) public {
@@ -64,7 +68,7 @@ contract Index_Multi_Proofs {
       bytes32 left = (index_is_odd && !nextIsSibling) ? decommitments[decommitment_index++] : hashes[read_index++];
 
       tree_indices[write_index] = index >> 1;
-      hashes[write_index++] = hash_node(left, right);
+      hashes[write_index++] = hash_pair(left, right);
 
       read_index %= index_count;
       write_index %= index_count;
@@ -124,8 +128,8 @@ contract Index_Multi_Proofs {
       read_index %= index_count;
       
       bool left_flag = index_is_odd && !(tree_indices[read_index] == (index - 1));
-      hashes[write_index] = hash_node(left_flag ? decommitments[decommitment_index] : hashes[read_index], right);
-      new_hashes[write_index] = hash_node(left_flag ? decommitments[decommitment_index++] : hashes[read_index++], new_right);
+      hashes[write_index] = hash_pair(left_flag ? decommitments[decommitment_index] : hashes[read_index], right);
+      new_hashes[write_index] = hash_pair(left_flag ? decommitments[decommitment_index++] : hashes[read_index++], new_right);
       tree_indices[write_index++] = index >> 1;
 
       read_index %= index_count;

@@ -2,7 +2,7 @@
 
 pragma solidity >=0.6.0 <0.8.0;
 
-library Merkle_Library {
+library Merkle_Library_Sorted_Hash {
   function hash_node(bytes32 a, bytes32 b) internal pure returns (bytes32 hash) {
     assembly {
       mstore(0x00, a)
@@ -11,6 +11,10 @@ library Merkle_Library {
     }
 
     return hash;
+  }
+
+  function hash_pair(bytes32 a, bytes32 b) internal pure returns (bytes32) {
+    return a < b ? hash_node(a, b) : hash_node(b, a);
   }
 
   function bit_count_32(uint32 n) internal pure returns (uint32) {
@@ -39,7 +43,7 @@ library Merkle_Library {
         break;
       }
 
-      hashes[write_index++] = hash_node(hash_node(bytes32(0), elements[left_index]), hash_node(bytes32(0), elements[left_index + 1]));
+      hashes[write_index++] = hash_pair(hash_node(bytes32(0), elements[left_index]), hash_node(bytes32(0), elements[left_index + 1]));
     }
 
     write_index = 0;
@@ -57,7 +61,7 @@ library Merkle_Library {
         continue;
       }
 
-      hashes[write_index++] = hash_node(hashes[left_index], hashes[left_index + 1]);
+      hashes[write_index++] = hash_pair(hashes[left_index], hashes[left_index + 1]);
     }
 
     return hashes[0];
@@ -69,7 +73,7 @@ library Merkle_Library {
     uint256 upperBound = total_element_count - 1;
 
     while(decommitment_index > 0) {
-      if (index != upperBound || (index & 1 == 1)) hash = hash_node(decommitments[--decommitment_index], hash);
+      if (index != upperBound || (index & 1 == 1)) hash = hash_pair(decommitments[--decommitment_index], hash);
 
       index = index >> 1;
       upperBound = upperBound >> 1;
@@ -86,8 +90,8 @@ library Merkle_Library {
 
     while(decommitment_index > 0) {
       if ((index != upperBound) || (index & 1 == 1)) {
-        hash = hash_node(decommitments[--decommitment_index], hash);
-        new_hash = hash_node(decommitments[decommitment_index], new_hash);
+        hash = hash_pair(decommitments[--decommitment_index], hash);
+        new_hash = hash_pair(decommitments[decommitment_index], new_hash);
       }
 
       index = index >> 1;
@@ -127,11 +131,11 @@ library Merkle_Library {
         continue;
       }
 
-      right = (proof[0] & bit_check == bit_check) ? hashes[read_index++] : proof[3 + decommitment_index++];
+      right = (proof[0] & bit_check == bit_check) ? hashes[read_index++] : proof[2 + decommitment_index++];
 
       read_index %= verifying_element_count;
 
-      hashes[write_index++] = (proof[2] & bit_check == bit_check) ? hash_node(hashes[read_index++], right) : hash_node(right, hashes[read_index++]);
+      hashes[write_index++] = hash_pair(hashes[read_index++], right);
 
       read_index %= verifying_element_count;
       write_index %= verifying_element_count;
@@ -175,24 +179,12 @@ library Merkle_Library {
       }
 
       if (proof[0] & bit_check == bit_check) {
-        hashes[write_index] = (proof[2] & bit_check == bit_check) ?
-          hash_node(hashes[read_index], hashes[(read_index + 1) % new_element_count]) :
-          hash_node(hashes[(read_index + 1) % new_element_count], hashes[read_index]);
-
-        hashes[write_index + new_element_count] = (proof[2] & bit_check == bit_check) ?
-          hash_node(hashes[read_index + new_element_count], hashes[((read_index + 1) % new_element_count) + new_element_count]) :
-          hash_node(hashes[((read_index + 1) % new_element_count) + new_element_count], hashes[read_index + new_element_count]);
-
+        hashes[write_index] = hash_pair(hashes[read_index], hashes[(read_index + 1) % new_element_count]);
+        hashes[write_index + new_element_count] = hash_pair(hashes[read_index + new_element_count], hashes[((read_index + 1) % new_element_count) + new_element_count]);
         read_index = read_index + 2;
       } else {
-        hashes[write_index] = (proof[2] & bit_check == bit_check) ?
-          hash_node(hashes[read_index], proof[3 + decommitment_index]) :
-          hash_node(proof[3 + decommitment_index], hashes[read_index]);
-
-        hashes[write_index + new_element_count] = (proof[2] & bit_check == bit_check) ?
-          hash_node(hashes[read_index + new_element_count], proof[3 + decommitment_index++]) :
-          hash_node(proof[3 + decommitment_index++], hashes[read_index + new_element_count]);
-
+        hashes[write_index] = hash_pair(hashes[read_index], proof[2 + decommitment_index]);
+        hashes[write_index + new_element_count] = hash_pair(hashes[read_index + new_element_count], proof[2 + decommitment_index++]);
         read_index = read_index + 1;
       }
 
@@ -207,7 +199,7 @@ library Merkle_Library {
     hash = decommitments[--decommitment_index];
 
     while (decommitment_index > 0) {
-      hash = hash_node(decommitments[--decommitment_index], hash);
+      hash = hash_pair(decommitments[--decommitment_index], hash);
     }
 
     return hash;
@@ -216,11 +208,11 @@ library Merkle_Library {
   function get_roots_from_append_proof_single_append(uint256 total_element_count, bytes32 new_element, bytes32[] memory decommitments) internal pure returns (bytes32 hash, bytes32 new_hash) {
     uint256 decommitment_index = bit_count_32(uint32(total_element_count));
     hash = decommitments[--decommitment_index];
-    new_hash = hash_node(decommitments[decommitment_index], hash_node(bytes32(0), new_element));
+    new_hash = hash_pair(decommitments[decommitment_index], hash_node(bytes32(0), new_element));
 
     while (decommitment_index > 0) {
-      new_hash = hash_node(decommitments[--decommitment_index], new_hash);
-      hash = hash_node(decommitments[decommitment_index], hash);
+      new_hash = hash_pair(decommitments[--decommitment_index], new_hash);
+      hash = hash_pair(decommitments[decommitment_index], hash);
     }
 
     return (hash, new_hash);
@@ -248,14 +240,14 @@ library Merkle_Library {
 
     while (upper_bound > 0) {
       if ((write_index == 0) && (index & 1 == 1)) {
-        new_hashes[0] = hash_node(decommitments[decommitment_index--], new_hashes[read_index++]);
+        new_hashes[0] = hash_pair(decommitments[decommitment_index--], new_hashes[read_index++]);
 
-        if (decommitment_index < total_element_count) hash = hash_node(decommitments[decommitment_index], hash);
+        if (decommitment_index < total_element_count) hash = hash_pair(decommitments[decommitment_index], hash);
 
         write_index = 1;
         index++;
       } else if (index < upper_bound) {
-        new_hashes[write_index++] = hash_node(new_hashes[read_index++], new_hashes[read_index++]);
+        new_hashes[write_index++] = hash_pair(new_hashes[read_index++], new_hashes[read_index++]);
         index += 2;
       }
 
@@ -325,17 +317,11 @@ library Merkle_Library {
       if (read_index_of_append_node == read_index) {
         if (append_node_index & 1 == 1) {
           if (proof[0] & bit_check == bit_check) {
-            hash = (proof[2] & bit_check == bit_check) ?
-              hash_node(hashes[((read_index + 1) % element_count)], hash) :
-              hash_node(hash, hashes[((read_index + 1) % element_count)]);
-
+            hash = hash_pair(hashes[((read_index + 1) % element_count)], hash);
             append_decommitments[--append_decommitment_index] = hashes[((read_index + 1) % element_count)];
           } else {
-            hash = (proof[2] & bit_check == bit_check) ?
-              hash_node(proof[3 + decommitment_index], hash) :
-              hash_node(hash, proof[3 + decommitment_index]);
-
-            append_decommitments[--append_decommitment_index] = proof[3 + decommitment_index];
+            hash = hash_pair(proof[2 + decommitment_index], hash);
+            append_decommitments[--append_decommitment_index] = proof[2 + decommitment_index];
           }
         }
 
@@ -344,16 +330,10 @@ library Merkle_Library {
       }
 
       if (proof[0] & bit_check == bit_check) {
-        hashes[write_index] = (proof[2] & bit_check == bit_check) ?
-          hash_node(hashes[read_index], hashes[((read_index + 1) % element_count)]) :
-          hash_node(hashes[((read_index + 1) % element_count)], hashes[read_index]);
-
+        hashes[write_index] = hash_pair(hashes[read_index], hashes[((read_index + 1) % element_count)]);
         read_index = read_index + 2;
       } else {
-        hashes[write_index] = (proof[2] & bit_check == bit_check) ?
-          hash_node(hashes[read_index], proof[3 + decommitment_index]) :
-          hash_node(proof[3 + decommitment_index], hashes[read_index]);
-
+        hashes[write_index] = hash_pair(hashes[read_index], proof[2 + decommitment_index]);
         read_index = read_index + 1;
       }
 
@@ -417,17 +397,11 @@ library Merkle_Library {
       if (read_index_of_append_node == read_index) {
         if (append_node_index & 1 == 1) {
           if (proof[0] & bit_check == bit_check) {
-            hashes[0] = (proof[2] & bit_check == bit_check) ?
-              hash_node(hashes[1 + ((read_index + 1) % update_element_count)], hashes[0]) :
-              hash_node(hashes[0], hashes[1 + ((read_index + 1) % update_element_count)]);
-
+            hashes[0] = hash_pair(hashes[1 + ((read_index + 1) % update_element_count)], hashes[0]);
             append_decommitments[--append_decommitment_index] = hashes[1 + ((read_index + 1) % update_element_count) + update_element_count];
           } else {
-            hashes[0] = (proof[2] & bit_check == bit_check) ?
-              hash_node(proof[3 + decommitment_index], hashes[0]) :
-              hash_node(hashes[0], proof[3 + decommitment_index]);
-
-            append_decommitments[--append_decommitment_index] = proof[3 + decommitment_index];
+            hashes[0] = hash_pair(proof[2 + decommitment_index], hashes[0]);
+            append_decommitments[--append_decommitment_index] = proof[2 + decommitment_index];
           }
         }
 
@@ -436,24 +410,12 @@ library Merkle_Library {
       }
 
       if (proof[0] & bit_check == bit_check) {
-        hashes[1 + write_index] = (proof[2] & bit_check == bit_check) ?
-          hash_node(hashes[1 + read_index], hashes[1 + ((read_index + 1) % update_element_count)]) :
-          hash_node(hashes[1 + ((read_index + 1) % update_element_count)], hashes[1 + read_index]);
-
-        hashes[1 + write_index + update_element_count] = (proof[2] & bit_check == bit_check) ?
-          hash_node(hashes[1 + read_index + update_element_count], hashes[1 + ((read_index + 1) % update_element_count) + update_element_count]) :
-          hash_node(hashes[1 + ((read_index + 1) % update_element_count) + update_element_count], hashes[1 + read_index + update_element_count]);
-
+        hashes[1 + write_index] = hash_pair(hashes[1 + read_index], hashes[1 + ((read_index + 1) % update_element_count)]);
+        hashes[1 + write_index + update_element_count] = hash_pair(hashes[1 + read_index + update_element_count], hashes[1 + ((read_index + 1) % update_element_count) + update_element_count]);
         read_index = read_index + 2;
       } else {
-        hashes[1 + write_index] = (proof[2] & bit_check == bit_check) ?
-          hash_node(hashes[1 + read_index], proof[3 + decommitment_index]) :
-          hash_node(proof[3 + decommitment_index], hashes[1 + read_index]);
-
-        hashes[1 + write_index + update_element_count] = (proof[2] & bit_check == bit_check) ?
-          hash_node(hashes[1 + read_index + update_element_count], proof[3 + decommitment_index++]) :
-          hash_node(proof[3 + decommitment_index++], hashes[1 + read_index + update_element_count]);
-
+        hashes[1 + write_index] = hash_pair(hashes[1 + read_index], proof[2 + decommitment_index]);
+        hashes[1 + write_index + update_element_count] = hash_pair(hashes[1 + read_index + update_element_count], proof[2 + decommitment_index++]);
         read_index = read_index + 1;
       }
 
@@ -484,11 +446,11 @@ library Merkle_Library {
 
     while (upper_bound > 0) {
       if ((write_index == 0) && (index & 1 == 1)) {
-        new_hashes[0] = hash_node(decommitments[decommitment_index--], new_hashes[read_index++]);
+        new_hashes[0] = hash_pair(decommitments[decommitment_index--], new_hashes[read_index++]);
         write_index = 1;
         index++;
       } else if (index < upper_bound) {
-        new_hashes[write_index++] = hash_node(new_hashes[read_index++], new_hashes[read_index++]);
+        new_hashes[write_index++] = hash_pair(new_hashes[read_index++], new_hashes[read_index++]);
         index += 2;
       }
 

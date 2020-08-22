@@ -5,7 +5,7 @@
 const assert = require('assert');
 const { leftShift, and, or } = require('bitwise-buffer');
 
-const { bitCount32 } = require('./utils');
+const { hashNode, bitCount32 } = require('./utils');
 const { generate } = require('./flag-multi-proofs');
 
 // This is the MultiFlagProof.getRootBooleans algorithm, however, it additionally infers and
@@ -17,7 +17,8 @@ const { generate } = require('./flag-multi-proofs');
 // to inferring the append-proof decommitments is to take the left node of each hashing pair, if
 // the right node of the hashing pair is both the "right-most" (last) node, and odd.
 // See MultiFlagProof.getRootBooleans for relevant inline comments.
-const getRootBooleans = ({ leafs, elementCount, flags, skips, decommitments, hashFunction }) => {
+const getRootBooleans = ({ leafs, elementCount, flags, orders, skips, decommitments }, options = {}) => {
+  const { hashFunction = hashNode } = options;
   const hashCount = flags.length;
   const leafCount = leafs.length;
   const hashes = Array(leafCount).fill(null);
@@ -105,7 +106,7 @@ const getRootBooleans = ({ leafs, elementCount, flags, skips, decommitments, has
     const right = flags[i] ? (useLeafs ? leafs[readIndex++] : hashes[readIndex++]) : decommitments[decommitmentIndex++];
     readIndex %= leafCount;
     const left = useLeafs ? leafs[readIndex++] : hashes[readIndex++];
-    hashes[writeIndex++] = hashFunction(left, right);
+    hashes[writeIndex++] = orders?.[i] ? hashFunction(left, right) : hashFunction(right, left);
 
     if (useLeafs && readIndex === leafCount) useLeafs = false;
 
@@ -124,10 +125,12 @@ const getRootBooleans = ({ leafs, elementCount, flags, skips, decommitments, has
 // This is identical to the above getRootBooleans algorithm, differing only in that the
 // the flag and skip bit-set is shifted and checked, rather than boolean arrays.
 // See getRootBooleans for relevant inline comments.
-const getRootBits = ({ leafs, elementCount, proof, hashFunction }) => {
-  const flags = proof[0];
-  const skips = proof[1];
-  const decommitments = proof.slice(2);
+const getRootBits = ({ leafs, elementCount, compactProof }, options = {}) => {
+  const { hashFunction = hashNode, sortedHash = true } = options;
+  const flags = compactProof[0];
+  const skips = compactProof[1];
+  const orders = sortedHash ? undefined : compactProof[2];
+  const decommitments = compactProof.slice(sortedHash ? 2 : 3);
   const leafCount = leafs.length;
   const hashes = Array(leafCount).fill(null);
 
@@ -196,7 +199,9 @@ const getRootBits = ({ leafs, elementCount, proof, hashFunction }) => {
     const right = flag ? (useLeafs ? leafs[readIndex++] : hashes[readIndex++]) : decommitments[decommitmentIndex++];
     readIndex %= leafCount;
     const left = useLeafs ? leafs[readIndex++] : hashes[readIndex++];
-    hashes[writeIndex++] = hashFunction(left, right);
+
+    const order = orders && and(orders, bitCheck).equals(bitCheck);
+    hashes[writeIndex++] = order ? hashFunction(left, right) : hashFunction(right, left);
 
     if (useLeafs && readIndex === leafCount) useLeafs = false;
 
@@ -206,8 +211,8 @@ const getRootBits = ({ leafs, elementCount, proof, hashFunction }) => {
   }
 };
 
-const getRoot = (parameters) => {
-  return parameters.proof ? getRootBits(parameters) : getRootBooleans(parameters);
+const getRoot = (parameters, options = {}) => {
+  return parameters.compactProof ? getRootBits(parameters, options) : getRootBooleans(parameters, options);
 };
 
 // This is identical to the above getRootBooleans followed by the AppendProof.getNewRootMulti.
@@ -216,16 +221,11 @@ const getRoot = (parameters) => {
 // same time, the old root is computed, from the inferred append-proof decommitments. And also,
 // at the same time, the new append-proof decommitments are computed from the updated elements.
 // See getRootBooleans for relevant inline comments.
-const getNewRootBooleans = ({
-  leafs,
-  updateLeafs,
-  appendLeafs,
-  elementCount,
-  flags,
-  skips,
-  decommitments,
-  hashFunction,
-}) => {
+const getNewRootBooleans = (
+  { leafs, updateLeafs, appendLeafs, elementCount, flags, skips, orders, decommitments },
+  options = {}
+) => {
+  const { hashFunction = hashNode } = options;
   const hashCount = flags.length;
   const leafCount = leafs.length;
   const hashes = Array(leafCount).fill(null);
@@ -309,8 +309,8 @@ const getNewRootBooleans = ({
     const left = useLeafs ? leafs[readIndex] : hashes[readIndex];
     const newLeft = useLeafs ? updateLeafs[readIndex++] : newHashes[readIndex++];
 
-    hashes[writeIndex] = hashFunction(left, right);
-    newHashes[writeIndex++] = hashFunction(newLeft, newRight);
+    hashes[writeIndex] = orders?.[i] ? hashFunction(left, right) : hashFunction(right, left);
+    newHashes[writeIndex++] = orders?.[i] ? hashFunction(newLeft, newRight) : hashFunction(newRight, newLeft);
 
     if (useLeafs && readIndex === leafCount) useLeafs = false;
 
@@ -373,10 +373,12 @@ const getNewRootBooleans = ({
 // This is identical to the above getNewRootBooleans algorithm, differing only in that the
 // the flag and skip bit-set is shifted and checked, rather than boolean arrays.
 // See getNewRootBooleans for relevant inline comments.
-const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, proof, hashFunction }) => {
-  const flags = proof[0];
-  const skips = proof[1];
-  const decommitments = proof.slice(2);
+const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, compactProof }, options = {}) => {
+  const { hashFunction = hashNode, sortedHash = true } = options;
+  const flags = compactProof[0];
+  const skips = compactProof[1];
+  const orders = sortedHash ? undefined : compactProof[2];
+  const decommitments = compactProof.slice(sortedHash ? 2 : 3);
   const leafCount = leafs.length;
   const hashes = Array(leafCount).fill(null);
   const newHashes = Array(Math.max(leafCount, (appendLeafs.length >>> 1) + 1)).fill(null);
@@ -469,8 +471,9 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, proof, 
     const left = useLeafs ? leafs[readIndex] : hashes[readIndex];
     const newLeft = useLeafs ? updateLeafs[readIndex++] : newHashes[readIndex++];
 
-    hashes[writeIndex] = hashFunction(left, right);
-    newHashes[writeIndex++] = hashFunction(newLeft, newRight);
+    const order = orders && and(orders, bitCheck).equals(bitCheck);
+    hashes[writeIndex] = order ? hashFunction(left, right) : hashFunction(right, left);
+    newHashes[writeIndex++] = order ? hashFunction(newLeft, newRight) : hashFunction(newRight, newLeft);
 
     if (useLeafs && readIndex === leafCount) useLeafs = false;
 
@@ -518,8 +521,8 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, proof, 
   return { root: Buffer.from(hash), newRoot: newHashes[0] };
 };
 
-const getNewRoot = (parameters) => {
-  return parameters.proof ? getNewRootBits(parameters) : getNewRootBooleans(parameters);
+const getNewRoot = (parameters, options = {}) => {
+  return parameters.compactProof ? getNewRootBits(parameters, options) : getNewRootBooleans(parameters, options);
 };
 
 // This returns the minimum index that must be in the proof, to result in a proof that will be

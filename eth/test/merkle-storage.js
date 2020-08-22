@@ -11,7 +11,7 @@ const options = {
   sortedHash: true,
   elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
   indexed: false,
-  bitFlags: true,
+  compact: true,
 };
 
 let contractInstance = null;
@@ -58,10 +58,10 @@ const testUseAndUpdateOne = async (index, expectedGas) => {
 };
 
 const testUseMany = async (indices, expectedGas) => {
-  const { elementCount, elements, proof } = merkleTree.generateMultiProof(indices, options);
+  const { elementCount, elements, compactProof } = merkleTree.generateMultiProof(indices, options);
   const hexElements = elements.map(e => '0x' + e.toString('hex'));
-  const hexProof = proof.map(p => '0x' + p.toString('hex'));
-  const { receipt } = await contractInstance.use_many(elementCount, hexElements, hexProof);
+  const hexCompactProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.use_many(elementCount, hexElements, hexCompactProof);
 
   expect(receipt.gasUsed).to.equal(expectedGas);
 };
@@ -70,10 +70,10 @@ const testUpdateMany = async (indices, seed, expectedGas) => {
   const newElements = generateElements(indices.length, { seed });
   const hexNewElements = newElements.map(e => '0x' + e.toString('hex'));
   const { newMerkleTree, proof } = merkleTree.updateMulti(indices, newElements, options);
-  const { elementCount, elements, proof: compactProof } = proof;
+  const { elementCount, elements, compactProof } = proof;
   const hexElements = elements.map(e => '0x' + e.toString('hex'));
-  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
-  const { receipt } = await contractInstance.update_many(elementCount, hexElements, hexNewElements, hexProof);
+  const hexCompactProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.update_many(elementCount, hexElements, hexNewElements, hexCompactProof);
 
   expect(receipt.gasUsed).to.equal(expectedGas);
   
@@ -85,10 +85,10 @@ const testUpdateMany = async (indices, seed, expectedGas) => {
 };
 
 const testUseAndUpdateMany = async (indices, expectedGas) => {
-  const { elementCount, elements, proof } = merkleTree.generateMultiProof(indices, options);
+  const { elementCount, elements, compactProof } = merkleTree.generateMultiProof(indices, options);
   const hexElements = elements.map(e => '0x' + e.toString('hex'));
-  const hexProof = proof.map(p => '0x' + p.toString('hex'));
-  const { receipt } = await contractInstance.use_and_update_many(elementCount, hexElements, hexProof);
+  const hexCompactProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.use_and_update_many(elementCount, hexElements, hexCompactProof);
 
   expect(receipt.gasUsed).to.equal(expectedGas);
 
@@ -182,10 +182,10 @@ const testAppendManyConsecutively = async (iterations, appendSize, seed, expecte
 };
 
 const testUseUpdateAndAppendMany = async (indices, expectedGas) => {
-  const { elementCount, elements, proof } = merkleTree.generateCombinedProof(indices, options);
+  const { elementCount, elements, compactProof } = merkleTree.generateCombinedProof(indices, options);
   const hexElements = elements.map(e => '0x' + e.toString('hex'));
-  const hexProof = proof.map(p => '0x' + p.toString('hex'));
-  const { receipt } = await contractInstance.use_and_update_and_append_many(elementCount, hexElements, hexProof);
+  const hexCompactProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.use_and_update_and_append_many(elementCount, hexElements, hexCompactProof);
 
   expect(receipt.gasUsed).to.equal(expectedGas);
   
@@ -199,7 +199,7 @@ const testUseUpdateAndAppendManyConsecutively = async (iterations, seed, count, 
   return;
 };
 
-describe.only("Merkle_Storage", async accounts => {
+describe("Merkle_Storage", async accounts => {
   beforeEach(async () => {
     contractInstance = await Merkle_Storage.new();
     const elements = generateElements(20, { seed: 'ff' });

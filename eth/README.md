@@ -12,10 +12,16 @@ Ideally, this structure and library can be used to roll up and entire object, in
 While the merkle-storage contract is a working and tested example, the merkle-storage library needs to be tested, and could be optimized further.
 
 
+## Notes ##
+
+- Merkle trees with pairs that are sorted at hash-time result in cheaper and smaller proofs, at the cost of not being able to prove an element's index.
+- More work can still be done to make these contracts more readable
+
+
 ## Various TODOs (mostly dependent on `merkle-trees/js`) ##
 
-- [ ] support indexed multi-proofs
-- [ ] support index-less single-proofs
+- [ ] support indexed multi-proofs for non-sorted-hash (either by inference or with the larger indexed proofs)
+- [ ] support index-less (compact existence-only) single-proofs
 - [ ] support deleting elements
 - [ ] recursive proofs (arrays of arrays)
 - [ ] recursive proofs (objects of objects)

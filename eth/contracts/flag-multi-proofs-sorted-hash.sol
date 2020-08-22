@@ -2,7 +2,7 @@
 
 pragma solidity >=0.5.0 <0.7.0;
 
-contract Flag_Multi_Proofs {
+contract Flag_Multi_Proofs_Sorted_Hash {
   bytes32 public root;
 
   event Data_Used(bytes32 data_used);
@@ -15,6 +15,10 @@ contract Flag_Multi_Proofs {
     }
 
     return hash;
+  }
+
+  function hash_pair(bytes32 a, bytes32 b) internal pure returns (bytes32) {
+    return a < b ? hash_node(a, b) : hash_node(b, a);
   }
 
   function _debug_set_root(bytes32 _root) public {
@@ -57,11 +61,11 @@ contract Flag_Multi_Proofs {
         continue;
       }
 
-      right = (proof[0] & bit_check == bit_check) ? hashes[read_index++] : proof[3 + decommitment_index++];
+      right = (proof[0] & bit_check == bit_check) ? hashes[read_index++] : proof[2 + decommitment_index++];
 
       read_index %= verifying_element_count;
 
-      hashes[write_index++] = (proof[2] & bit_check == bit_check) ? hash_node(hashes[read_index++], right) : hash_node(right, hashes[read_index++]);
+      hashes[write_index++] = hash_pair(hashes[read_index++], right);
 
       read_index %= verifying_element_count;
       write_index %= verifying_element_count;
@@ -120,13 +124,13 @@ contract Flag_Multi_Proofs {
         continue;
       }
 
-      right = (proof[0] & bit_check == bit_check) ? hashes[read_index] : proof[3 + decommitment_index];
-      new_right = (proof[0] & bit_check == bit_check) ? hashes[new_element_count + read_index++] : proof[3 + decommitment_index++];
+      right = (proof[0] & bit_check == bit_check) ? hashes[read_index] : proof[2 + decommitment_index];
+      new_right = (proof[0] & bit_check == bit_check) ? hashes[new_element_count + read_index++] : proof[2 + decommitment_index++];
 
       read_index %= new_element_count;
 
-      hashes[write_index] = (proof[2] & bit_check == bit_check) ? hash_node(hashes[read_index], right) : hash_node(right, hashes[read_index]);
-      hashes[new_element_count + write_index++] = (proof[2] & bit_check == bit_check) ? hash_node(hashes[new_element_count + read_index++], new_right) : hash_node(new_right, hashes[new_element_count + read_index++]);
+      hashes[write_index] = hash_pair(hashes[read_index], right);
+      hashes[new_element_count + write_index++] = hash_pair(hashes[new_element_count + read_index++], new_right);
 
       read_index %= new_element_count;
       write_index %= new_element_count;
