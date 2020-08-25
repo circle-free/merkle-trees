@@ -19,5 +19,9 @@
   "bugs": {
     "url": "https://github.com/circle-free/merkle-trees/issues"
   },
-  "homepage": "https://github.com/circle-free/merkle-trees#readme"
+  "homepage": "https://github.com/circle-free/merkle-trees#readme",
+  "dependencies": {
+    "bitwise-buffer": "^1.0.2",
+    "sha3": "^2.1.3"
+  }
 }

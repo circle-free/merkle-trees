@@ -3,7 +3,7 @@
 const chai = require('chai');
 const { expect } = chai;
 const { generateElements } = require('./helpers');
-const MerkleTree = require('../src');
+const MerkleTree = require('../index');
 
 const testBuildTree = (elementCount, seed, expected, options) => {
   const elements = generateElements(elementCount, { seed });

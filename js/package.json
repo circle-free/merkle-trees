@@ -2,7 +2,7 @@
   "name": "merkle-trees-js",
   "version": "0.1.0",
   "description": "Builds complete Merkle Trees, generates and verifies single-proofs, multi-proofs, append-proofs, and combined-proofs.",
-  "main": "src/index.js",
+  "main": "index.js",
   "repository": "https://github.com/circle-free/merkle-trees",
   "author": "Circle-Free",
   "license": "MIT",
@@ -14,10 +14,7 @@
     "test": "mocha 'tests'",
     "prettier": "prettier --write 'src/**/*.js' 'tests/**/*.js'"
   },
-  "dependencies": {
-    "bitwise-buffer": "^1.0.2",
-    "sha3": "^2.1.3"
-  },
+  "dependencies": {},
   "devDependencies": {
     "chai": "^4.2.0",
     "mocha": "^8.0.1",
