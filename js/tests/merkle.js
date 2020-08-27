@@ -79,7 +79,7 @@ const testSingleUpdate = (elementCount, index, options) => {
 };
 
 const testConsecutiveSingleUpdate = (iterations, elementCount, options) => {
-  let elements = generateElements(elementCount);
+  let elements = generateElements(elementCount, { seed: 'cc' });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
 
@@ -188,12 +188,12 @@ const testMultiUpdate = (elementCount, indices, options) => {
 };
 
 const testConsecutiveMultiUpdate = (iterations, elementCount, updateSize, options) => {
-  let elements = generateElements(elementCount);
+  let elements = generateElements(elementCount, { seed: 'cc' });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
 
   for (let i = 0; i < iterations; i++) {
-    const rawNewElements = Array.from({ length: updateSize }, () => generateElements(updateSize, { random: true }));
+    const rawNewElements = generateElements(updateSize, { random: true });
     const rawIndices = rawNewElements.map(() => Math.floor(Math.random() * elementCount));
     const indices = rawIndices.filter((index, i) => rawIndices.indexOf(index) === i).sort((a, b) => b - a);
     const newElements = rawNewElements.slice(0, indices.length);
@@ -252,7 +252,7 @@ const testSingleAppend = (elementCount, options) => {
 };
 
 const testConsecutiveSingleAppend = (iterations, elementCount, options) => {
-  let elements = generateElements(elementCount);
+  let elements = generateElements(elementCount, { seed: 'cc' });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
 
@@ -289,7 +289,7 @@ const testMultiAppend = (elementCount, appendSize, options) => {
 };
 
 const testConsecutiveMultiAppend = (iterations, elementCount, appendSize, options) => {
-  let elements = generateElements(elementCount);
+  let elements = generateElements(elementCount, { seed: 'cc' });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
 
@@ -379,7 +379,7 @@ const testCombinedUpdateAndAppend = (elementCount, updateIndices, appendSize, op
 };
 
 const testConsecutiveUpdateAndAppend = (iterations, elementCount, updateSize, appendSize, options) => {
-  let elements = generateElements(elementCount);
+  let elements = generateElements(elementCount, { seed: 'cc' });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
 
