@@ -62,7 +62,7 @@ const myTree = new MerkleTree(someArrayOf32ByteBuffers);
 
 const options = { indexed: false };
 // merkleTree is immutable, so it will give you back a new tree and a proof
-const { newMerkleTree: myUpdatedTree, proof } = myTree.updateMulti([20, 9, 2], someArrayOf32ByteBuffersOfLength3, options);
+const { newMerkleTree: myUpdatedTree, proof } = myTree.updateMulti([2, 9, 20], someArrayOf32ByteBuffersOfLength3, options);
 const { elements, ... } = proof;
 
 const proofIsValid = MerkleTree.verifyMultiProof(proof, options);
@@ -115,7 +115,7 @@ const options = { indexed: false };
 const oneIndexMustBeEqualOrGreaterThanThis = myTree.minimumCombinedProofIndex;  // 16 in this case
 
 // merkleTree is immutable, so it will give you back a new tree and a proof
-const { newMerkleTree, proof } = myTree.updateAndAppendMulti([17, 9, 2], ThreeBuffers, SixBuffers, options);
+const { newMerkleTree, proof } = myTree.updateAndAppendMulti([2, 9, 17], ThreeBuffers, SixBuffers, options);
 
 const proofIsValid = MerkleTree.verifyCombinedProof(proof, options);
 console.log(`The proof is ${proofIsValid ? '' : 'not'} sufficient to update and append items.`); // it is
@@ -134,7 +134,7 @@ Given an unbalanced tree, where elements to the right of the append index do not
 
 - [ ] serialize method (likely just elements, possibly redundant)
 - [ ] test elements greater than 32 bytes
-- [ ] argument validation (i.e. parameter lengths, mutually exclusive options like indexed and compact)
+- [X] argument validation (i.e. parameter lengths, mutually exclusive options like indexed and compact)
 - [ ] unbalanced proofs for indexed multi-proofs (with tests)
 - [ ] index-less (existence-only) single-proofs
 - [ ] verify and update single proof can probably be cheaper with sortedHash given that element count is required
@@ -152,7 +152,7 @@ Given an unbalanced tree, where elements to the right of the append index do not
 - [ ] visual documentation of how individual proofs work
 - [ ] test how null/undefined elements before the append index affect trees/proofs
 - [ ] explorer, test, and document failure cases (or rather, cases with invalid proofs)
-- [x] ~~explorer combined and existence-only (flag) multi-proofs, without sorted hashing, (possibly separate set of hash order booleans)~~
+- [X] ~~explorer combined and existence-only (flag) multi-proofs, without sorted hashing, (possibly separate set of hash order booleans)~~
 - [ ] given hash order booleans, implement index inferring for multi-proofs without sorted hashing (it is possible)
 - [ ] explorer efficiency of separate boolean-array, in the multi-proof, to inform when to take a hash as an append-decommitment
 - [ ] enable compact proofs for large trees (proof hash count > 255) with multiple 32-byte flags, given stop bits

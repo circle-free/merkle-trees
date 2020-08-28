@@ -9,7 +9,7 @@ Ideally, this structure and library can be used to roll up and entire object, in
 
 ## Status ##
 
-While the merkle-storage contract is a working and tested example, the merkle-storage library needs to be tested, and could be optimized further.
+Merkle-storage library works and is tested, with an example, but could be optimized further.
 
 
 ## Notes ##
@@ -29,13 +29,13 @@ While the merkle-storage contract is a working and tested example, the merkle-st
 - [ ] benchmark break-evens
 - [ ] bit_count_256
 - [ ] support proofs that require more than 255 hashes (a bit excessive)
-- [ ] implement use_many_and_append_many in merkle-storage.sol
-- [ ] an example using the library contract
-- [ ] testing of the library contract
+- [ ] implement and test use_many_and_append_many in merkle-storage.sol and merkle-storage-using-library.sol
+- [X] ~~an example using the library contract~~
+- [X] ~~testing of the library contract~~
 - [ ] support for arbitrary size elements (currently, each element must be 32-bytes)
 - [ ] security review
 - [ ] ensure logical shift right (to prevent leading bit-flags from propagating down)
-
+- [ ] non-assembly logic optimizations (i.e. argument and variable order, reusing variables)
 
 ## Tests ##
 
