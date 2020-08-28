@@ -219,52 +219,52 @@ describe("Merkle_Storage", async accounts => {
     return testUseAndUpdateOne(0, 36653);
   });
 
-  it("should use 2 elements for 33,052 gas.", () => {
-    return testUseMany([1, 0], 33052);
+  it("should use 2 elements for 32,995 gas.", () => {
+    return testUseMany([0, 1], 32995);
   });
 
-  it("should use 3 elements for 34,687 gas.", () => {
-    return testUseMany([2, 1, 0], 34687);
+  it("should use 3 elements for 34,630 gas.", () => {
+    return testUseMany([0, 1, 2], 34630);
   });
 
-  it("should use 4 elements for 35,146 gas.", () => {
-    return testUseMany([3, 2, 1, 0], 35146);
+  it("should use 4 elements for 35,111 gas.", () => {
+    return testUseMany([0, 1, 2, 3], 35111);
   });
 
-  it("should use 8 elements for 41,765 gas.", () => {
-    return testUseMany([15, 14, 13, 12, 3, 2, 1, 0], 41765);
+  it("should use 8 elements for 41,730 gas.", () => {
+    return testUseMany([0, 1, 2, 3, 12, 13, 14, 15], 41730);
   });
 
-  it("should update 2 elements for 41,101 gas.", () => {
-    return testUpdateMany([1, 0], '11', 41101);
+  it("should update 2 elements for 41,093 gas.", () => {
+    return testUpdateMany([0, 1], '11', 41093);
   });
 
-  it("should update 3 elements for 43,600 gas.", () => {
-    return testUpdateMany([2, 1, 0], '11', 43600);
+  it("should update 3 elements for 43,631 gas.", () => {
+    return testUpdateMany([0, 1, 2], '11', 43631);
   });
 
-  it("should update 4 elements for 44,686 gas.", () => {
-    return testUpdateMany([3, 2, 1, 0], '11', 44686);
+  it("should update 4 elements for 44,746 gas.", () => {
+    return testUpdateMany([0, 1, 2, 3], '11', 44746);
   });
 
-  it("should update 8 elements for 54,877 gas.", () => {
-    return testUpdateMany([15, 14, 13, 12, 3, 2, 1, 0], '11', 54877);
+  it("should update 8 elements for 54,994 gas.", () => {
+    return testUpdateMany([0, 1, 2, 3, 12, 13, 14, 15], '11', 54994);
   });
 
-  it("should use and update 2 element for 41,506 gas.", () => {
-    return testUseAndUpdateMany([1, 0], 41506);
+  it("should use and update 2 element for 41,509 gas.", () => {
+    return testUseAndUpdateMany([0, 1], 41509);
   });
 
-  it("should use and update 3 element for 43,886 gas.", () => {
-    return testUseAndUpdateMany([2, 1, 0], 43886);
+  it("should use and update 3 element for 43,906 gas.", () => {
+    return testUseAndUpdateMany([0, 1, 2], 43906);
   });
 
-  it("should use and update 4 element for 44,831 gas.", () => {
-    return testUseAndUpdateMany([3, 2, 1, 0], 44831);
+  it("should use and update 4 element for 44,880 gas.", () => {
+    return testUseAndUpdateMany([0, 1, 2, 3], 44880);
   });
 
-  it("should use and update 8 element for 54,460 gas.", () => {
-    return testUseAndUpdateMany([15, 14, 13, 12, 3, 2, 1, 0], 54460);
+  it("should use and update 8 element for 54,577 gas.", () => {
+    return testUseAndUpdateMany([0, 1, 2, 3, 12, 13, 14, 15], 54577);
   });
 
   it("should append 1 new element for 31,577 gas.", async () => {
@@ -275,52 +275,52 @@ describe("Merkle_Storage", async accounts => {
     return testAppendOneConsecutively(100, '22', 3325643);
   });
 
-  it(`should append 2 new elements, for 35,395 gas.`, async () => {
-    return testAppendMany(2, '22', 35395);
+  it(`should append 2 new elements, for 35,387 gas.`, async () => {
+    return testAppendMany(2, '22', 35387);
   });
 
-  it(`should append 3 new elements, for 36,576 gas.`, async () => {
-    return testAppendMany(3, '22', 36576);
+  it(`should append 3 new elements, for 36,564 gas.`, async () => {
+    return testAppendMany(3, '22', 36564);
   });
 
-  it(`should append 4 new elements, for 37,777 gas.`, async () => {
-    return testAppendMany(4, '22', 37777);
+  it(`should append 4 new elements, for 37,761 gas.`, async () => {
+    return testAppendMany(4, '22', 37761);
   });
 
-  it(`should append 8 new elements, for 42,850 gas.`, async () => {
-    return testAppendMany(8, '22', 42850);
+  it(`should append 8 new elements, for 42,818 gas.`, async () => {
+    return testAppendMany(8, '22', 42818);
   });
 
-  it("should append 2 new elements, 100 times consecutively, for 3,758,796 gas.", () => {
-    return testAppendManyConsecutively(100, 2, '22', 3758796);
+  it("should append 2 new elements, 100 times consecutively, for 3,757,996 gas.", () => {
+    return testAppendManyConsecutively(100, 2, '22', 3757996);
   });
 
-  it("should append 3 new elements, 100 times consecutively, for 3,981,921 gas.", () => {
-    return testAppendManyConsecutively(100, 3, '22', 3981921);
+  it("should append 3 new elements, 100 times consecutively, for 3,980,721 gas.", () => {
+    return testAppendManyConsecutively(100, 3, '22', 3980721);
   });
 
-  it("should append 4 new elements, 100 times consecutively, for 4,009,813 gas.", () => {
-    return testAppendManyConsecutively(100, 4, '22', 4009813);
+  it("should append 4 new elements, 100 times consecutively, for 4,008,213 gas.", () => {
+    return testAppendManyConsecutively(100, 4, '22', 4008213);
   });
 
-  it("should append 8 new elements, 100 times consecutively, for 4,653,211 gas.", () => {
-    return testAppendManyConsecutively(100, 8, '22', 4653211);
+  it("should append 8 new elements, 100 times consecutively, for 4,650,011 gas.", () => {
+    return testAppendManyConsecutively(100, 8, '22', 4650011);
   });
 
-  it("should use, update, and append 2 new elements for 51,666 gas.", () => {
-    return testUseUpdateAndAppendMany([19, 0], 51666);
+  it("should use, update, and append 2 new elements for 51,313 gas.", () => {
+    return testUseUpdateAndAppendMany([0, 19], 51313);
   });
 
-  it("should use, update, and append 3 new elements for 53,436 gas.", () => {
-    return testUseUpdateAndAppendMany([19, 1, 0], 53436);
+  it("should use, update, and append 3 new elements for 53,072 gas.", () => {
+    return testUseUpdateAndAppendMany([0, 1, 19], 53072);
   });
 
-  it("should use, update, and append 4 new elements for 56,784 gas.", () => {
-    return testUseUpdateAndAppendMany([19, 2, 1, 0], 56784);
+  it("should use, update, and append 4 new elements for 56,329 gas.", () => {
+    return testUseUpdateAndAppendMany([0, 1, 2, 19], 56329);
   });
 
-  it("should use, update, and append 8 new elements for 70,408 gas.", () => {
-    return testUseUpdateAndAppendMany([19, 14, 13, 12, 3, 2, 1, 0], 70408);
+  it("should use, update, and append 8 new elements for 69,710 gas.", () => {
+    return testUseUpdateAndAppendMany([0, 1, 2, 3, 12, 13, 14, 19], 69710);
   });
 
   it.skip("should use, update, and append 2 elements, 100 times consecutively, for 7,645,388 gas.", () => {
