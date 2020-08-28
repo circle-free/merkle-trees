@@ -247,8 +247,6 @@ class MerkleTree {
   }
 
   updateSingle(index, element, proofOptions = {}) {
-    assert(index < this._elements.length, 'Index out of range.');
-
     const newElements = this._elements.map((e, i) => (i === index ? element : e));
 
     const treeOptions = {
@@ -268,6 +266,11 @@ class MerkleTree {
 
     assert(!indexed || !this._unbalanced, 'Indexed Multi-Proofs for unbalanced trees not yet supported.');
 
+    indices.forEach((index, i) => {
+      assert(index < this._elements.length, 'Index out of range.');
+      assert(indices.indexOf(index) === i, 'Duplicate in indices.');
+    });
+
     const params = { tree: this._tree, indices };
     const proofOptions = { unbalanced: this._unbalanced, sortedHash: this._sortedHash, compact };
     const proofGenerator = indexed ? MultiIndexedProofs.generate : MultiFlagProofs.generate;
@@ -284,17 +287,13 @@ class MerkleTree {
   }
 
   generateMultiUpdateProof(indices, elements, options = {}) {
+    assert(indices.length === elements.length, 'Indices and element count mismatch.');
     const newElements = elements.map(Buffer.from);
 
     return Object.assign({ newElements }, this.generateMultiProof(indices, options));
   }
 
   updateMulti(indices, elements, proofOptions = {}) {
-    indices.forEach((index, i) => {
-      assert(index < this._elements.length, 'Index out of range.');
-      assert(indices.indexOf(index) === i, 'Duplicate in indices.');
-    });
-
     const newElements = this.elements.map((e, i) => {
       const index = indices.indexOf(i);
 
@@ -327,6 +326,8 @@ class MerkleTree {
   }
 
   generateMultiAppendProof(elements, options = {}) {
+    assert(elements.length > 0, 'No elements provided.');
+
     return Object.assign({ newElements: elements.map(Buffer.from) }, this.generateAppendProof(options));
   }
 
@@ -362,12 +363,19 @@ class MerkleTree {
   }
 
   generateCombinedProof(indices, options = {}) {
-    assert(this._unbalanced, 'Can only generate Append-Proofs for unbalanced trees.');
+    const { indexed = false, compact = true } = options;
 
-    const { compact = false } = options;
+    assert(!indexed, 'Indexed Combined-Proofs are not yet supported.');
+    assert(this._unbalanced, 'Can only generate Combined-Proofs for unbalanced trees.');
+
+    indices.forEach((index, i) => {
+      assert(index < this._elements.length, 'Index out of range.');
+      assert(indices.indexOf(index) === i, 'Duplicate in indices.');
+    });
+
     const elementCount = this._elements.length;
     const minimumIndex = CombinedProofs.getMinimumIndex(elementCount);
-    assert(indices[0] >= minimumIndex, `First index must be larger than ${minimumIndex}.`);
+    assert(indices[indices.length - 1] >= minimumIndex, `Last index must be larger than ${minimumIndex}.`);
 
     const params = { tree: this._tree, indices };
     const proofOptions = { sortedHash: this._sortedHash, compact };
@@ -384,6 +392,10 @@ class MerkleTree {
   }
 
   generateMultiAppendUpdateProof(indices, updateElements, appendElements, options = {}) {
+    assert(indices.length > 0, 'No elements provided to be proven');
+    assert(indices.length === updateElements.length, 'Indices and update element count mismatch.');
+    assert(appendElements.length > 0, 'No elements provided to be appended.');
+
     const base = {
       updateElements: updateElements.map(Buffer.from),
       appendElements: appendElements.map(Buffer.from),

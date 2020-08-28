@@ -41,15 +41,16 @@ contract Indexed_Multi_Proofs_Sorted_Hash {
     
     bytes32[] memory hashes = new bytes32[](index_count);
     uint256[] memory tree_indices = new uint256[](index_count);
+    uint256 read_index = index_count - 1;
     uint256 write_index;
     
     while (write_index < index_count) {
-      tree_indices[write_index] = total_element_count + indices[write_index];
-      hashes[write_index++] = hash_node(bytes32(0), elements[write_index]);
+      tree_indices[write_index] = total_element_count + indices[read_index];
+      hashes[write_index++] = hash_node(bytes32(0), elements[read_index--]);
     }
 
+    read_index = 0;
     write_index = 0;
-    uint256 read_index;
     uint256 decommitment_index;
     uint256 index;
     
@@ -99,17 +100,17 @@ contract Indexed_Multi_Proofs_Sorted_Hash {
     bytes32[] memory hashes = new bytes32[](index_count);
     bytes32[] memory new_hashes = new bytes32[](index_count);
     uint256[] memory tree_indices = new uint256[](index_count);
-
+    uint256 read_index = index_count - 1;
     uint256 write_index;
 
     while (write_index < index_count) {
-      tree_indices[write_index] = total_element_count + indices[write_index];
-      hashes[write_index] = hash_node(bytes32(0), elements[write_index]);
-      new_hashes[write_index++] = hash_node(bytes32(0), new_elements[write_index]);
+      tree_indices[write_index] = total_element_count + indices[read_index];
+      hashes[write_index] = hash_node(bytes32(0), elements[read_index]);
+      new_hashes[write_index++] = hash_node(bytes32(0), new_elements[read_index--]);
     }
 
+    read_index = 0;
     write_index = 0;
-    uint256 read_index;
     uint256 decommitment_index;
     uint256 index;
     

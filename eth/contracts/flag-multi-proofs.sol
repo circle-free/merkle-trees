@@ -33,14 +33,15 @@ contract Flag_Multi_Proofs {
   function get_root(bytes32[] memory elements, bytes32[] memory proof) public pure returns (bytes32) {
     uint256 verifying_element_count = elements.length;
     bytes32[] memory hashes = new bytes32[](verifying_element_count);
+    uint256 read_index = verifying_element_count - 1;
     uint256 write_index;
 
     while (write_index < verifying_element_count) {
-      hashes[write_index++] = hash_node(bytes32(0), elements[write_index]);
+      hashes[write_index++] = hash_node(bytes32(0), elements[read_index--]);
     }
 
+    read_index = 0;
     write_index = 0;
-    uint256 read_index;
     uint256 decommitment_index;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     bytes32 right;
@@ -89,15 +90,16 @@ contract Flag_Multi_Proofs {
     require(elements.length == new_element_count, "LENGTH_MISMATCH");
     
     bytes32[] memory hashes = new bytes32[](new_element_count << 1);
+    uint256 read_index = new_element_count - 1;
     uint256 write_index;
     
     while (write_index < new_element_count) {
-      hashes[write_index] = hash_node(bytes32(0), elements[write_index]);
-      hashes[new_element_count + write_index++] = hash_node(bytes32(0), new_elements[write_index]);
+      hashes[write_index] = hash_node(bytes32(0), elements[read_index]);
+      hashes[new_element_count + write_index++] = hash_node(bytes32(0), new_elements[read_index--]);
     }
 
+    read_index = 0;
     write_index = 0;
-    uint256 read_index;
     uint256 decommitment_index;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     bytes32 right;
