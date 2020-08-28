@@ -1,6 +1,6 @@
 'use strict';
 
-// NOTE: indices must be in descending order
+// NOTE: indices must be in ascending order
 
 const assert = require('assert');
 const { leftShift, and, or } = require('bitwise-buffer');
@@ -21,12 +21,11 @@ const getRootBooleans = ({ leafs, elementCount, flags, orders, skips, decommitme
   const { hashFunction = hashNode } = options;
   const hashCount = flags.length;
   const leafCount = leafs.length;
-  const hashes = Array(leafCount).fill(null);
+  const hashes = leafs.map((leaf) => leaf).reverse();
 
   let readIndex = 0;
   let writeIndex = 0;
   let decommitmentIndex = 0;
-  let useLeafs = true;
 
   // The index, localized to the level/depth, of where the first appended element will go
   let appendNodeIndex = elementCount;
@@ -50,7 +49,7 @@ const getRootBooleans = ({ leafs, elementCount, flags, orders, skips, decommitme
       // the only append-proof decommitment taken from a "skipped" hash. Second, again for unbalanced
       // trees, appendNodeIndex is referencing the non-existent leaf to be added, when elementCount
       // is odd. When elementCount is even, it will be referencing an existing "right-most" node.
-      const skippedHash = useLeafs ? leafs[readIndex++] : hashes[readIndex++];
+      const skippedHash = hashes[readIndex++];
 
       if (appendNodeIndex & 1) {
         appendDecommitments[--appendDecommitmentIndex] = skippedHash;
@@ -67,28 +66,21 @@ const getRootBooleans = ({ leafs, elementCount, flags, orders, skips, decommitme
 
       hashes[writeIndex++] = skippedHash;
 
-      if (useLeafs && readIndex === leafCount) useLeafs = false;
-
       readIndex %= leafCount;
       writeIndex %= leafCount;
       continue;
     }
 
-    const nextReadIndex = (readIndex + 1) % leafCount;
-
-    // Note: we can save variables here by swapping flag/decommitment inclusion from "right"
-    // to "left" below (taking care to check readIndex === leafCount after each), and using
-    // left as the appendHash. Remember, hash order is not relevant for these trees.
-    const appendHash = flags[i]
-      ? useLeafs
-        ? leafs[nextReadIndex]
-        : hashes[nextReadIndex]
-      : decommitments[decommitmentIndex];
-
     // Check if we're at the last ("right-most") node at a level (within the circular queue)
     if (readIndexOfAppendNode === readIndex) {
       // Only the hash sibling of odd "right-most" nodes are valid append-proof decommitments
       if (appendNodeIndex & 1) {
+        const nextReadIndex = (readIndex + 1) % leafCount;
+
+        // Note: we can save variables here by swapping flag/decommitment inclusion from "right"
+        // to "left" below, and using left as the appendHash, if hash order is not relevant.
+        const appendHash = flags[i] ? hashes[nextReadIndex] : decommitments[decommitmentIndex];
+
         // flag informs if the "left" node is a previously computed hash, or a decommitment
         appendDecommitments[--appendDecommitmentIndex] = appendHash;
 
@@ -103,18 +95,16 @@ const getRootBooleans = ({ leafs, elementCount, flags, orders, skips, decommitme
       appendNodeIndex >>>= 1;
     }
 
-    const right = flags[i] ? (useLeafs ? leafs[readIndex++] : hashes[readIndex++]) : decommitments[decommitmentIndex++];
+    const right = flags[i] ? hashes[readIndex++] : decommitments[decommitmentIndex++];
     readIndex %= leafCount;
-    const left = useLeafs ? leafs[readIndex++] : hashes[readIndex++];
+    const left = hashes[readIndex++];
     hashes[writeIndex++] = orders?.[i] ? hashFunction(left, right) : hashFunction(right, left);
-
-    if (useLeafs && readIndex === leafCount) useLeafs = false;
 
     readIndex %= leafCount;
     writeIndex %= leafCount;
   }
 
-  const root = useLeafs ? leafs[0] : hashes[(writeIndex === 0 ? leafCount : writeIndex) - 1];
+  const root = hashes[(writeIndex === 0 ? leafCount : writeIndex) - 1];
 
   // For a balanced tree, there is only 1 append-proof decommitment: the root itself
   assert(appendDecommitmentIndex === 1 || hash.equals(root), 'Invalid Proof.');
@@ -132,12 +122,11 @@ const getRootBits = ({ leafs, elementCount, compactProof }, options = {}) => {
   const orders = sortedHash ? undefined : compactProof[2];
   const decommitments = compactProof.slice(sortedHash ? 2 : 3);
   const leafCount = leafs.length;
-  const hashes = Array(leafCount).fill(null);
+  const hashes = leafs.map((leaf) => leaf).reverse();
 
   let readIndex = 0;
   let writeIndex = 0;
   let decommitmentIndex = 0;
-  let useLeafs = true;
   let bitCheck = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
 
   let appendNodeIndex = elementCount;
@@ -151,14 +140,14 @@ const getRootBits = ({ leafs, elementCount, compactProof }, options = {}) => {
 
     if (and(skips, bitCheck).equals(bitCheck)) {
       if (flag) {
-        const root = useLeafs ? leafs[0] : hashes[(writeIndex === 0 ? leafCount : writeIndex) - 1];
+        const root = hashes[(writeIndex === 0 ? leafCount : writeIndex) - 1];
 
         assert(appendDecommitmentIndex === 1 || hash.equals(root), 'Invalid Proof.');
 
         return { root: Buffer.from(root) };
       }
 
-      const skippedHash = useLeafs ? leafs[readIndex++] : hashes[readIndex++];
+      const skippedHash = hashes[readIndex++];
 
       if (appendNodeIndex & 1) {
         appendDecommitments[--appendDecommitmentIndex] = skippedHash;
@@ -170,23 +159,16 @@ const getRootBits = ({ leafs, elementCount, compactProof }, options = {}) => {
 
       hashes[writeIndex++] = skippedHash;
 
-      if (useLeafs && readIndex === leafCount) useLeafs = false;
-
       readIndex %= leafCount;
       writeIndex %= leafCount;
       bitCheck = leftShift(bitCheck, 1);
       continue;
     }
 
-    const nextReadIndex = (readIndex + 1) % leafCount;
-
-    const appendHash = flag
-      ? useLeafs
-        ? leafs[nextReadIndex]
-        : hashes[nextReadIndex]
-      : decommitments[decommitmentIndex];
-
     if (readIndexOfAppendNode === readIndex) {
+      const nextReadIndex = (readIndex + 1) % leafCount;
+      const appendHash = flag ? hashes[nextReadIndex] : decommitments[decommitmentIndex];
+
       if (appendNodeIndex & 1) {
         appendDecommitments[--appendDecommitmentIndex] = appendHash;
         hash = hashFunction(appendHash, hash);
@@ -196,14 +178,12 @@ const getRootBits = ({ leafs, elementCount, compactProof }, options = {}) => {
       appendNodeIndex >>>= 1;
     }
 
-    const right = flag ? (useLeafs ? leafs[readIndex++] : hashes[readIndex++]) : decommitments[decommitmentIndex++];
+    const right = flag ? hashes[readIndex++] : decommitments[decommitmentIndex++];
     readIndex %= leafCount;
-    const left = useLeafs ? leafs[readIndex++] : hashes[readIndex++];
+    const left = hashes[readIndex++];
 
     const order = orders && and(orders, bitCheck).equals(bitCheck);
     hashes[writeIndex++] = order ? hashFunction(left, right) : hashFunction(right, left);
-
-    if (useLeafs && readIndex === leafCount) useLeafs = false;
 
     readIndex %= leafCount;
     writeIndex %= leafCount;
@@ -228,15 +208,18 @@ const getNewRootBooleans = (
   const { hashFunction = hashNode } = options;
   const hashCount = flags.length;
   const leafCount = leafs.length;
-  const hashes = Array(leafCount).fill(null);
+  const hashes = leafs.map((leaf) => leaf).reverse();
 
   // Will be used as a circular queue, then a stack, so needs to be large enough for either use.
   const newHashes = Array(Math.max(leafCount, (appendLeafs.length >>> 1) + 1)).fill(null);
 
+  for (let i = 0; i < leafCount; i++) {
+    newHashes[i] = updateLeafs[leafCount - 1 - i];
+  }
+
   let readIndex = 0;
   let writeIndex = 0;
   let decommitmentIndex = 0;
-  let useLeafs = true;
   let appendNodeIndex = elementCount;
   let readIndexOfAppendNode = 0;
   let appendDecommitmentIndex = bitCount32(elementCount);
@@ -245,8 +228,8 @@ const getNewRootBooleans = (
 
   for (let i = 0; i < hashCount; i++) {
     if (skips[i]) {
-      const skippedHash = useLeafs ? leafs[readIndex] : hashes[readIndex];
-      const newSkippedHash = useLeafs ? updateLeafs[readIndex++] : newHashes[readIndex++];
+      const skippedHash = hashes[readIndex];
+      const newSkippedHash = newHashes[readIndex++];
 
       if (appendNodeIndex & 1) {
         // decommitments for the append step are actually the new hashes, given the updated leafs.
@@ -262,29 +245,17 @@ const getNewRootBooleans = (
       hashes[writeIndex] = skippedHash;
       newHashes[writeIndex++] = newSkippedHash;
 
-      if (useLeafs && readIndex === leafCount) useLeafs = false;
-
       readIndex %= leafCount;
       writeIndex %= leafCount;
       continue;
     }
 
-    const nextReadIndex = (readIndex + 1) % leafCount;
-
-    const appendHash = flags[i]
-      ? useLeafs
-        ? leafs[nextReadIndex]
-        : hashes[nextReadIndex]
-      : decommitments[decommitmentIndex];
-
-    const newAppendHash = flags[i]
-      ? useLeafs
-        ? updateLeafs[nextReadIndex]
-        : newHashes[nextReadIndex]
-      : decommitments[decommitmentIndex];
-
     if (readIndexOfAppendNode === readIndex) {
       if (appendNodeIndex & 1) {
+        const nextReadIndex = (readIndex + 1) % leafCount;
+        const appendHash = flags[i] ? hashes[nextReadIndex] : decommitments[decommitmentIndex];
+        const newAppendHash = flags[i] ? newHashes[nextReadIndex] : decommitments[decommitmentIndex];
+
         // decommitments for the append step are actually the new hashes, given the updated leafs.
         appendDecommitments[--appendDecommitmentIndex] = newAppendHash;
 
@@ -296,31 +267,24 @@ const getNewRootBooleans = (
       appendNodeIndex >>>= 1;
     }
 
-    const right = flags[i] ? (useLeafs ? leafs[readIndex] : hashes[readIndex]) : decommitments[decommitmentIndex];
-
-    const newRight = flags[i]
-      ? useLeafs
-        ? updateLeafs[readIndex++]
-        : newHashes[readIndex++]
-      : decommitments[decommitmentIndex++];
+    const right = flags[i] ? hashes[readIndex] : decommitments[decommitmentIndex];
+    const newRight = flags[i] ? newHashes[readIndex++] : decommitments[decommitmentIndex++];
 
     readIndex %= leafCount;
 
-    const left = useLeafs ? leafs[readIndex] : hashes[readIndex];
-    const newLeft = useLeafs ? updateLeafs[readIndex++] : newHashes[readIndex++];
+    const left = hashes[readIndex];
+    const newLeft = newHashes[readIndex++];
 
     hashes[writeIndex] = orders?.[i] ? hashFunction(left, right) : hashFunction(right, left);
     newHashes[writeIndex++] = orders?.[i] ? hashFunction(newLeft, newRight) : hashFunction(newRight, newLeft);
-
-    if (useLeafs && readIndex === leafCount) useLeafs = false;
 
     readIndex %= leafCount;
     writeIndex %= leafCount;
   }
 
   const rootIndex = (writeIndex === 0 ? leafCount : writeIndex) - 1;
-  const oldRoot = useLeafs ? leafs[0] : hashes[rootIndex];
-  const newRoot = useLeafs ? updateLeafs[0] : newHashes[rootIndex];
+  const oldRoot = hashes[rootIndex];
+  const newRoot = newHashes[rootIndex];
 
   assert(appendDecommitmentIndex === 1 || hash.equals(oldRoot), 'Invalid Proof.');
 
@@ -337,6 +301,11 @@ const getNewRootBooleans = (
   readIndex = 0;
   let offset = elementCount;
   let index = offset;
+  let useLeafs = false;
+
+  for (let i = 0; i < leafCount; i++) {
+    newHashes[i] = updateLeafs[leafCount - 1 - i];
+  }
 
   while (upperBound > 0) {
     useLeafs = offset >= elementCount;
@@ -380,13 +349,16 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, compact
   const orders = sortedHash ? undefined : compactProof[2];
   const decommitments = compactProof.slice(sortedHash ? 2 : 3);
   const leafCount = leafs.length;
-  const hashes = Array(leafCount).fill(null);
+  const hashes = leafs.map((leaf) => leaf).reverse();
   const newHashes = Array(Math.max(leafCount, (appendLeafs.length >>> 1) + 1)).fill(null);
+
+  for (let i = 0; i < leafCount; i++) {
+    newHashes[i] = updateLeafs[leafCount - 1 - i];
+  }
 
   let readIndex = 0;
   let writeIndex = 0;
   let decommitmentIndex = 0;
-  let useLeafs = true;
   let bitCheck = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
   let appendNodeIndex = elementCount;
   let readIndexOfAppendNode = 0;
@@ -400,8 +372,8 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, compact
     if (and(skips, bitCheck).equals(bitCheck)) {
       if (flag) {
         const rootIndex = (writeIndex === 0 ? leafCount : writeIndex) - 1;
-        const oldRoot = useLeafs ? leafs[0] : hashes[rootIndex];
-        const newRoot = useLeafs ? updateLeafs[0] : newHashes[rootIndex];
+        const oldRoot = hashes[rootIndex];
+        const newRoot = newHashes[rootIndex];
 
         assert(appendDecommitmentIndex === 1 || hash.equals(oldRoot), 'Invalid Proof.');
 
@@ -412,8 +384,8 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, compact
         break;
       }
 
-      const skippedHash = useLeafs ? leafs[readIndex] : hashes[readIndex];
-      const newSkippedHash = useLeafs ? updateLeafs[readIndex++] : newHashes[readIndex++];
+      const skippedHash = hashes[readIndex];
+      const newSkippedHash = newHashes[readIndex++];
 
       if (appendNodeIndex & 1) {
         appendDecommitments[--appendDecommitmentIndex] = newSkippedHash;
@@ -426,8 +398,6 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, compact
       hashes[writeIndex] = skippedHash;
       newHashes[writeIndex++] = newSkippedHash;
 
-      if (useLeafs && readIndex === leafCount) useLeafs = false;
-
       readIndex %= leafCount;
       writeIndex %= leafCount;
       bitCheck = leftShift(bitCheck, 1);
@@ -437,18 +407,8 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, compact
     if (readIndexOfAppendNode === readIndex) {
       if (appendNodeIndex & 1) {
         const nextReadIndex = (readIndex + 1) % leafCount;
-
-        const appendHash = flag
-          ? useLeafs
-            ? leafs[nextReadIndex]
-            : hashes[nextReadIndex]
-          : decommitments[decommitmentIndex];
-
-        const newAppendHash = flag
-          ? useLeafs
-            ? updateLeafs[nextReadIndex]
-            : newHashes[nextReadIndex]
-          : decommitments[decommitmentIndex];
+        const appendHash = flag ? hashes[nextReadIndex] : decommitments[decommitmentIndex];
+        const newAppendHash = flag ? newHashes[nextReadIndex] : decommitments[decommitmentIndex];
 
         appendDecommitments[--appendDecommitmentIndex] = newAppendHash;
         hash = hashFunction(appendHash, hash);
@@ -458,24 +418,17 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, compact
       appendNodeIndex >>>= 1;
     }
 
-    const right = flag ? (useLeafs ? leafs[readIndex] : hashes[readIndex]) : decommitments[decommitmentIndex];
-
-    const newRight = flag
-      ? useLeafs
-        ? updateLeafs[readIndex++]
-        : newHashes[readIndex++]
-      : decommitments[decommitmentIndex++];
+    const right = flag ? hashes[readIndex] : decommitments[decommitmentIndex];
+    const newRight = flag ? newHashes[readIndex++] : decommitments[decommitmentIndex++];
 
     readIndex %= leafCount;
 
-    const left = useLeafs ? leafs[readIndex] : hashes[readIndex];
-    const newLeft = useLeafs ? updateLeafs[readIndex++] : newHashes[readIndex++];
+    const left = hashes[readIndex];
+    const newLeft = newHashes[readIndex++];
 
     const order = orders && and(orders, bitCheck).equals(bitCheck);
     hashes[writeIndex] = order ? hashFunction(left, right) : hashFunction(right, left);
     newHashes[writeIndex++] = order ? hashFunction(newLeft, newRight) : hashFunction(newRight, newLeft);
-
-    if (useLeafs && readIndex === leafCount) useLeafs = false;
 
     readIndex %= leafCount;
     writeIndex %= leafCount;
@@ -488,6 +441,7 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, compact
   readIndex = 0;
   let offset = elementCount;
   let index = offset;
+  let useLeafs = true;
 
   while (upperBound > 0) {
     useLeafs = offset >= elementCount;

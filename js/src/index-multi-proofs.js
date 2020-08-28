@@ -1,6 +1,6 @@
 'use strict';
 
-// NOTE: indices must be in descending order
+// NOTE: indices must be in ascending order
 // NOTE: indexIsOdd is like a left flag, (indexIsOdd && !nextIsPair) is like a right flag, so do we
 //       need indices? Or rather, can they be inferred from flags? When no sortedHash, they can!
 
@@ -18,7 +18,7 @@ const generate = ({ tree, indices }) => {
   const leafCount = tree.length >>> 1;
 
   for (let i = 0; i < indices.length; i++) {
-    assert(i === 0 || indices[i - 1] > indices[i], 'Indices must be in descending order.');
+    assert(i === 0 || indices[i - 1] < indices[i], 'Indices must be in ascending order.');
     known[leafCount + indices[i]] = true;
   }
 
@@ -46,8 +46,8 @@ const getRoot = ({ indices, leafs, leafCount, decommitments }, options = {}) => 
   // Keep verification minimal by using circular hashes queue with separate read and write heads
   // TODO: Consider an empty hashes array and referencing leafs parameter directly, while
   // treeIndices[nextReadIndex] > leafCount, rather than copying all leafs to memory.
-  const hashes = leafs.map((leaf) => leaf);
-  const treeIndices = indices.map((index) => leafCount + index);
+  const hashes = leafs.map((leaf) => leaf).reverse();
+  const treeIndices = indices.map((index) => leafCount + index).reverse();
   const indexCount = indices.length;
 
   let readIndex = 0;
@@ -87,9 +87,9 @@ const getRoot = ({ indices, leafs, leafCount, decommitments }, options = {}) => 
 // See getRoot for relevant inline comments.
 const getNewRoot = ({ indices, leafs, newLeafs, leafCount, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
-  const hashes = leafs.map((leaf) => leaf);
-  const newHashes = newLeafs.map((leaf) => leaf);
-  const treeIndices = indices.map((index) => leafCount + index);
+  const hashes = leafs.map((leaf) => leaf).reverse();
+  const newHashes = newLeafs.map((leaf) => leaf).reverse();
+  const treeIndices = indices.map((index) => leafCount + index).reverse();
   const indexCount = indices.length;
 
   let readIndex = 0;
