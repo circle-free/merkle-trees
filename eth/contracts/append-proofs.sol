@@ -24,18 +24,6 @@ contract Append_Proofs {
     return ((m + (m >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
   }
 
-  function round_up_to_power_of_2(uint32 n) internal pure returns (uint32) {
-    if (bit_count_32(n) == 1) return n;
-
-    n |= n >> 1;
-    n |= n >> 2;
-    n |= n >> 4;
-    n |= n >> 8;
-    n |= n >> 16;
-
-    return n + 1;
-  }
-
   function _debug_set_root(bytes32 _root) public {
     root = _root;
   }
