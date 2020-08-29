@@ -36,6 +36,9 @@ Merkle-storage library works and is tested, with an example, but could be optimi
 - [ ] security review
 - [ ] ensure logical shift right (to prevent leading bit-flags from propagating down)
 - [ ] non-assembly logic optimizations (i.e. argument and variable order, reusing variables)
+- [X] ~~implement index inferring for multi-proofs without sorted hashing~~
+- [ ] test gas cost of index inferring
+- [ ] try to squeeze in index inferring during normal multi-proof algorithm (to return old and new root, and indices)
 
 ## Tests ##
 
@@ -49,5 +52,5 @@ foo@bar:~$ ganache-cli
 ...
 foo@bar:~$ yarn test
 ...
-29 passing (42s)
+127 passing
 ```
