@@ -2,9 +2,9 @@
 
 pragma solidity >=0.5.0 <0.7.0;
 
-import "./merkle-library.sol";
+import "./merkle-library-sorted-hash.sol";
 
-contract Merkle_Storage_Using_Lib {
+contract Merkle_Storage_Using_Sorted_Hash_Lib {
   bytes32 public root;
 
   event Some_Data(bytes32 some_data);
@@ -28,23 +28,23 @@ contract Merkle_Storage_Using_Lib {
   }
 
   function use_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32[] memory decommitments) public {
-    require(Merkle_Library.element_exists(root, total_element_count, index, element, decommitments), "INVALID_ELEMENT");
+    require(Merkle_Library_Sorted_Hash.element_exists(root, total_element_count, index, element, decommitments), "INVALID_ELEMENT");
     
     emit Some_Data(hash_node(0x0000000000000000000000000000000000000000000000000000000000000001, element));
   }
 
   function update_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32 new_element, bytes32[] memory decommitments) public {
-    root = Merkle_Library.try_update_one(root, total_element_count, index, element, new_element, decommitments);
+    root = Merkle_Library_Sorted_Hash.try_update_one(root, total_element_count, index, element, new_element, decommitments);
   }
 
   function use_and_update_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32[] memory decommitments) public {
-    root = Merkle_Library.try_update_one(root, total_element_count, index, element, hash_node(0x0000000000000000000000000000000000000000000000000000000000000002, element), decommitments);
+    root = Merkle_Library_Sorted_Hash.try_update_one(root, total_element_count, index, element, hash_node(0x0000000000000000000000000000000000000000000000000000000000000002, element), decommitments);
 
     emit Some_Data(hash_node(0x0000000000000000000000000000000000000000000000000000000000000001, element));
   }
 
   function use_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
-    require(Merkle_Library.elements_exist(root, total_element_count, elements, proof), "INVALID_ELEMENTS");
+    require(Merkle_Library_Sorted_Hash.elements_exist(root, total_element_count, elements, proof), "INVALID_ELEMENTS");
     
     uint256 using_element_count = elements.length;
     bytes32 some_data = 0x0000000000000000000000000000000000000000000000000000000000000001;
@@ -59,7 +59,7 @@ contract Merkle_Storage_Using_Lib {
   }
 
   function update_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory new_elements, bytes32[] memory proof) public {
-    root = Merkle_Library.try_update_many(root, total_element_count, elements, new_elements, proof);
+    root = Merkle_Library_Sorted_Hash.try_update_many(root, total_element_count, elements, new_elements, proof);
   }
 
   function use_and_update_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
@@ -74,17 +74,17 @@ contract Merkle_Storage_Using_Lib {
       some_data = hash_node(some_data, element);
     }
 
-    root = Merkle_Library.try_update_many(root, total_element_count, elements, new_elements, proof);
+    root = Merkle_Library_Sorted_Hash.try_update_many(root, total_element_count, elements, new_elements, proof);
 
     emit Some_Data(some_data);
   }
 
   function append_one(uint256 total_element_count, bytes32 new_element, bytes32[] memory decommitments) public {
-    root = Merkle_Library.try_append_one(root, total_element_count, new_element, decommitments);
+    root = Merkle_Library_Sorted_Hash.try_append_one(root, total_element_count, new_element, decommitments);
   }
 
   function append_many(uint256 total_element_count, bytes32[] memory new_elements, bytes32[] memory decommitments) public {
-    root = Merkle_Library.try_append_many(root, total_element_count, new_elements, decommitments);
+    root = Merkle_Library_Sorted_Hash.try_append_many(root, total_element_count, new_elements, decommitments);
   }
 
   function use_and_update_and_append_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
@@ -101,12 +101,8 @@ contract Merkle_Storage_Using_Lib {
       some_data = hash_node(some_data, element);
     }
 
-    root = Merkle_Library.try_update_many_and_append_many(root, total_element_count, elements, update_elements, append_elements, proof);
+    root = Merkle_Library_Sorted_Hash.try_update_many_and_append_many(root, total_element_count, elements, update_elements, append_elements, proof);
 
     emit Some_Data(some_data);
-  }
-
-  function verify_indices(bytes32[] memory elements, bytes32[] memory proof) public pure returns (uint256[] memory) {
-    return Merkle_Library.get_indices(elements, proof);
   }
 }

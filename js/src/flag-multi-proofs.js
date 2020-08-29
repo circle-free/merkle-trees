@@ -277,4 +277,145 @@ const getNewRoot = (parameters, options = {}) => {
   return parameters.compactProof ? getNewRootBits(parameters, options) : getNewRootBooleans(parameters, options);
 };
 
-module.exports = { generate, getRoot, getNewRoot };
+const getIndicesWithBooleans = ({ leafCount, flags, skips, orders }) => {
+  assert(orders, 'Cannot infer indices without orders in proof.');
+
+  const hashCount = flags.length;
+  const indices = Array(leafCount).fill(0);
+  const groupedWithNext = Array(leafCount).fill(false);
+  const bitsPushed = Array(leafCount).fill(0);
+  let leafIndex = leafCount - 1;
+
+  for (let i = 0; i < hashCount; i++) {
+    if (skips[i]) {
+      while (true) {
+        bitsPushed[leafIndex]++;
+
+        if (leafIndex === 0) {
+          leafIndex = leafCount - 1;
+          break;
+        }
+
+        if (!groupedWithNext[leafIndex--]) break;
+      }
+
+      continue;
+    }
+
+    if (flags[i]) {
+      while (true) {
+        if (orders[i]) indices[leafIndex] |= 1 << bitsPushed[leafIndex];
+
+        bitsPushed[leafIndex]++;
+
+        if (leafIndex === 0) {
+          leafIndex = leafCount - 1;
+          break;
+        }
+
+        if (!groupedWithNext[leafIndex]) {
+          groupedWithNext[leafIndex--] = true;
+          break;
+        }
+
+        groupedWithNext[leafIndex--] = true;
+      }
+    }
+
+    while (true) {
+      if (!orders[i]) indices[leafIndex] |= 1 << bitsPushed[leafIndex];
+
+      bitsPushed[leafIndex]++;
+
+      if (leafIndex === 0) {
+        leafIndex = leafCount - 1;
+        break;
+      }
+
+      if (!groupedWithNext[leafIndex--]) break;
+    }
+  }
+
+  return { indices };
+};
+
+const getIndicesWithBits = ({
+  leafCount,
+  compactProof,
+  flags = compactProof[0],
+  skips = compactProof[1],
+  orders = compactProof[2],
+}) => {
+  const indices = Array(leafCount).fill(0);
+  const groupedWithNext = Array(leafCount).fill(false);
+  const bitsPushed = Array(leafCount).fill(0);
+  let leafIndex = leafCount - 1;
+  let bitCheck = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
+
+  while (true) {
+    const flag = and(flags, bitCheck).equals(bitCheck);
+
+    if (and(skips, bitCheck).equals(bitCheck)) {
+      if (flag) return { indices };
+
+      while (true) {
+        bitsPushed[leafIndex]++;
+
+        if (leafIndex === 0) {
+          leafIndex = leafCount - 1;
+          break;
+        }
+
+        if (!groupedWithNext[leafIndex--]) break;
+      }
+
+      bitCheck = leftShift(bitCheck, 1);
+      continue;
+    }
+
+    const order = and(orders, bitCheck).equals(bitCheck);
+
+    if (flag) {
+      while (true) {
+        if (order) indices[leafIndex] |= 1 << bitsPushed[leafIndex];
+
+        bitsPushed[leafIndex]++;
+
+        if (leafIndex === 0) {
+          leafIndex = leafCount - 1;
+          break;
+        }
+
+        if (!groupedWithNext[leafIndex]) {
+          groupedWithNext[leafIndex--] = true;
+          break;
+        }
+
+        groupedWithNext[leafIndex--] = true;
+      }
+    }
+
+    while (true) {
+      if (!order) indices[leafIndex] |= 1 << bitsPushed[leafIndex];
+
+      bitsPushed[leafIndex]++;
+
+      if (leafIndex === 0) {
+        leafIndex = leafCount - 1;
+        break;
+      }
+
+      if (!groupedWithNext[leafIndex--]) break;
+    }
+
+    bitCheck = leftShift(bitCheck, 1);
+  }
+};
+
+const getIndices = (parameters, options = {}) => {
+  return parameters.compactProof
+    ? getIndicesWithBits(parameters, options)
+    : getIndicesWithBooleans(parameters, options);
+};
+
+module.exports = { generate, getRoot, getNewRoot, getIndices };

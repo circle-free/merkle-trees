@@ -1,8 +1,6 @@
 'use strict';
 
 // NOTE: indices must be in ascending order
-// NOTE: indexIsOdd is like a left flag, (indexIsOdd && !nextIsPair) is like a right flag, so do we
-//       need indices? Or rather, can they be inferred from flags? When no sortedHash, they can!
 
 const assert = require('assert');
 
