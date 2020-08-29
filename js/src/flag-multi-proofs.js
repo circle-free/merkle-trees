@@ -284,17 +284,21 @@ const getIndicesWithBooleans = ({ leafCount, flags, skips, orders }) => {
   const indices = Array(leafCount).fill(0);
   const groupedWithNext = Array(leafCount).fill(false);
   const bitsPushed = Array(leafCount).fill(0);
-  let leafIndex = 0;
+  let leafIndex = leafCount - 1;
 
   for (let i = 0; i < hashCount; i++) {
     if (skips[i]) {
       while (true) {
         bitsPushed[leafIndex]++;
 
-        if (!groupedWithNext[leafIndex++]) break;
+        if (leafIndex === 0) {
+          leafIndex = leafCount - 1;
+          break;
+        }
+
+        if (!groupedWithNext[leafIndex--]) break;
       }
 
-      leafIndex %= leafCount;
       continue;
     }
 
@@ -304,12 +308,17 @@ const getIndicesWithBooleans = ({ leafCount, flags, skips, orders }) => {
 
         bitsPushed[leafIndex]++;
 
-        if (!groupedWithNext[leafIndex]) {
-          groupedWithNext[leafIndex++] = true;
+        if (leafIndex === 0) {
+          leafIndex = leafCount - 1;
           break;
         }
 
-        groupedWithNext[leafIndex++] = true;
+        if (!groupedWithNext[leafIndex]) {
+          groupedWithNext[leafIndex--] = true;
+          break;
+        }
+
+        groupedWithNext[leafIndex--] = true;
       }
     }
 
@@ -318,13 +327,16 @@ const getIndicesWithBooleans = ({ leafCount, flags, skips, orders }) => {
 
       bitsPushed[leafIndex]++;
 
-      if (!groupedWithNext[leafIndex++]) break;
-    }
+      if (leafIndex === 0) {
+        leafIndex = leafCount - 1;
+        break;
+      }
 
-    leafIndex %= leafCount;
+      if (!groupedWithNext[leafIndex--]) break;
+    }
   }
 
-  return { indices: indices.reverse() };
+  return { indices };
 };
 
 const getIndicesWithBits = ({
@@ -337,22 +349,26 @@ const getIndicesWithBits = ({
   const indices = Array(leafCount).fill(0);
   const groupedWithNext = Array(leafCount).fill(false);
   const bitsPushed = Array(leafCount).fill(0);
-  let leafIndex = 0;
+  let leafIndex = leafCount - 1;
   let bitCheck = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
 
   while (true) {
     const flag = and(flags, bitCheck).equals(bitCheck);
 
     if (and(skips, bitCheck).equals(bitCheck)) {
-      if (flag) return { indices: indices.reverse() };
+      if (flag) return { indices };
 
       while (true) {
         bitsPushed[leafIndex]++;
 
-        if (!groupedWithNext[leafIndex++]) break;
+        if (leafIndex === 0) {
+          leafIndex = leafCount - 1;
+          break;
+        }
+
+        if (!groupedWithNext[leafIndex--]) break;
       }
 
-      leafIndex %= leafCount;
       bitCheck = leftShift(bitCheck, 1);
       continue;
     }
@@ -365,12 +381,17 @@ const getIndicesWithBits = ({
 
         bitsPushed[leafIndex]++;
 
-        if (!groupedWithNext[leafIndex]) {
-          groupedWithNext[leafIndex++] = true;
+        if (leafIndex === 0) {
+          leafIndex = leafCount - 1;
           break;
         }
 
-        groupedWithNext[leafIndex++] = true;
+        if (!groupedWithNext[leafIndex]) {
+          groupedWithNext[leafIndex--] = true;
+          break;
+        }
+
+        groupedWithNext[leafIndex--] = true;
       }
     }
 
@@ -379,10 +400,14 @@ const getIndicesWithBits = ({
 
       bitsPushed[leafIndex]++;
 
-      if (!groupedWithNext[leafIndex++]) break;
+      if (leafIndex === 0) {
+        leafIndex = leafCount - 1;
+        break;
+      }
+
+      if (!groupedWithNext[leafIndex--]) break;
     }
 
-    leafIndex %= leafCount;
     bitCheck = leftShift(bitCheck, 1);
   }
 };
