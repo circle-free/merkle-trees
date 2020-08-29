@@ -107,6 +107,79 @@ library Merkle_Library {
     return (hash, new_hash);
   }
 
+  function get_indices_from_multi_proof(uint256 elements_count, bytes32 flags, bytes32 skips, bytes32 orders) internal pure returns (uint256[] memory) {
+    uint256[] memory indices = new uint256[](elements_count);
+    uint256[] memory bits_pushed = new uint256[](elements_count);
+    bool[] memory grouped_with_next = new bool[](elements_count);
+    elements_count -= 1;
+    uint256 index = elements_count;
+    bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
+    bytes32 flag;
+    bytes32 skip;
+    bytes32 order;
+    uint256 bits_to_push;
+
+    while (true) {
+      flag = flags & bit_check;
+      skip = skips & bit_check;
+      order = orders & bit_check;
+      bits_to_push = 1 << bits_pushed[index];
+
+      if (skip == bit_check) {
+        if (flag == bit_check) return indices;
+
+        while (true) {
+          bits_pushed[index]++;
+
+          if (index == 0) {
+            index = elements_count;
+            break;
+          }
+
+          if (!grouped_with_next[index--]) break;
+        }
+
+        bit_check = bit_check << 1;
+        continue;
+      }
+
+      if (flag == bit_check) {
+        while (true) {
+          if (order == bit_check) indices[index] |= bits_to_push;
+
+          bits_pushed[index]++;
+
+          if (index == 0) {
+            index = elements_count;
+            break;
+          }
+
+          if (!grouped_with_next[index]) {
+            grouped_with_next[index--] = true;
+            break;
+          }
+
+          grouped_with_next[index--] = true;
+        }
+      }
+
+      while (true) {
+          if (order != bit_check) indices[index] |= bits_to_push;
+
+          bits_pushed[index]++;
+
+          if (index == 0) {
+            index = elements_count;
+            break;
+          }
+
+          if (!grouped_with_next[index--]) break;
+        }
+
+      bit_check = bit_check << 1;
+    }
+  }
+
   function get_root_from_multi_proof(bytes32[] memory elements, bytes32[] memory proof) internal pure returns (bytes32) {
     uint256 verifying_element_count = elements.length;
     bytes32[] memory hashes = new bytes32[](verifying_element_count);
@@ -629,5 +702,9 @@ library Merkle_Library {
     require(hash_node(bytes32(total_element_count), old_element_root) == root, "INVALID_PROOF");
 
     return hash_node(bytes32(total_element_count + append_elements.length), new_element_root);
+  }
+
+  function get_indices(bytes32[] memory elements, bytes32[] memory proof) internal pure returns (uint256[] memory) {
+    return get_indices_from_multi_proof(elements.length, proof[0], proof[1], proof[2]);
   }
 }
