@@ -93,6 +93,11 @@ class MerkleTree {
     return MerkleTree.verifyMixedRoot(parameters.root, parameters.elementCount, recoveredRoot);
   }
 
+  static getMultiProofIndices(parameters) {
+    const params = Object.assign({ leafCount: parameters.elements.length }, parameters);
+    return MultiFlagProofs.getIndices(params).indices;
+  }
+
   static updateWithMultiProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
 
@@ -173,6 +178,10 @@ class MerkleTree {
     const opts = { hashFunction, sortedHash };
     const { root } = CombinedProofs.getRoot(params, opts);
     return MerkleTree.verifyMixedRoot(parameters.root, parameters.elementCount, root);
+  }
+
+  static getCombinedProofIndices(parameters) {
+    return MerkleTree.getMultiProofIndices(parameters);
   }
 
   static updateAndAppendWithCombinedProof(parameters, options = {}) {

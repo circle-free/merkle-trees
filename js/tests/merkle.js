@@ -168,6 +168,15 @@ const testMultiProofVerification = (elementCount, indices, options) => {
   expect(proofValid).to.be.true;
 };
 
+const testMultiProofIndicesInferring = (elementCount, indices, options) => {
+  const elements = generateElements(elementCount, { seed: 'ff' });
+  const merkleTree = new MerkleTree(elements, options);
+  const proof = merkleTree.generateMultiProof(indices, options);
+  const inferredIndices = MerkleTree.getMultiProofIndices(proof, options);
+
+  expect(inferredIndices).to.deep.equal(indices);
+};
+
 const testMultiUpdate = (elementCount, indices, options) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
@@ -1230,6 +1239,42 @@ describe('Merkle-Tree', () => {
           });
         });
 
+        describe('Existence-Only Boolean-Array Multi Indices Inferring', () => {
+          describe('Balanced', () => {
+            it('should verify a Multi Proof for a 1-element Merkle Tree.', () => {
+              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+              testMultiProofIndicesInferring(1, [0], options);
+            });
+
+            it('should verify a Multi Proof for a 8-element Merkle Tree.', () => {
+              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+              testMultiProofIndicesInferring(8, [1, 4, 5], options);
+            });
+
+            it('should verify a Multi Proof for a 64-element Merkle Tree.', () => {
+              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+              testMultiProofIndicesInferring(64, [0, 1, 7, 13, 15, 26, 34, 35, 36, 50, 62], options);
+            });
+          });
+
+          describe('Unbalanced', () => {
+            it('should verify a Multi Proof for a 12-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+              testMultiProofIndicesInferring(12, [2, 3, 8, 11], options);
+            });
+
+            it('should verify a Multi Proof for a 19-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+              testMultiProofIndicesInferring(19, [2, 4, 9, 12, 17], options);
+            });
+
+            it('should verify a Multi Proof for a 85-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+              testMultiProofIndicesInferring(85, [5, 6, 20, 36, 37, 65, 78, 83], options);
+            });
+          });
+        });
+
         describe('Existence-Only Boolean-Array Multi Proof Update', () => {
           describe('Balanced', () => {
             it('should use a Multi Proof for a 8-element Merkle Tree, to update elements.', () => {
@@ -1659,6 +1704,42 @@ describe('Merkle-Tree', () => {
             it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option.', () => {
               const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
               testMultiProofVerification(8, [1, 4, 5], options);
+            });
+          });
+        });
+
+        describe('Existence-Only Boolean-Bit Multi Indices Inferring', () => {
+          describe('Balanced', () => {
+            it('should verify a Multi Proof for a 1-element Merkle Tree.', () => {
+              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+              testMultiProofIndicesInferring(1, [0], options);
+            });
+
+            it('should verify a Multi Proof for a 8-element Merkle Tree.', () => {
+              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+              testMultiProofIndicesInferring(8, [1, 4, 5], options);
+            });
+
+            it('should verify a Multi Proof for a 64-element Merkle Tree.', () => {
+              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+              testMultiProofIndicesInferring(64, [0, 1, 7, 13, 15, 26, 34, 35, 36, 50, 62], options);
+            });
+          });
+
+          describe('Unbalanced', () => {
+            it('should verify a Multi Proof for a 12-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+              testMultiProofIndicesInferring(12, [2, 3, 8, 11], options);
+            });
+
+            it('should verify a Multi Proof for a 19-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+              testMultiProofIndicesInferring(19, [2, 4, 9, 12, 17], options);
+            });
+
+            it('should verify a Multi Proof for a 85-element Merkle Tree.', () => {
+              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+              testMultiProofIndicesInferring(85, [5, 6, 20, 36, 37, 65, 78, 83], options);
             });
           });
         });
