@@ -48,29 +48,31 @@ class MerkleTree {
     return MerkleTree.getLeafCountFromElementCount(elements.length);
   }
 
-  static verifySingleProof({ root, elementCount, index, element, decommitments }, options = {}) {
+  static verifySingleProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
+    const { root, element } = parameters;
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashFunction = getHashFunction(unbalanced, sortedHash);
     const leaf = hashNode(prefixBuffer, element);
-    const params = { elementCount, index, leaf, decommitments };
+    const params = Object.assign({ leaf }, parameters);
     const opts = { hashFunction, sortedHash };
-    const { root: recoveredRoot } = SingleProofs.getRoot(params, opts);
+    const { root: recoveredRoot, elementCount } = SingleProofs.getRoot(params, opts);
 
     return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot);
   }
 
-  static updateWithSingleProof({ root, elementCount, index, element, newElement, decommitments }, options = {}) {
+  static updateWithSingleProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
+    const { root, element, newElement } = parameters;
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashFunction = getHashFunction(unbalanced, sortedHash);
     const leaf = hashNode(prefixBuffer, element);
     const newLeaf = hashNode(prefixBuffer, newElement);
-    const params = { elementCount, index, leaf, newLeaf, decommitments };
+    const params = Object.assign({ leaf, newLeaf }, parameters);
     const opts = { hashFunction, sortedHash };
-    const { root: recoveredRoot, newRoot } = SingleProofs.getNewRoot(params, opts);
+    const { root: recoveredRoot, newRoot, elementCount } = SingleProofs.getNewRoot(params, opts);
 
     assert(MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot), 'Invalid Proof.');
 
@@ -85,12 +87,12 @@ class MerkleTree {
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashFunction = getHashFunction(unbalanced, sortedHash);
     const leafs = parameters.elements.map((element) => hashNode(prefixBuffer, element));
-    const params = Object.assign({ leafs, leafCount: parameters.elementCount }, parameters);
+    const params = Object.assign({ leafs }, parameters);
     const opts = { hashFunction, sortedHash };
     const rootRecoverer = parameters.indices ? MultiIndexedProofs.getRoot : MultiFlagProofs.getRoot;
-    const { root: recoveredRoot } = rootRecoverer(params, opts);
+    const { root: recoveredRoot, elementCount } = rootRecoverer(params, opts);
 
-    return MerkleTree.verifyMixedRoot(parameters.root, parameters.elementCount, recoveredRoot);
+    return MerkleTree.verifyMixedRoot(parameters.root, elementCount, recoveredRoot);
   }
 
   static getMultiProofIndices(parameters) {
@@ -107,59 +109,60 @@ class MerkleTree {
     const hashFunction = getHashFunction(unbalanced, sortedHash);
     const leafs = parameters.elements.map((element) => hashNode(prefixBuffer, element));
     const newLeafs = parameters.newElements.map((element) => hashNode(prefixBuffer, element));
-    const params = Object.assign({ leafs, newLeafs, leafCount: parameters.elementCount }, parameters);
+    const params = Object.assign({ leafs, newLeafs }, parameters);
     const opts = { hashFunction, sortedHash };
     const newRootRecoverer = parameters.indices ? MultiIndexedProofs.getNewRoot : MultiFlagProofs.getNewRoot;
-    const { root: recoveredRoot, newRoot } = newRootRecoverer(params, opts);
+    const { root: recoveredRoot, newRoot, elementCount } = newRootRecoverer(params, opts);
 
-    assert(MerkleTree.verifyMixedRoot(parameters.root, parameters.elementCount, recoveredRoot), 'Invalid Proof.');
+    assert(MerkleTree.verifyMixedRoot(parameters.root, elementCount, recoveredRoot), 'Invalid Proof.');
 
-    return { root: MerkleTree.computeMixedRoot(parameters.elementCount, newRoot) };
+    return { root: MerkleTree.computeMixedRoot(elementCount, newRoot) };
   }
 
-  static verifyAppendProof({ root, elementCount, decommitments }, options = {}) {
+  static verifyAppendProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true } = options;
 
     assert(unbalanced, 'Append-Proofs not supported for unbalanced tress.');
 
     const hashFunction = getHashFunction(unbalanced, sortedHash);
-    const params = { elementCount, decommitments };
     const opts = { hashFunction, sortedHash };
-    const { root: recoveredRoot } = AppendProofs.getRoot(params, opts);
+    const { root: recoveredRoot, elementCount } = AppendProofs.getRoot(parameters, opts);
 
-    return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot);
+    return MerkleTree.verifyMixedRoot(parameters.root, elementCount, recoveredRoot);
   }
 
-  static appendSingleWithProof({ root, elementCount, newElement, decommitments }, options = {}) {
+  static appendSingleWithProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
+    const { root, newElement } = parameters;
 
     assert(unbalanced, 'Append-Proofs not supported for unbalanced tress.');
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const newLeaf = hashNode(prefixBuffer, newElement);
-    const newElementCount = elementCount + 1;
+    const params = Object.assign({ newLeaf }, parameters);
     const hashFunction = getHashFunction(true, sortedHash);
-    const params = { newLeaf, elementCount, decommitments };
     const opts = { hashFunction, sortedHash };
-    const { root: recoveredRoot, newRoot } = AppendProofs.getNewRoot(params, opts);
+    const { root: recoveredRoot, newRoot, elementCount } = AppendProofs.getNewRoot(params, opts);
+    const newElementCount = elementCount + 1;
 
     assert(MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot), 'Invalid Proof.');
 
     return { root: MerkleTree.computeMixedRoot(newElementCount, newRoot), elementCount: newElementCount };
   }
 
-  static appendMultiWithProof({ root, elementCount, newElements, decommitments }, options = {}) {
+  static appendMultiWithProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
+    const { root, newElements } = parameters;
 
     assert(unbalanced, 'Append-Proofs not supported for unbalanced tress.');
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const newLeafs = newElements.map((element) => hashNode(prefixBuffer, element));
-    const newElementCount = elementCount + newElements.length;
+    const params = Object.assign({ newLeafs }, parameters);
     const hashFunction = getHashFunction(true, sortedHash);
-    const params = { newLeafs, elementCount, decommitments };
     const opts = { hashFunction, sortedHash };
-    const { root: recoveredRoot, newRoot } = AppendProofs.getNewRoot(params, opts);
+    const { root: recoveredRoot, newRoot, elementCount } = AppendProofs.getNewRoot(params, opts);
+    const newElementCount = elementCount + newElements.length;
 
     assert(MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot), 'Invalid Proof.');
 
@@ -176,8 +179,8 @@ class MerkleTree {
     const leafs = parameters.elements.map((element) => hashNode(prefixBuffer, element));
     const params = Object.assign({ leafs }, parameters);
     const opts = { hashFunction, sortedHash };
-    const { root } = CombinedProofs.getRoot(params, opts);
-    return MerkleTree.verifyMixedRoot(parameters.root, parameters.elementCount, root);
+    const { root, elementCount } = CombinedProofs.getRoot(params, opts);
+    return MerkleTree.verifyMixedRoot(parameters.root, elementCount, root);
   }
 
   static getCombinedProofIndices(parameters) {
@@ -190,19 +193,19 @@ class MerkleTree {
     assert(unbalanced, 'Combined-Proofs not supported for unbalanced tress.');
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
-    const newElementCount = parameters.elementCount + parameters.appendElements.length;
     const hashFunction = getHashFunction(true, sortedHash);
     const leafs = parameters.elements.map((element) => hashNode(prefixBuffer, element));
     const updateLeafs = parameters.updateElements.map((element) => hashNode(prefixBuffer, element));
     const appendLeafs = parameters.appendElements.map((element) => hashNode(prefixBuffer, element));
     const params = Object.assign({ leafs, updateLeafs, appendLeafs }, parameters);
     const opts = { hashFunction, sortedHash };
-    const { root: recoveredRoot, newRoot } = CombinedProofs.getNewRoot(params, opts);
+    const { root: recoveredRoot, newRoot, elementCount } = CombinedProofs.getNewRoot(params, opts);
+    const newElementCount = elementCount + parameters.appendElements.length;
 
-    assert(MerkleTree.verifyMixedRoot(parameters.root, parameters.elementCount, recoveredRoot), 'Invalid Proof.');
+    assert(MerkleTree.verifyMixedRoot(parameters.root, elementCount, recoveredRoot), 'Invalid Proof.');
 
     return {
-      root: MerkleTree.computeMixedRoot(parameters.elementCount + appendLeafs.length, newRoot),
+      root: MerkleTree.computeMixedRoot(newElementCount, newRoot),
       elementCount: newElementCount,
     };
   }
@@ -238,12 +241,11 @@ class MerkleTree {
   generateSingleProof(index, options = {}) {
     assert(index < this._elements.length, 'Index out of range.');
 
-    const params = { tree: this._tree, index };
+    const params = { tree: this._tree, elementCount: this._elements.length, index };
     const proof = SingleProofs.generate(params, options);
 
     const base = {
       root: Buffer.from(this._tree[0]),
-      elementCount: this._elements.length,
       index,
       element: Buffer.from(this._elements[index]),
     };
@@ -271,7 +273,7 @@ class MerkleTree {
   }
 
   generateMultiProof(indices, options = {}) {
-    const { indexed = false, compact = true } = options;
+    const { indexed = false, compact = false } = options;
 
     assert(!indexed || !this._unbalanced, 'Indexed Multi-Proofs for unbalanced trees not yet supported.');
 
@@ -280,7 +282,7 @@ class MerkleTree {
       assert(indices.indexOf(index) === i, 'Duplicate in indices.');
     });
 
-    const params = { tree: this._tree, indices };
+    const params = { tree: this._tree, elementCount: this._elements.length, indices };
     const proofOptions = { unbalanced: this._unbalanced, sortedHash: this._sortedHash, compact };
     const proofGenerator = indexed ? MultiIndexedProofs.generate : MultiFlagProofs.generate;
     const proof = proofGenerator(params, proofOptions);
@@ -288,11 +290,10 @@ class MerkleTree {
 
     const base = {
       root: Buffer.from(this._tree[0]),
-      elementCount: this._elements.length,
       elements,
     };
 
-    return Object.assign(base, proof);
+    return indexed ? Object.assign({ indices: indices.slice() }, base, proof) : Object.assign(base, proof);
   }
 
   generateMultiUpdateProof(indices, elements, options = {}) {
@@ -386,14 +387,13 @@ class MerkleTree {
     const minimumIndex = CombinedProofs.getMinimumIndex(elementCount);
     assert(indices[indices.length - 1] >= minimumIndex, `Last index must be larger than ${minimumIndex}.`);
 
-    const params = { tree: this._tree, indices };
+    const params = { tree: this._tree, elementCount, indices };
     const proofOptions = { sortedHash: this._sortedHash, compact };
     const proof = CombinedProofs.generate(params, proofOptions);
     const elements = indices.map((index) => Buffer.from(this._elements[index]));
 
     const base = {
       root: Buffer.from(this._tree[0]),
-      elementCount,
       elements,
     };
 

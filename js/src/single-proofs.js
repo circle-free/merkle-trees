@@ -1,9 +1,10 @@
 'use strict';
 
-const { hashNode } = require('./utils');
+const { hashNode, to32ByteBuffer, from32ByteBuffer } = require('./utils');
 
 // Generates a set of decommitments to prove the existence of a leaf at a given index.
-const generate = ({ tree, index }, options = {}) => {
+const generate = ({ tree, elementCount, index }, options = {}) => {
+  const { compact = false } = options;
   const decommitments = [];
   const leafCount = tree.length >>> 1;
 
@@ -12,12 +13,22 @@ const generate = ({ tree, index }, options = {}) => {
   }
 
   // Filter out non-existent decommitments, which are nodes to the "right" of the last leaf
-  return { decommitments: decommitments.filter((d) => d).map(Buffer.from) };
+  const filteredDecommitments = decommitments.filter((d) => d).map(Buffer.from);
+
+  if (compact) return { compactProof: [to32ByteBuffer(elementCount)].concat(filteredDecommitments) };
+
+  return { elementCount, decommitments: filteredDecommitments };
 };
 
 // Compute the root given a leaf, its index, and a set of decommitments.
-const getRoot = ({ elementCount, index, leaf, decommitments }, options = {}) => {
+const getRoot = ({ index, leaf, compactProof, elementCount, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
+
+  if (compactProof) {
+    elementCount = from32ByteBuffer(compactProof[0]);
+    decommitments = compactProof.slice(1);
+  }
+
   let decommitmentIndex = decommitments.length;
   let hash = Buffer.from(leaf);
   let upperBound = elementCount - 1;
@@ -40,14 +51,20 @@ const getRoot = ({ elementCount, index, leaf, decommitments }, options = {}) => 
     upperBound >>>= 1;
   }
 
-  return { root: hash };
+  return { root: hash, elementCount };
 };
 
 // Compute the existing root given a leaf, its index, and a set of decommitments
 // and computes a new root, along the way, given a new leaf to take its place.
 // See getRoot for relevant inline comments.
-const getNewRoot = ({ elementCount, index, leaf, newLeaf, decommitments }, options = {}) => {
+const getNewRoot = ({ index, leaf, newLeaf, compactProof, elementCount, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
+
+  if (compactProof) {
+    elementCount = from32ByteBuffer(compactProof[0]);
+    decommitments = compactProof.slice(1);
+  }
+
   let decommitmentIndex = decommitments.length;
   let hash = Buffer.from(leaf);
   let newHash = Buffer.from(newLeaf);
@@ -74,7 +91,7 @@ const getNewRoot = ({ elementCount, index, leaf, newLeaf, decommitments }, optio
     upperBound >>>= 1;
   }
 
-  return { root: hash, newRoot: newHash };
+  return { root: hash, newRoot: newHash, elementCount };
 };
 
 module.exports = { generate, getRoot, getNewRoot };

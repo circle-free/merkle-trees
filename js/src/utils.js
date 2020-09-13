@@ -14,6 +14,10 @@ const to32ByteBuffer = (number) => {
   return Buffer.from(leftPad(number.toString(16), 64), 'hex');
 };
 
+const from32ByteBuffer = (buffer) => {
+  return buffer.readUInt32BE(28);
+};
+
 const bitCount32 = (n) => {
   let m = n - ((n >>> 1) & 0x55555555);
   m = (m & 0x33333333) + ((m >>> 2) & 0x33333333);
@@ -85,6 +89,7 @@ const roundUpToPowerOf2 = (number) => {
 module.exports = {
   leftPad,
   to32ByteBuffer,
+  from32ByteBuffer,
   to32ByteBoolBuffer,
   bitCount32,
   hash,

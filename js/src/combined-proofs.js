@@ -5,7 +5,7 @@
 const assert = require('assert');
 const { leftShift, and, or } = require('bitwise-buffer');
 
-const { hashNode, bitCount32 } = require('./utils');
+const { hashNode, bitCount32, from32ByteBuffer } = require('./utils');
 const { generate } = require('./flag-multi-proofs');
 
 // This is the MultiFlagProof.getRootBooleans algorithm, however, it additionally infers and
@@ -109,18 +109,19 @@ const getRootBooleans = ({ leafs, elementCount, flags, orders, skips, decommitme
   // For a balanced tree, there is only 1 append-proof decommitment: the root itself
   assert(appendDecommitmentIndex === 1 || hash.equals(root), 'Invalid Proof.');
 
-  return { root: Buffer.from(root) };
+  return { root: Buffer.from(root), elementCount };
 };
 
 // This is identical to the above getRootBooleans algorithm, differing only in that the
 // the flag and skip bit-set is shifted and checked, rather than boolean arrays.
 // See getRootBooleans for relevant inline comments.
-const getRootBits = ({ leafs, elementCount, compactProof }, options = {}) => {
+const getRootBits = ({ leafs, compactProof }, options = {}) => {
   const { hashFunction = hashNode, sortedHash = true } = options;
-  const flags = compactProof[0];
-  const skips = compactProof[1];
-  const orders = sortedHash ? undefined : compactProof[2];
-  const decommitments = compactProof.slice(sortedHash ? 2 : 3);
+  const elementCount = from32ByteBuffer(compactProof[0]);
+  const flags = compactProof[1];
+  const skips = compactProof[2];
+  const orders = sortedHash ? undefined : compactProof[3];
+  const decommitments = compactProof.slice(sortedHash ? 3 : 4);
   const leafCount = leafs.length;
   const hashes = leafs.map((leaf) => leaf).reverse();
 
@@ -144,7 +145,7 @@ const getRootBits = ({ leafs, elementCount, compactProof }, options = {}) => {
 
         assert(appendDecommitmentIndex === 1 || hash.equals(root), 'Invalid Proof.');
 
-        return { root: Buffer.from(root) };
+        return { root: Buffer.from(root), elementCount };
       }
 
       const skippedHash = hashes[readIndex++];
@@ -336,18 +337,19 @@ const getNewRootBooleans = (
     }
   }
 
-  return { root: Buffer.from(oldRoot), newRoot: newHashes[0] };
+  return { root: Buffer.from(oldRoot), newRoot: newHashes[0], elementCount };
 };
 
 // This is identical to the above getNewRootBooleans algorithm, differing only in that the
 // the flag and skip bit-set is shifted and checked, rather than boolean arrays.
 // See getNewRootBooleans for relevant inline comments.
-const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, compactProof }, options = {}) => {
+const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, compactProof }, options = {}) => {
   const { hashFunction = hashNode, sortedHash = true } = options;
-  const flags = compactProof[0];
-  const skips = compactProof[1];
-  const orders = sortedHash ? undefined : compactProof[2];
-  const decommitments = compactProof.slice(sortedHash ? 2 : 3);
+  const elementCount = from32ByteBuffer(compactProof[0]);
+  const flags = compactProof[1];
+  const skips = compactProof[2];
+  const orders = sortedHash ? undefined : compactProof[3];
+  const decommitments = compactProof.slice(sortedHash ? 3 : 4);
   const leafCount = leafs.length;
   const hashes = leafs.map((leaf) => leaf).reverse();
   const newHashes = Array(Math.max(leafCount, (appendLeafs.length >>> 1) + 1)).fill(null);
@@ -472,7 +474,7 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, elementCount, compact
     }
   }
 
-  return { root: Buffer.from(hash), newRoot: newHashes[0] };
+  return { root: Buffer.from(hash), newRoot: newHashes[0], elementCount };
 };
 
 const getNewRoot = (parameters, options = {}) => {
