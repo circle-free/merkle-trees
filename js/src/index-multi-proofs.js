@@ -4,13 +4,14 @@
 
 const assert = require('assert');
 
-const { hashNode } = require('./utils');
+const { hashNode, to32ByteBuffer, from32ByteBuffer } = require('./utils');
 
 // Generates a set of decommitments to prove the existence of leaves at a given indices.
 // Accomplishes this by tracking the indices of the leafs in the serialized tree, and
 // accumulates the decommitments if only one of the nodes, at any given level, would be
 // known (provided as leafs) at verify-time.
-const generate = ({ tree, indices }) => {
+const generate = ({ tree, elementCount, indices }, options = {}) => {
+  const { compact = false } = options;
   const known = Array(tree.length).fill(false);
   const decommitments = [];
   const leafCount = tree.length >>> 1;
@@ -32,20 +33,29 @@ const generate = ({ tree, indices }) => {
     known[i] = left || right;
   }
 
-  return { decommitments: decommitments.map(Buffer.from), indices: indices.slice() };
+  const clonedDecommitments = decommitments.map(Buffer.from);
+
+  if (compact) return { compactProof: [to32ByteBuffer(elementCount)].concat(clonedDecommitments) };
+
+  return { elementCount, decommitments: clonedDecommitments };
 };
 
 // Compute the root given a set of leafs, their indices, and a set of decommitments
 // Uses a circular queue to accumulate the parent nodes and another circular to track
 // the serialized tree indices of those nodes.
-const getRoot = ({ indices, leafs, leafCount, decommitments }, options = {}) => {
+const getRoot = ({ indices, leafs, compactProof, elementCount, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
+
+  if (compactProof) {
+    elementCount = from32ByteBuffer(compactProof[0]);
+    decommitments = compactProof.slice(1);
+  }
 
   // Keep verification minimal by using circular hashes queue with separate read and write heads
   // TODO: Consider an empty hashes array and referencing leafs parameter directly, while
-  // treeIndices[nextReadIndex] > leafCount, rather than copying all leafs to memory.
+  // treeIndices[nextReadIndex] > elementCount, rather than copying all leafs to memory.
   const hashes = leafs.map((leaf) => leaf).reverse();
-  const treeIndices = indices.map((index) => leafCount + index).reverse();
+  const treeIndices = indices.map((index) => elementCount + index).reverse();
   const indexCount = indices.length;
 
   let readIndex = 0;
@@ -59,7 +69,7 @@ const getRoot = ({ indices, leafs, leafCount, decommitments }, options = {}) => 
       // Given the circular nature of writeIndex, get the last writeIndex.
       const rootIndex = (writeIndex === 0 ? indexCount : writeIndex) - 1;
 
-      return { root: hashes[rootIndex] };
+      return { root: hashes[rootIndex], elementCount };
     }
 
     const nextReadIndex = (readIndex + 1) % indexCount;
@@ -83,11 +93,17 @@ const getRoot = ({ indices, leafs, leafCount, decommitments }, options = {}) => 
 // Compute the existing root given a set of leafs, their indices, and a set of decommitments
 // and computes a new root, along the way, given new leafs to take their place.
 // See getRoot for relevant inline comments.
-const getNewRoot = ({ indices, leafs, newLeafs, leafCount, decommitments }, options = {}) => {
+const getNewRoot = ({ indices, leafs, newLeafs, compactProof, elementCount, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
+
+  if (compactProof) {
+    elementCount = from32ByteBuffer(compactProof[0]);
+    decommitments = compactProof.slice(1);
+  }
+
   const hashes = leafs.map((leaf) => leaf).reverse();
   const newHashes = newLeafs.map((leaf) => leaf).reverse();
-  const treeIndices = indices.map((index) => leafCount + index).reverse();
+  const treeIndices = indices.map((index) => elementCount + index).reverse();
   const indexCount = indices.length;
 
   let readIndex = 0;
@@ -100,7 +116,7 @@ const getNewRoot = ({ indices, leafs, newLeafs, leafCount, decommitments }, opti
     if (index === 1) {
       const rootIndex = (writeIndex === 0 ? indexCount : writeIndex) - 1;
 
-      return { root: hashes[rootIndex], newRoot: newHashes[rootIndex] };
+      return { root: hashes[rootIndex], newRoot: newHashes[rootIndex], elementCount };
     }
 
     const nextReadIndex = (readIndex + 1) % indexCount;

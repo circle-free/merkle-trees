@@ -84,13 +84,14 @@ contract Merkle_Storage {
     set_root(total_element_count, hashes[0]);
   }
 
-  function verify_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32[] memory decommitments) internal view {
-    uint256 decommitment_index = decommitments.length;
+  function verify_one(uint256 index, bytes32 element, bytes32[] memory proof) internal view {
+    uint256 proof_index = proof.length - 1;
     bytes32 hash = hash_node(bytes32(0), element);
+    uint256 total_element_count = uint256(proof[0]);
     uint256 upperBound = total_element_count - 1;
 
-    while(decommitment_index > 0) {
-      if (index != upperBound || (index & 1 == 1)) hash = hash_pair(decommitments[--decommitment_index], hash);
+    while(proof_index > 0) {
+      if (index != upperBound || (index & 1 == 1)) hash = hash_pair(proof[proof_index--], hash);
 
       index = index >> 1;
       upperBound = upperBound >> 1;
@@ -99,24 +100,25 @@ contract Merkle_Storage {
     validate(total_element_count, hash);
   }
 
-  function use_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32[] memory decommitments) public {
-    verify_one(total_element_count, index, element, decommitments);
+  function use_one(uint256 index, bytes32 element, bytes32[] memory proof) public {
+    verify_one(index, element, proof);
     
     emit Some_Data(hash_node(0x0000000000000000000000000000000000000000000000000000000000000001, element));
   }
 
-  function update_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32 new_element, bytes32[] memory decommitments) public {
+  function update_one(uint256 index, bytes32 element, bytes32 new_element, bytes32[] memory proof) public {
     require(root != bytes32(0), "LIST_EMPTY");
 
-    uint256 decommitment_index = decommitments.length;
+    uint256 proof_index = proof.length - 1;
     bytes32 hash = hash_node(bytes32(0), element);
     bytes32 new_hash = hash_node(bytes32(0), new_element);
+    uint256 total_element_count = uint256(proof[0]);
     uint256 upperBound = total_element_count - 1;
 
-    while(decommitment_index > 0) {
+    while(proof_index > 0) {
       if ((index != upperBound) || (index & 1 == 1)) {
-        hash = hash_pair(decommitments[--decommitment_index], hash);
-        new_hash = hash_pair(decommitments[decommitment_index], new_hash);
+        hash = hash_pair(proof[proof_index], hash);
+        new_hash = hash_pair(proof[proof_index--], new_hash);
       }
 
       index = index >> 1;
@@ -127,13 +129,13 @@ contract Merkle_Storage {
     set_root(total_element_count, new_hash);
   }
 
-  function use_and_update_one(uint256 total_element_count, uint256 index, bytes32 element, bytes32[] memory decommitments) public {
+  function use_and_update_one(uint256 index, bytes32 element, bytes32[] memory proof) public {
     emit Some_Data(hash_node(0x0000000000000000000000000000000000000000000000000000000000000001, element));
 
-    update_one(total_element_count, index, element, hash_node(0x0000000000000000000000000000000000000000000000000000000000000002, element), decommitments);
+    update_one(index, element, hash_node(0x0000000000000000000000000000000000000000000000000000000000000002, element), proof);
   }
 
-  function verify_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) internal view {
+  function verify_many(bytes32[] memory elements, bytes32[] memory proof) internal view {
     uint256 verifying_element_count = elements.length;
     bytes32[] memory hashes = new bytes32[](verifying_element_count);
     uint256 read_index = verifying_element_count - 1;
@@ -147,14 +149,14 @@ contract Merkle_Storage {
 
     read_index = 0;
     write_index = 0;
-    uint256 decommitment_index = 2;
+    uint256 proof_index = 3;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     bytes32 right;
     
     while (true) {
-      if (proof[1] & bit_check == bit_check) {
-        if (proof[0] & bit_check == bit_check) {
-          validate(total_element_count, hashes[(write_index == 0 ? verifying_element_count : write_index) - 1]);
+      if (proof[2] & bit_check == bit_check) {
+        if (proof[1] & bit_check == bit_check) {
+          validate(uint256(proof[0]), hashes[(write_index == 0 ? verifying_element_count : write_index) - 1]);
           return;
         }
 
@@ -166,7 +168,7 @@ contract Merkle_Storage {
         continue;
       }
 
-      right = (proof[0] & bit_check == bit_check) ? hashes[read_index++] : proof[decommitment_index++];
+      right = (proof[1] & bit_check == bit_check) ? hashes[read_index++] : proof[proof_index++];
 
       read_index %= verifying_element_count;
 
@@ -178,8 +180,8 @@ contract Merkle_Storage {
     }
   }
 
-  function use_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
-    verify_many(total_element_count, elements, proof);
+  function use_many(bytes32[] memory elements, bytes32[] memory proof) public {
+    verify_many(elements, proof);
     
     uint256 using_element_count = elements.length;
     bytes32 some_data = 0x0000000000000000000000000000000000000000000000000000000000000001;
@@ -193,7 +195,7 @@ contract Merkle_Storage {
     emit Some_Data(some_data);
   }
 
-  function update_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory new_elements, bytes32[] memory proof) public {
+  function update_many(bytes32[] memory elements, bytes32[] memory new_elements, bytes32[] memory proof) public {
     require(root != bytes32(0), "LIST_EMPTY");
 
     uint256 new_element_count = new_elements.length;
@@ -211,15 +213,16 @@ contract Merkle_Storage {
 
     read_index = 0;
     write_index = 0;
-    uint256 decommitment_index = 2;
+    uint256 proof_index = 3;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     
     while (true) {
-      if (proof[1] & bit_check == bit_check) {
-        if (proof[0] & bit_check == bit_check) {
+      if (proof[2] & bit_check == bit_check) {
+        if (proof[1] & bit_check == bit_check) {
           read_index = (write_index == 0 ? new_element_count : write_index) - 1;
-          validate(total_element_count, hashes[read_index]);
-          set_root(total_element_count, hashes[new_element_count + read_index]);
+          write_index = uint256(proof[0]);  // total_element_count
+          validate(write_index, hashes[read_index]);
+          set_root(write_index, hashes[new_element_count + read_index]);
 
           return;
         }
@@ -235,13 +238,13 @@ contract Merkle_Storage {
 
       // it seems "scratch = (read_index + 1) % new_element_count" is cheaper for large quantities
 
-      if (proof[0] & bit_check == bit_check) {
+      if (proof[1] & bit_check == bit_check) {
         hashes[write_index] = hash_pair(hashes[read_index], hashes[(read_index + 1) % new_element_count]);
         hashes[new_element_count + write_index] = hash_pair(hashes[new_element_count + read_index], hashes[new_element_count + ((read_index + 1) % new_element_count)]);
         read_index = read_index + 2;
       } else {
-        hashes[write_index] = hash_pair(hashes[read_index], proof[decommitment_index]);
-        hashes[new_element_count + write_index] = hash_pair(hashes[new_element_count + read_index], proof[decommitment_index++]);
+        hashes[write_index] = hash_pair(hashes[read_index], proof[proof_index]);
+        hashes[new_element_count + write_index] = hash_pair(hashes[new_element_count + read_index], proof[proof_index++]);
         read_index = read_index + 1;
       }
 
@@ -251,7 +254,7 @@ contract Merkle_Storage {
     }
   }
 
-  function use_and_update_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
+  function use_and_update_many(bytes32[] memory elements, bytes32[] memory proof) public {
     uint256 using_element_count = elements.length;
     bytes32[] memory new_elements = new bytes32[](using_element_count);
     bytes32 some_data = 0x0000000000000000000000000000000000000000000000000000000000000001;
@@ -265,181 +268,44 @@ contract Merkle_Storage {
 
     emit Some_Data(some_data);
 
-    update_many(total_element_count, elements, new_elements, proof);
+    update_many(elements, new_elements, proof);
   }
 
-  function verify_append(uint256 total_element_count, bytes32[] memory decommitments) internal view {
-    uint256 decommitment_index = bit_count_32(uint32(total_element_count));
-    bytes32 hash = decommitments[--decommitment_index];
+  function verify_append(bytes32[] memory proof) internal view {
+    uint256 total_element_count = uint256(proof[0]);
+    uint256 proof_index = bit_count_32(uint32(total_element_count));
+    bytes32 hash = proof[proof_index];
 
-    while (decommitment_index > 0) {
-      hash = hash_pair(decommitments[--decommitment_index], hash);
+    while (proof_index > 1) {
+      hash = hash_pair(proof[--proof_index], hash);
     }
 
     validate(total_element_count, hash);
   }
 
-  function append_one(uint256 total_element_count, bytes32 new_element, bytes32[] memory decommitments) public {
+  function append_one(bytes32 new_element, bytes32[] memory proof) public {
     if (root == bytes32(0)) return build_root_with_one(new_element);
 
-    uint256 decommitment_index = bit_count_32(uint32(total_element_count));
-    bytes32 hash = decommitments[--decommitment_index];
-    bytes32 new_hash = hash_pair(decommitments[decommitment_index], hash_node(bytes32(0), new_element));
+    uint256 total_element_count = uint256(proof[0]);
+    uint256 proof_index = bit_count_32(uint32(total_element_count));
+    bytes32 hash = proof[proof_index];
+    bytes32 new_hash = hash_pair(hash, hash_node(bytes32(0), new_element));
+    bytes32 scratch;
 
-    while (decommitment_index > 0) {
-      new_hash = hash_pair(decommitments[--decommitment_index], new_hash);
-      hash = hash_pair(decommitments[decommitment_index], hash);
+    while (proof_index > 1) {
+      scratch = proof[--proof_index];
+      new_hash = hash_pair(scratch, new_hash);
+      hash = hash_pair(scratch, hash);
     }
 
     validate(total_element_count, hash);
     set_root(total_element_count + 1, new_hash);
   }
 
-  function append_many(uint256 total_element_count, bytes32[] memory new_elements, bytes32[] memory decommitments) public {
+  function append_many(bytes32[] memory new_elements, bytes32[] memory proof) public {
     if (root == bytes32(0)) return build_root_with_many(new_elements);
 
-    uint256 new_elements_count = new_elements.length;
-    bytes32[] memory new_hashes = new bytes32[](new_elements_count);
-    uint256 write_index;
-
-    while (write_index < new_elements_count) {
-      new_hashes[write_index] = hash_node(bytes32(0), new_elements[write_index]);
-      write_index++;
-    }
-
-    write_index = 0;
-    uint256 read_index;
-
-    // resuse new_elements_count var here, since old one no longer needed (is now total)
-    new_elements_count = new_elements_count + total_element_count;
-    uint256 upper_bound = new_elements_count - 1;
-    uint256 offset = total_element_count;
-    uint256 index = offset;
-    uint256 decommitment_index = bit_count_32(uint32(total_element_count)) - 1;
-    bytes32 hash = decommitments[decommitment_index];
-
-    while (upper_bound > 0) {
-      if ((write_index == 0) && (index & 1 == 1)) {
-        new_hashes[0] = hash_pair(decommitments[decommitment_index--], new_hashes[read_index++]);
-
-        if (decommitment_index < total_element_count) hash = hash_pair(decommitments[decommitment_index], hash);
-
-        write_index = 1;
-        index++;
-      } else if (index < upper_bound) {
-        new_hashes[write_index++] = hash_pair(new_hashes[read_index++], new_hashes[read_index++]);
-        index += 2;
-      }
-
-      if (index >= upper_bound) {
-        if (index == upper_bound) new_hashes[write_index] = new_hashes[read_index];
-
-        read_index = 0;
-        write_index = 0;
-        upper_bound >>= 1;
-        offset >>= 1;
-        index = offset;
-      }
-    }
-
-    validate(total_element_count, hash);
-    set_root(new_elements_count, new_hashes[0]);
-  }
-
-  function get_append_decommitments_with_update(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32[] memory) {
-    uint256 update_element_count = update_elements.length;
-    require(elements.length == update_element_count, "LENGTH_MISMATCH");
-
-    bytes32[] memory hashes = new bytes32[]((update_element_count << 1) + 1);
-    uint256 read_index = update_element_count - 1;
-    uint256 write_index;
-
-    while (write_index < update_element_count) {
-      hashes[write_index] = hash_node(bytes32(0), elements[read_index]);
-      hashes[update_element_count + write_index] = hash_node(bytes32(0), update_elements[read_index--]);
-      write_index++;
-    }
-
-    read_index = 0;
-    write_index = 0;
-    uint256 decommitment_index = 2;
-    bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
-    uint256 append_node_index = total_element_count;
-    uint256 read_index_of_append_node = 0;
-    uint256 append_decommitment_index = bit_count_32(uint32(total_element_count));
-    bytes32[] memory append_decommitments = new bytes32[](append_decommitment_index);
-    uint256 scratch;
-
-    while (true) {
-      if (proof[1] & bit_check == bit_check) {
-        if (proof[0] & bit_check == bit_check) {
-          read_index = (write_index == 0 ? update_element_count : write_index) - 1;
-
-          require(append_decommitment_index == 1 || hashes[update_element_count << 1] == hashes[read_index], "INVALID_PROOF");
-
-          if (append_decommitment_index == 1) append_decommitments[0] = hashes[update_element_count + read_index];
-
-          return (hashes[read_index], append_decommitments);
-        }
-
-        if (append_node_index & 1 == 1) {
-          hashes[update_element_count << 1] = hashes[read_index];
-          append_decommitments[--append_decommitment_index] = hashes[update_element_count + read_index];
-        }
-
-        read_index_of_append_node = write_index;
-        append_node_index = append_node_index >> 1;
-
-        hashes[write_index] = hashes[read_index];
-        hashes[update_element_count + write_index] = hashes[update_element_count + read_index];
-
-        read_index = (read_index + 1) % update_element_count;
-        write_index = (write_index + 1) % update_element_count;
-        bit_check = bit_check << 1;
-        continue;
-      }
-      
-      if (read_index_of_append_node == read_index) {
-        if (append_node_index & 1 == 1) {
-          if (proof[0] & bit_check == bit_check) {
-            scratch = (read_index + 1) % update_element_count;
-
-            hashes[update_element_count << 1] = hash_pair(hashes[scratch], hashes[update_element_count << 1]);
-            append_decommitments[--append_decommitment_index] = hashes[update_element_count + scratch];
-          } else {
-            scratch = update_element_count << 1;
-
-            hashes[scratch] = hash_pair(proof[decommitment_index], hashes[scratch]);
-            append_decommitments[--append_decommitment_index] = proof[decommitment_index];
-          }
-        }
-
-        read_index_of_append_node = write_index;
-        append_node_index = append_node_index >> 1;
-      }
-
-      // TODO: use scratch or hashes[write_index] = hash_pair(hashes[read_index++], hashes[(read_index % update_element_count)]);
-      if (proof[0] & bit_check == bit_check) {
-        scratch = (read_index + 1) % update_element_count;
-
-        hashes[write_index] = hash_pair(hashes[read_index], hashes[scratch]);
-        hashes[update_element_count + write_index] = hash_pair(hashes[update_element_count + read_index], hashes[update_element_count + scratch]);
-        
-        read_index = read_index + 2;
-      } else {
-        hashes[write_index] = hash_pair(hashes[read_index], proof[decommitment_index]);
-        hashes[update_element_count + write_index] = hash_pair(hashes[update_element_count + read_index], proof[decommitment_index++]);
-        
-        read_index = read_index + 1;
-      }
-
-      read_index %= update_element_count;
-      write_index = (write_index + 1) % update_element_count;
-      bit_check = bit_check << 1;
-    }
-  }
-
-  function append_many_without_checks(uint256 total_element_count, bytes32[] memory new_elements, bytes32[] memory decommitments) internal {
+    uint256 total_element_count = uint256(proof[0]);
     uint256 new_elements_count = new_elements.length;
     bytes32[] memory new_hashes = new bytes32[](new_elements_count);
     uint256 write_index;
@@ -457,14 +323,157 @@ contract Merkle_Storage {
     uint256 upper_bound = new_elements_count - 1;
     uint256 offset = total_element_count;
     uint256 index = offset;
-    uint256 decommitment_index = decommitments.length - 1;
+    uint256 proof_index = bit_count_32(uint32(total_element_count));
+    bytes32 hash = proof[proof_index];
 
     while (upper_bound > 0) {
       if ((write_index == 0) && (index & 1 == 1)) {
-        new_hashes[0] = hash_pair(decommitments[decommitment_index], new_hashes[read_index]);
+        new_hashes[0] = hash_pair(proof[proof_index--], new_hashes[read_index++]);
+
+        if (proof_index > 0) hash = hash_pair(proof[proof_index], hash);
+
+        write_index = 1;
+        index++;
+      } else if (index < upper_bound) {
+        new_hashes[write_index++] = hash_pair(new_hashes[read_index++], new_hashes[read_index++]);
+        index += 2;
+      }
+
+      if (index >= upper_bound) {
+        if (index == upper_bound) new_hashes[write_index] = new_hashes[read_index];
+
+        read_index = 0;
+        write_index = 0;
+        upper_bound >>= 1;
+        offset >>= 1;
+        index = offset;
+      }
+    }
+
+    validate(total_element_count, hash);
+    set_root(new_elements_count, new_hashes[0]);
+  }
+
+  function get_append_proof_with_update(bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32[] memory) {
+    uint256 update_element_count = update_elements.length;
+    require(elements.length == update_element_count, "LENGTH_MISMATCH");
+
+    bytes32[] memory hashes = new bytes32[]((update_element_count << 1) + 1);
+    uint256 read_index = update_element_count - 1;
+    uint256 write_index;
+
+    while (write_index < update_element_count) {
+      hashes[write_index] = hash_node(bytes32(0), elements[read_index]);
+      hashes[update_element_count + write_index] = hash_node(bytes32(0), update_elements[read_index--]);
+      write_index++;
+    }
+
+    read_index = 0;
+    write_index = 0;
+    uint256 proof_index = 3;
+    bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
+    uint256 append_node_index = uint256(proof[0]);
+    uint256 read_index_of_append_node = 0;
+    uint256 append_proof_index = bit_count_32(uint32(append_node_index)) + 1;
+    bytes32[] memory append_proof = new bytes32[](append_proof_index);
+    append_proof[0] = bytes32(append_node_index);
+    uint256 scratch;
+
+    while (true) {
+      if (proof[2] & bit_check == bit_check) {
+        if (proof[1] & bit_check == bit_check) {
+          read_index = (write_index == 0 ? update_element_count : write_index) - 1;
+
+          require(append_proof_index == 2 || hashes[update_element_count << 1] == hashes[read_index], "INVALID_PROOF");
+
+          if (append_proof_index == 2) append_proof[1] = hashes[update_element_count + read_index];
+
+          return (hashes[read_index], append_proof);
+        }
+
+        if (append_node_index & 1 == 1) {
+          hashes[update_element_count << 1] = hashes[read_index];
+          append_proof[--append_proof_index] = hashes[update_element_count + read_index];
+        }
+
+        read_index_of_append_node = write_index;
+        append_node_index = append_node_index >> 1;
+
+        hashes[write_index] = hashes[read_index];
+        hashes[update_element_count + write_index] = hashes[update_element_count + read_index];
+
+        read_index = (read_index + 1) % update_element_count;
+        write_index = (write_index + 1) % update_element_count;
+        bit_check = bit_check << 1;
+        continue;
+      }
+      
+      if (read_index_of_append_node == read_index) {
+        if (append_node_index & 1 == 1) {
+          if (proof[1] & bit_check == bit_check) {
+            scratch = (read_index + 1) % update_element_count;
+
+            hashes[update_element_count << 1] = hash_pair(hashes[scratch], hashes[update_element_count << 1]);
+            append_proof[--append_proof_index] = hashes[update_element_count + scratch];
+          } else {
+            scratch = update_element_count << 1;
+
+            hashes[scratch] = hash_pair(proof[proof_index], hashes[scratch]);
+            append_proof[--append_proof_index] = proof[proof_index];
+          }
+        }
+
+        read_index_of_append_node = write_index;
+        append_node_index = append_node_index >> 1;
+      }
+
+      // TODO: use scratch or hashes[write_index] = hash_pair(hashes[read_index++], hashes[(read_index % update_element_count)]);
+      if (proof[1] & bit_check == bit_check) {
+        scratch = (read_index + 1) % update_element_count;
+
+        hashes[write_index] = hash_pair(hashes[read_index], hashes[scratch]);
+        hashes[update_element_count + write_index] = hash_pair(hashes[update_element_count + read_index], hashes[update_element_count + scratch]);
+        
+        read_index = read_index + 2;
+      } else {
+        hashes[write_index] = hash_pair(hashes[read_index], proof[proof_index]);
+        hashes[update_element_count + write_index] = hash_pair(hashes[update_element_count + read_index], proof[proof_index++]);
+        
+        read_index = read_index + 1;
+      }
+
+      read_index %= update_element_count;
+      write_index = (write_index + 1) % update_element_count;
+      bit_check = bit_check << 1;
+    }
+  }
+
+  function append_many_without_checks(bytes32[] memory new_elements, bytes32[] memory proof) internal {
+    uint256 new_elements_count = new_elements.length;
+    bytes32[] memory new_hashes = new bytes32[](new_elements_count);
+    uint256 write_index;
+
+    while (write_index < new_elements_count) {
+      new_hashes[write_index] = hash_node(bytes32(0), new_elements[write_index]);
+      write_index++;
+    }
+
+    write_index = 0;
+    uint256 read_index;
+    uint256 offset = uint256(proof[0]);
+    uint256 index = offset;
+
+    // resuse new_elements_count var here, since old one no longer needed (is now total)
+    new_elements_count += offset;
+    uint256 upper_bound = new_elements_count - 1;
+    uint256 proof_index = proof.length - 1;
+
+    while (upper_bound > 0) {
+      if ((write_index == 0) && (index & 1 == 1)) {
+        new_hashes[0] = hash_pair(proof[proof_index], new_hashes[read_index]);
 
         read_index++;
-        decommitment_index--;
+        proof_index--;
         write_index = 1;
         index++;
       } else if (index < upper_bound) {
@@ -487,9 +496,9 @@ contract Merkle_Storage {
     set_root(new_elements_count, new_hashes[0]);
   }
 
-  function use_and_update_and_append_many(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
+  function use_and_update_and_append_many(bytes32[] memory elements, bytes32[] memory proof) public {
     require(root != bytes32(0), "LIST_EMPTY");
-    
+
     uint256 using_element_count = elements.length;
     bytes32[] memory update_elements = new bytes32[](using_element_count);
     bytes32[] memory append_elements = new bytes32[](using_element_count);
@@ -505,9 +514,9 @@ contract Merkle_Storage {
 
     emit Some_Data(some_data);
 
-    (bytes32 old_element_root, bytes32[] memory append_decommitments) = get_append_decommitments_with_update(total_element_count, elements, update_elements, proof);
+    (bytes32 old_element_root, bytes32[] memory append_proof) = get_append_proof_with_update(elements, update_elements, proof);
 
-    validate(total_element_count, old_element_root);
-    append_many_without_checks(total_element_count, update_elements, append_decommitments);
+    validate(uint256(proof[0]), old_element_root);
+    append_many_without_checks(update_elements, append_proof);
   }
 }

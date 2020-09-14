@@ -47,8 +47,8 @@ contract Flag_Multi_Proofs {
     bytes32 right;
     
     while (true) {
-      if (proof[1] & bit_check == bit_check) {
-        if (proof[0] & bit_check == bit_check) return hashes[(write_index == 0 ? verifying_element_count : write_index) - 1];
+      if (proof[2] & bit_check == bit_check) {
+        if (proof[1] & bit_check == bit_check) return hashes[(write_index == 0 ? verifying_element_count : write_index) - 1];
 
         hashes[write_index++] = hashes[read_index++];
 
@@ -58,11 +58,11 @@ contract Flag_Multi_Proofs {
         continue;
       }
 
-      right = (proof[0] & bit_check == bit_check) ? hashes[read_index++] : proof[3 + decommitment_index++];
+      right = (proof[1] & bit_check == bit_check) ? hashes[read_index++] : proof[3 + decommitment_index++];
 
       read_index %= verifying_element_count;
 
-      hashes[write_index++] = (proof[2] & bit_check == bit_check) ? hash_node(hashes[read_index++], right) : hash_node(right, hashes[read_index++]);
+      hashes[write_index++] = (proof[3] & bit_check == bit_check) ? hash_node(hashes[read_index++], right) : hash_node(right, hashes[read_index++]);
 
       read_index %= verifying_element_count;
       write_index %= verifying_element_count;
@@ -71,8 +71,8 @@ contract Flag_Multi_Proofs {
   }
 
   // Indices are required to be sorted highest to lowest.
-  function use(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
-    validate(total_element_count, get_root(elements, proof));
+  function use(bytes32[] memory elements, bytes32[] memory proof) public {
+    validate(uint256(proof[0]), get_root(elements, proof));
     
     uint256 using_element_count = elements.length;
     bytes32 data_used;
@@ -106,8 +106,8 @@ contract Flag_Multi_Proofs {
     bytes32 new_right;
     
     while (true) {
-      if (proof[1] & bit_check == bit_check) {
-        if (proof[0] & bit_check == bit_check) {
+      if (proof[2] & bit_check == bit_check) {
+        if (proof[1] & bit_check == bit_check) {
           read_index = (write_index == 0 ? new_element_count : write_index) - 1;
           
           return (hashes[read_index], hashes[new_element_count + read_index]);
@@ -122,13 +122,13 @@ contract Flag_Multi_Proofs {
         continue;
       }
 
-      right = (proof[0] & bit_check == bit_check) ? hashes[read_index] : proof[3 + decommitment_index];
-      new_right = (proof[0] & bit_check == bit_check) ? hashes[new_element_count + read_index++] : proof[3 + decommitment_index++];
+      right = (proof[1] & bit_check == bit_check) ? hashes[read_index] : proof[3 + decommitment_index];
+      new_right = (proof[1] & bit_check == bit_check) ? hashes[new_element_count + read_index++] : proof[3 + decommitment_index++];
 
       read_index %= new_element_count;
 
-      hashes[write_index] = (proof[2] & bit_check == bit_check) ? hash_node(hashes[read_index], right) : hash_node(right, hashes[read_index]);
-      hashes[new_element_count + write_index++] = (proof[2] & bit_check == bit_check) ? hash_node(hashes[new_element_count + read_index++], new_right) : hash_node(new_right, hashes[new_element_count + read_index++]);
+      hashes[write_index] = (proof[3] & bit_check == bit_check) ? hash_node(hashes[read_index], right) : hash_node(right, hashes[read_index]);
+      hashes[new_element_count + write_index++] = (proof[3] & bit_check == bit_check) ? hash_node(hashes[new_element_count + read_index++], new_right) : hash_node(new_right, hashes[new_element_count + read_index++]);
 
       read_index %= new_element_count;
       write_index %= new_element_count;
@@ -137,7 +137,7 @@ contract Flag_Multi_Proofs {
   }
 
   // Indices are required to be sorted highest to lowest.
-  function use_and_update(uint256 total_element_count, bytes32[] memory elements, bytes32[] memory proof) public {
+  function use_and_update(bytes32[] memory elements, bytes32[] memory proof) public {
     uint256 using_element_count = elements.length;
     bytes32[] memory new_elements = new bytes32[](using_element_count);
     bytes32 data_used;
@@ -151,7 +151,7 @@ contract Flag_Multi_Proofs {
 
     (bytes32 old_element_root, bytes32 new_element_root) = get_roots(elements, new_elements, proof);
     
-    validate(total_element_count, old_element_root);
-    set_root(total_element_count, new_element_root);
+    validate(uint256(proof[0]), old_element_root);
+    set_root(uint256(proof[0]), new_element_root);
   }
 }

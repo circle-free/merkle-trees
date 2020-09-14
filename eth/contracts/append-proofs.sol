@@ -36,32 +36,34 @@ contract Append_Proofs {
     require(hash_node(bytes32(total_element_count), element_root) == root, "INVALID_PROOF");
   }
 
-  function get_root(bytes32[] memory decommitments, uint256 total_element_count) public pure returns (bytes32) {
-    uint256 decommitment_index = bit_count_32(uint32(total_element_count));
-    bytes32 hash = decommitments[--decommitment_index];
+  function get_root(bytes32[] memory proof) public pure returns (bytes32) {
+    uint256 proof_index = uint256(bit_count_32(uint32(uint256(proof[0]))));
+    bytes32 hash = proof[proof_index];
 
-    while (decommitment_index > 0) {
-      hash = hash_node(decommitments[--decommitment_index], hash);
+    while (proof_index > 1) {
+      hash = hash_node(proof[--proof_index], hash);
     }
 
     return hash;
   }
 
-  function append_one(bytes32 new_element, bytes32[] memory decommitments, uint256 total_element_count) public {
-    uint256 decommitment_index = bit_count_32(uint32(total_element_count));
-    bytes32 hash = decommitments[--decommitment_index];
-    bytes32 new_hash = hash_node(decommitments[decommitment_index], hash_node(bytes32(0), new_element));
+  function append_one(bytes32 new_element, bytes32[] memory proof) public {
+    uint256 total_element_count = uint256(proof[0]);
+    uint256 proof_index = uint256(bit_count_32(uint32(total_element_count)));
+    bytes32 hash = proof[proof_index];
+    bytes32 new_hash = hash_node(proof[proof_index], hash_node(bytes32(0), new_element));
 
-    while (decommitment_index > 0) {
-      new_hash = hash_node(decommitments[--decommitment_index], new_hash);
-      hash = hash_node(decommitments[decommitment_index], hash);
+    while (proof_index > 1) {
+      new_hash = hash_node(proof[--proof_index], new_hash);
+      hash = hash_node(proof[proof_index], hash);
     }
 
     validate(total_element_count, hash);
     set_root(total_element_count + 1, new_hash);
   }
 
-  function append_many(bytes32[] memory new_elements, bytes32[] memory decommitments, uint256 total_element_count) public {
+  function append_many(bytes32[] memory new_elements, bytes32[] memory proof) public {
+    uint256 total_element_count = uint256(proof[0]);
     uint256 new_elements_count = new_elements.length;
     bytes32[] memory new_hashes = new bytes32[](new_elements_count);
     uint256 write_index;
@@ -78,14 +80,14 @@ contract Append_Proofs {
     uint256 upper_bound = new_elements_count - 1;
     uint256 offset = total_element_count;
     uint256 index = offset;
-    uint256 decommitment_index = bit_count_32(uint32(total_element_count)) - 1;
-    bytes32 hash = decommitments[decommitment_index];
+    uint256 proof_index = uint256(bit_count_32(uint32(total_element_count)));
+    bytes32 hash = proof[proof_index];
 
     while (upper_bound > 0) {
       if ((write_index == 0) && (index & 1 == 1)) {
-        new_hashes[write_index++] = hash_node(decommitments[decommitment_index--], new_hashes[read_index++]);
+        new_hashes[write_index++] = hash_node(proof[proof_index--], new_hashes[read_index++]);
 
-        if (decommitment_index < total_element_count) hash = hash_node(decommitments[decommitment_index], hash);
+        if (proof_index > 0) hash = hash_node(proof[proof_index], hash);
 
         index++;
       } else if (index < upper_bound) {

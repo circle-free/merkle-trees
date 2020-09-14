@@ -1,13 +1,14 @@
 'use strict';
 
-const { hashNode, bitCount32 } = require('./utils');
+const { hashNode, bitCount32, to32ByteBuffer, from32ByteBuffer } = require('./utils');
 
 // This is the SingleProof.generate algorithm, using the elementCount as index,
 // thereby generating a subset of those same decommitments, but only those
 // "to the left" of the index, since all nodes "to the right" are non-existent.
 // Also, the left sub-tree's root (always defined as i=2 in the tree), is always
 // required, as every single append is "to the right" of it, by definition.
-const generate = ({ tree, elementCount }) => {
+const generate = ({ tree, elementCount }, options = {}) => {
+  const { compact = false } = options;
   const decommitments = [];
   const leafCount = tree.length >>> 1;
 
@@ -17,6 +18,8 @@ const generate = ({ tree, elementCount }) => {
     }
   }
 
+  if (compact) return { compactProof: [to32ByteBuffer(elementCount)].concat(decommitments.map(Buffer.from)) };
+
   return { elementCount, decommitments: decommitments.map(Buffer.from) };
 };
 
@@ -25,8 +28,14 @@ const generate = ({ tree, elementCount }) => {
 // root that can be built from the decommitments, hashed from "right" to "left".
 // Note, it is implied that there is nothing to the right of the "right-most"
 // decommitment, explaining the departure from the SingleProof.getRoot algorithm.
-const getRoot = ({ elementCount, decommitments }, options = {}) => {
+const getRoot = ({ compactProof, elementCount, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
+
+  if (compactProof) {
+    elementCount = from32ByteBuffer(compactProof[0]);
+    decommitments = compactProof.slice(1);
+  }
+
   let index = bitCount32(elementCount);
   let hash = decommitments[--index];
 
@@ -34,7 +43,7 @@ const getRoot = ({ elementCount, decommitments }, options = {}) => {
     hash = hashFunction(decommitments[--index], hash);
   }
 
-  return { root: hash };
+  return { root: hash, elementCount };
 };
 
 // This is identical to the above getRoot algorithm, differing only in that the
@@ -42,8 +51,14 @@ const getRoot = ({ elementCount, decommitments }, options = {}) => {
 // Note, it is implied that there is nothing to the right of the leaf being
 // appended, explaining the departure from the SingleProof.getNewRoot algorithm.
 // See getRoot for relevant inline comments.
-const getNewRootSingle = ({ newLeaf, elementCount, decommitments }, options = {}) => {
+const getNewRootSingle = ({ newLeaf, compactProof, elementCount, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
+
+  if (compactProof) {
+    elementCount = from32ByteBuffer(compactProof[0]);
+    decommitments = compactProof.slice(1);
+  }
+
   let index = bitCount32(elementCount);
   let hash = decommitments[--index];
   let newHash = hashFunction(decommitments[index], newLeaf);
@@ -53,7 +68,7 @@ const getNewRootSingle = ({ newLeaf, elementCount, decommitments }, options = {}
     hash = hashFunction(decommitments[index], hash);
   }
 
-  return { root: hash, newRoot: newHash };
+  return { root: hash, newRoot: newHash, elementCount };
 };
 
 // If newHashes[0]'s level-localized index is odd, merge with decommitment at this level. If more
@@ -61,8 +76,14 @@ const getNewRootSingle = ({ newLeaf, elementCount, decommitments }, options = {}
 // to 0, and no longer be merged with decommitments. If newHashes[0]'s level-localized index is
 // even, hash with node to the right. An odd level-localized index is either at newHashes[0] or
 // index == upperBound. If upperBound == 0, we got to the new root.
-const getNewRootMulti = ({ newLeafs, elementCount, decommitments }, options = {}) => {
+const getNewRootMulti = ({ newLeafs, compactProof, elementCount, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
+
+  if (compactProof) {
+    elementCount = from32ByteBuffer(compactProof[0]);
+    decommitments = compactProof.slice(1);
+  }
+
   let decommitmentIndex = bitCount32(elementCount) - 1;
   let hash = decommitments[decommitmentIndex];
   let newHashes = Array((newLeafs.length >>> 1) + 1).fill(null);
@@ -103,7 +124,7 @@ const getNewRootMulti = ({ newLeafs, elementCount, decommitments }, options = {}
     }
   }
 
-  return { root: hash, newRoot: newHashes[0] };
+  return { root: hash, newRoot: newHashes[0], elementCount };
 };
 
 const getNewRoot = (parameters, options = {}) => {

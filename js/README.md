@@ -145,16 +145,16 @@ Given an unbalanced tree, where elements to the right of the append index do not
 - [ ] recursive proofs (arrays of arrays)
 - [ ] recursive proofs (objects of objects)
 - [ ] TypeScript (possibly with a Proof class)
-- [ ] option ot output all data as eth-compatible prefixed hex strings
+- [ ] option to output all data as eth-compatible prefixed hex strings
 - [ ] benchmarking
 - [ ] bitCount256
 - [ ] giving options better names (i.e. flag > existence-proof vs. indexed > index-proof)
 - [ ] visual documentation of how individual proofs work
 - [ ] test how null/undefined elements before the append index affect trees/proofs
-- [ ] explorer, test, and document failure cases (or rather, cases with invalid proofs)
-- [X] ~~explorer combined and existence-only (flag) multi-proofs, without sorted hashing, (possibly separate set of hash order booleans)~~
+- [ ] explore, test, and document failure cases (or rather, cases with invalid proofs)
+- [X] ~~explore combined and existence-only (flag) multi-proofs, without sorted hashing, (possibly separate set of hash order booleans)~~
 - [X] ~~given hash order booleans, implement index inferring for multi-proofs without sorted hashing (it is possible)~~
-- [ ] explorer efficiency of separate boolean-array, in the multi-proof, to inform when to take a hash as an append-decommitment
+- [ ] explore efficiency of separate boolean-array, in the multi-proof, to inform when to take a hash as an append-decommitment
 - [ ] enable compact proofs for "large" trees (proof hash count > 255) with multiple 32-byte flags, given stop bits
 - [ ] Bring Your Own Hash Function
 
@@ -169,5 +169,5 @@ foo@bar:~$ yarn install
 Done in 0.16s.
 foo@bar:~$ yarn test
 ...
-461 passing (13s)
+480 passing (12s)
 ```
