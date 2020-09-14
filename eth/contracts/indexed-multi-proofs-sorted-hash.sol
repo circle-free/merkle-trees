@@ -34,7 +34,7 @@ contract Indexed_Multi_Proofs_Sorted_Hash {
   }
 
   // Indices are required to be sorted highest to lowest.
-  function get_root(uint256 total_element_count, uint256[] memory indices, bytes32[] memory elements, bytes32[] memory decommitments) public pure returns (bytes32) {
+  function get_root(uint256[] memory indices, bytes32[] memory elements, bytes32[] memory proof) public pure returns (bytes32) {
     uint256 index_count = indices.length;
 
     require(index_count == elements.length, "LENGTH_MISMATCH");
@@ -45,13 +45,13 @@ contract Indexed_Multi_Proofs_Sorted_Hash {
     uint256 write_index;
     
     while (write_index < index_count) {
-      tree_indices[write_index] = total_element_count + indices[read_index];
+      tree_indices[write_index] = uint256(proof[0]) + indices[read_index];
       hashes[write_index++] = hash_node(bytes32(0), elements[read_index--]);
     }
 
     read_index = 0;
     write_index = 0;
-    uint256 decommitment_index;
+    uint256 proof_index = 1;
     uint256 index;
     
     while (true) {
@@ -61,12 +61,12 @@ contract Indexed_Multi_Proofs_Sorted_Hash {
 
       bool index_is_odd = index & 1 == 1;
 
-      bytes32 right = index_is_odd ? hashes[read_index++] : decommitments[decommitment_index++];
+      bytes32 right = index_is_odd ? hashes[read_index++] : proof[proof_index++];
 
       read_index %= index_count;
 
       bool nextIsSibling = tree_indices[(read_index + 1) % index_count] == (index - 1);
-      bytes32 left = (index_is_odd && !nextIsSibling) ? decommitments[decommitment_index++] : hashes[read_index++];
+      bytes32 left = (index_is_odd && !nextIsSibling) ? proof[proof_index++] : hashes[read_index++];
 
       tree_indices[write_index] = index >> 1;
       hashes[write_index++] = hash_pair(left, right);
@@ -77,9 +77,9 @@ contract Indexed_Multi_Proofs_Sorted_Hash {
   }
 
   // Indices are required to be sorted highest to lowest.
-  // Does not work with unbalanced tree (i.e. total_element_count must be power of 2)
-  function use(uint256 total_element_count, uint256[] memory indices, bytes32[] memory elements, bytes32[] memory decommitments) public {
-    validate(total_element_count, get_root(total_element_count, indices, elements, decommitments));
+  // Does not work with unbalanced tree
+  function use(uint256[] memory indices, bytes32[] memory elements, bytes32[] memory proof) public {
+    validate(uint256(proof[0]), get_root(indices, elements, proof));
     
     uint256 index_count = indices.length;
     bytes32 data_used;
@@ -92,7 +92,7 @@ contract Indexed_Multi_Proofs_Sorted_Hash {
   }
 
   // Indices are required to be sorted highest to lowest.
-  function get_roots(uint256 total_element_count, uint256[] memory indices, bytes32[] memory elements, bytes32[] memory new_elements, bytes32[] memory decommitments) public pure returns (bytes32, bytes32) {
+  function get_roots(uint256[] memory indices, bytes32[] memory elements, bytes32[] memory new_elements, bytes32[] memory proof) public pure returns (bytes32, bytes32) {
     uint256 index_count = indices.length;
     
     require(index_count == elements.length && new_elements.length == elements.length, "LENGTH_MISMATCH");
@@ -104,14 +104,14 @@ contract Indexed_Multi_Proofs_Sorted_Hash {
     uint256 write_index;
 
     while (write_index < index_count) {
-      tree_indices[write_index] = total_element_count + indices[read_index];
+      tree_indices[write_index] = uint256(proof[0]) + indices[read_index];
       hashes[write_index] = hash_node(bytes32(0), elements[read_index]);
       new_hashes[write_index++] = hash_node(bytes32(0), new_elements[read_index--]);
     }
 
     read_index = 0;
     write_index = 0;
-    uint256 decommitment_index;
+    uint256 proof_index = 1;
     uint256 index;
     
     while (true) {
@@ -123,14 +123,14 @@ contract Indexed_Multi_Proofs_Sorted_Hash {
       }
 
       bool index_is_odd = index & 1 == 1;
-      bytes32 right = index_is_odd ? hashes[read_index] : decommitments[decommitment_index];
-      bytes32 new_right = index_is_odd ? new_hashes[read_index++] : decommitments[decommitment_index++];
+      bytes32 right = index_is_odd ? hashes[read_index] : proof[proof_index];
+      bytes32 new_right = index_is_odd ? new_hashes[read_index++] : proof[proof_index++];
 
       read_index %= index_count;
       
       bool left_flag = index_is_odd && !(tree_indices[read_index] == (index - 1));
-      hashes[write_index] = hash_pair(left_flag ? decommitments[decommitment_index] : hashes[read_index], right);
-      new_hashes[write_index] = hash_pair(left_flag ? decommitments[decommitment_index++] : hashes[read_index++], new_right);
+      hashes[write_index] = hash_pair(left_flag ? proof[proof_index] : hashes[read_index], right);
+      new_hashes[write_index] = hash_pair(left_flag ? proof[proof_index++] : hashes[read_index++], new_right);
       tree_indices[write_index++] = index >> 1;
 
       read_index %= index_count;
@@ -139,8 +139,8 @@ contract Indexed_Multi_Proofs_Sorted_Hash {
   }
 
   // Indices are required to be sorted highest to lowest.
-  // Does not work with unbalanced tree (i.e. total_element_count must be power of 2)
-  function use_and_update(uint256 total_element_count, uint256[] memory indices, bytes32[] memory elements, bytes32[] memory decommitments) public {
+  // Does not work with unbalanced tree
+  function use_and_update(uint256[] memory indices, bytes32[] memory elements, bytes32[] memory proof) public {
     uint256 index_count = indices.length;
     bytes32[] memory new_elements = new bytes32[](index_count);
     bytes32 data_used;
@@ -152,9 +152,9 @@ contract Indexed_Multi_Proofs_Sorted_Hash {
 
     emit Data_Used(data_used);
 
-    (bytes32 old_element_root, bytes32 new_element_root) = get_roots(total_element_count, indices, elements, new_elements, decommitments);
+    (bytes32 old_element_root, bytes32 new_element_root) = get_roots(indices, elements, new_elements, proof);
 
-    validate(total_element_count, old_element_root);
-    set_root(total_element_count, new_element_root);
+    validate(uint256(proof[0]), old_element_root);
+    set_root(uint256(proof[0]), new_element_root);
   }
 }
