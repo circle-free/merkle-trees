@@ -1,8 +1,9 @@
 const chai = require('chai');
 const { expect } = chai;
 
-const { generateElements, randomNumberGenerator } = require('./helpers');
+const { generateElements } = require('./helpers');
 const MerkleTree = require('../../js');
+const { to32ByteBuffer } = require('../../js/src/utils');
 
 const Merkle_Storage_Using_Sorted_Hash_Lib = artifacts.require("Merkle_Storage_Using_Sorted_Hash_Lib");
 const Merkle_Storage_Using_Lib = artifacts.require("Merkle_Storage_Using_Lib");
@@ -218,6 +219,24 @@ const testGetIndices = async (indices, expectedGas, options) => {
 
   expect(results.map(index => index.toNumber())).to.deep.equal(indices);
 };
+
+const testAppendFromEmpty = async (elementCount, seed, expectedGas, options) => {
+  const elements = generateElements(elementCount, { seed });
+  newMerkleTree = new MerkleTree(elements, options);
+  const hexElements = elements.map(e => '0x' + e.toString('hex'));
+  const hexProof = ['0x' + to32ByteBuffer(0).toString('hex')];
+
+  const { receipt } = await contractInstance.append_many(hexElements, hexProof);
+
+  expect(receipt.gasUsed).to.equal(expectedGas);
+  
+  const retrievedRoot = await contractInstance.root();
+
+  expect(retrievedRoot).to.equal('0x' + newMerkleTree.root.toString('hex'));
+
+  merkleTree = newMerkleTree;
+};
+
 
 describe("Merkle_Storage_Using_Libraries", async accounts => {
   describe("Merkle_Storage_Using_Sorted_Hash_Lib", async accounts => {
@@ -960,6 +979,17 @@ describe("Merkle_Storage_Using_Libraries", async accounts => {
   
       it("should get indices for 5 elements.", () => {
         return testGetIndices([2, 7, 8, 15, 19], null, unsortedOptions);
+      });
+    });
+
+    describe("Starting empty", async accounts => {
+      beforeEach(async () => {
+        contractInstance = await Merkle_Storage_Using_Lib.new();
+        elementCount = 0;
+      });
+    
+      it("should initialize a 4-element root for 47,873 gas.", () => {
+        return testAppendFromEmpty(4, 'ff', 47873, unsortedOptions);
       });
     });
   });

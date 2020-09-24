@@ -122,7 +122,7 @@ class MerkleTree {
   static verifyAppendProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true } = options;
 
-    assert(unbalanced, 'Append-Proofs not supported for unbalanced tress.');
+    assert(unbalanced, 'Append-Proofs not supported for balanced tress.');
 
     const hashFunction = getHashFunction(unbalanced, sortedHash);
     const opts = { hashFunction, sortedHash };
@@ -135,7 +135,7 @@ class MerkleTree {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
     const { root, newElement } = parameters;
 
-    assert(unbalanced, 'Append-Proofs not supported for unbalanced tress.');
+    assert(unbalanced, 'Append-Proofs not supported for balanced tress.');
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const newLeaf = hashNode(prefixBuffer, newElement);
@@ -154,7 +154,7 @@ class MerkleTree {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
     const { root, newElements } = parameters;
 
-    assert(unbalanced, 'Append-Proofs not supported for unbalanced tress.');
+    assert(unbalanced, 'Append-Proofs not supported for balanced tress.');
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const newLeafs = newElements.map((element) => hashNode(prefixBuffer, element));
@@ -216,6 +216,18 @@ class MerkleTree {
 
   static verifyMixedRoot(mixedRoot, elementCount, root) {
     return MerkleTree.computeMixedRoot(elementCount, root).equals(mixedRoot);
+  }
+
+  static verifySizeProof(parameters, options = {}) {
+    const { sortedHash = true, unbalanced = true } = options;
+    const { elementCount, compactProof, decommitments = compactProof } = parameters;
+
+    const hashFunction = getHashFunction(unbalanced, sortedHash);
+    const opts = { hashFunction, sortedHash };
+    const params = { elementCount, decommitments };
+    const { root: recoveredRoot } = AppendProofs.getRoot(params, opts);
+
+    return MerkleTree.verifyMixedRoot(parameters.root, elementCount, recoveredRoot);
   }
 
   get elementRoot() {
@@ -421,6 +433,20 @@ class MerkleTree {
       proof: this.generateMultiAppendUpdateProof(indices, updateElements, appendElements, proofOptions),
       newMerkleTree,
     };
+  }
+
+  generateSizeProof(options = {}) {
+    const { compact } = options;
+    const elementCount = this._elements.length;
+    const params = { tree: this._tree, elementCount };
+    const proofOptions = Object.assign({}, options, { compact: false });
+    const proof = AppendProofs.generate(params, proofOptions);
+    const root = Buffer.from(this._tree[0]);
+    const decommitments = proof.decommitments;
+
+    if (compact) return { root, elementCount, compactProof: decommitments };
+
+    return { root, elementCount, decommitments };
   }
 }
 

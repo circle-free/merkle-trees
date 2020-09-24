@@ -157,6 +157,7 @@ Given an unbalanced tree, where elements to the right of the append index do not
 - [ ] explore efficiency of separate boolean-array, in the multi-proof, to inform when to take a hash as an append-decommitment
 - [ ] enable compact proofs for "large" trees (proof hash count > 255) with multiple 32-byte flags, given stop bits
 - [ ] Bring Your Own Hash Function
+- [X] Size Proofs
 
 
 ## Tests ##
@@ -169,5 +170,5 @@ foo@bar:~$ yarn install
 Done in 0.16s.
 foo@bar:~$ yarn test
 ...
-480 passing (12s)
+500 passing (12s)
 ```
