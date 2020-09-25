@@ -452,6 +452,11 @@ const testSizeProofGeneration = (elementCount, seed, expected, options) => {
   expect(proof.root.equals(merkleTree.root)).to.be.true;
   expect(proof.elementCount).to.equal(elementCount);
 
+  if (options.simple) {
+    expect(proof.elementRoot.toString('hex')).to.equal(expected.elementRoot);
+    return;
+  }
+
   if (options.compact) {
     proof.compactProof.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.compactProof[i]));
     expect(proof.compactProof.length).to.equal(expected.compactProof.length);
@@ -3673,7 +3678,7 @@ describe('Merkle-Tree', () => {
   describe('Size Proofs', () => {
     describe('Size Proof Generation', () => {
       it('should generate a Size Proof for a 1-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false };
+        const options = { unbalanced: true, sortedHash: false, simple: false };
 
         const expected = {
           decommitments: ['0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60'],
@@ -3682,8 +3687,8 @@ describe('Merkle-Tree', () => {
         testSizeProofGeneration(1, 'ff', expected, options);
       });
 
-      it('should generate an Size Proof for a 2-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false };
+      it('should generate a Size Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
 
         const expected = {
           decommitments: ['a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27'],
@@ -3692,8 +3697,8 @@ describe('Merkle-Tree', () => {
         testSizeProofGeneration(2, 'ff', expected, options);
       });
 
-      it('should generate an Size Proof for a 3-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false };
+      it('should generate a Size Proof for a 3-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
 
         const expected = {
           decommitments: [
@@ -3705,8 +3710,8 @@ describe('Merkle-Tree', () => {
         testSizeProofGeneration(3, 'ff', expected, options);
       });
 
-      it('should generate an Size Proof for a 8-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false };
+      it('should generate a Size Proof for a 8-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
 
         const expected = {
           decommitments: ['0c67c6340449c320fb4966988f319713e0610c40237a05fdef8e5da8c66db8a4'],
@@ -3715,8 +3720,8 @@ describe('Merkle-Tree', () => {
         testSizeProofGeneration(8, 'ff', expected, options);
       });
 
-      it('should generate an Size Proof for a 15-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false };
+      it('should generate a Size Proof for a 15-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
 
         const expected = {
           decommitments: [
@@ -3730,8 +3735,8 @@ describe('Merkle-Tree', () => {
         testSizeProofGeneration(15, 'ff', expected, options);
       });
 
-      it('should generate an Size Proof for a 20-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false };
+      it('should generate a Size Proof for a 20-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
 
         const expected = {
           decommitments: [
@@ -3743,14 +3748,21 @@ describe('Merkle-Tree', () => {
         testSizeProofGeneration(20, 'ff', expected, options);
       });
 
-      it('should generate a compact Size Proof for a 20-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false, compact: true };
+      it('should generate a simple Size Proof for a 20-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: true };
 
         const expected = {
-          compactProof: [
-            'c7ec3e428ae2869b12c1b8e12a84e56f0d7f3cbe752cd1c3775158cf846412be',
-            'febc2d558e22b7e32db3a5dd0b4d8ac3dac5835493955c53e3eb0f8fdb2f4954',
-          ],
+          elementRoot: '56afa93d33699c72a6989f3b114b1b474d3ec202164549fe3d616cca61fb071b',
+        };
+
+        testSizeProofGeneration(20, 'ff', expected, options);
+      });
+
+      it('should generate a simple Size Proof for a 20-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, simple: true };
+
+        const expected = {
+          elementRoot: '5944736c577a3a171994fca82f54afa1cd102dd1a0b3c3bd9e71c82038a2172e',
         };
 
         testSizeProofGeneration(20, 'ff', expected, options);
@@ -3758,68 +3770,43 @@ describe('Merkle-Tree', () => {
     });
 
     describe('Size Proof Verification', () => {
-      it('should verify an Size Proof for a 1-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false };
+      it('should verify a Size Proof for a 1-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
         testSizeProofVerification(1, options);
       });
 
-      it('should verify an Size Proof for a 2-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false };
+      it('should verify a Size Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
         testSizeProofVerification(2, options);
       });
 
-      it('should verify an Size Proof for a 3-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false };
+      it('should verify a Size Proof for a 3-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
         testSizeProofVerification(3, options);
       });
 
-      it('should verify an Size Proof for a 8-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false };
+      it('should verify a Size Proof for a 8-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
         testSizeProofVerification(8, options);
       });
 
-      it('should verify an Size Proof for a 15-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false };
+      it('should verify a Size Proof for a 15-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
         testSizeProofVerification(15, options);
       });
 
-      it('should verify an Size Proof for a 20-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false };
+      it('should verify a Size Proof for a 20-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
         testSizeProofVerification(20, options);
       });
 
-      it('should verify an Size Proof for a 1-element sorted-hash Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: true };
-        testSizeProofVerification(1, options);
-      });
-
-      it('should verify an Size Proof for a 2-element sorted-hash Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: true };
-        testSizeProofVerification(2, options);
-      });
-
-      it('should verify an Size Proof for a 3-element sorted-hash Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: true };
-        testSizeProofVerification(3, options);
-      });
-
-      it('should verify an Size Proof for a 8-element sorted-hash Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: true };
-        testSizeProofVerification(8, options);
-      });
-
-      it('should verify an Size Proof for a 15-element sorted-hash Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: true };
-        testSizeProofVerification(15, options);
-      });
-
-      it('should verify an Size Proof for a 20-element sorted-hash Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: true };
+      it('should verify a simple Size Proof for a 20-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: true };
         testSizeProofVerification(20, options);
       });
 
-      it('should verify a compact Size Proof for a 20-element Merkle Tree.', () => {
-        const options = { unbalanced: true, sortedHash: false, compact: true };
+      it('should verify a simple Size Proof for a 20-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, simple: true };
         testSizeProofVerification(20, options);
       });
     });

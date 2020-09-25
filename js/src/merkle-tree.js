@@ -220,14 +220,18 @@ class MerkleTree {
 
   static verifySizeProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true } = options;
-    const { elementCount, compactProof, decommitments = compactProof } = parameters;
+    const { root, elementCount, elementRoot, compactProof, decommitments = compactProof } = parameters;
+
+    if (elementRoot) return MerkleTree.verifyMixedRoot(root, elementCount, elementRoot);
+
+    assert(!sortedHash, 'Can only verify simple Size Proofs for sorted hashed trees.');
 
     const hashFunction = getHashFunction(unbalanced, sortedHash);
     const opts = { hashFunction, sortedHash };
     const params = { elementCount, decommitments };
     const { root: recoveredRoot } = AppendProofs.getRoot(params, opts);
 
-    return MerkleTree.verifyMixedRoot(parameters.root, elementCount, recoveredRoot);
+    return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot);
   }
 
   get elementRoot() {
@@ -436,12 +440,17 @@ class MerkleTree {
   }
 
   generateSizeProof(options = {}) {
-    const { compact } = options;
+    const { compact, simple = true } = options;
     const elementCount = this._elements.length;
+    const root = Buffer.from(this._tree[0]);
+
+    if (simple) return { root, elementCount, elementRoot: Buffer.from(this._tree[1]) };
+
+    assert(!this._sortedHash, 'Can only generate simple Size Proofs for sorted hashed trees.');
+
     const params = { tree: this._tree, elementCount };
     const proofOptions = Object.assign({}, options, { compact: false });
     const proof = AppendProofs.generate(params, proofOptions);
-    const root = Buffer.from(this._tree[0]);
     const decommitments = proof.decommitments;
 
     if (compact) return { root, elementCount, compactProof: decommitments };
