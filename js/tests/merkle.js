@@ -444,6 +444,33 @@ const testConsecutiveUpdateAndAppend = (iterations, elementCount, updateSize, ap
   expect(root.equals(finalMerkleTree.root)).to.be.true;
 };
 
+const testSizeProofGeneration = (elementCount, seed, expected, options) => {
+  const elements = generateElements(elementCount, { seed });
+  const merkleTree = new MerkleTree(elements, options);
+  const proof = merkleTree.generateSizeProof(options);
+
+  expect(proof.root.equals(merkleTree.root)).to.be.true;
+  expect(proof.elementCount).to.equal(elementCount);
+
+  if (options.compact) {
+    proof.compactProof.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.compactProof[i]));
+    expect(proof.compactProof.length).to.equal(expected.compactProof.length);
+    return;
+  }
+
+  proof.decommitments.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.decommitments[i]));
+  expect(proof.decommitments.length).to.equal(expected.decommitments.length);
+};
+
+const testSizeProofVerification = (elementCount, options) => {
+  const elements = generateElements(elementCount, { seed: 'ff' });
+  const merkleTree = new MerkleTree(elements, options);
+  const proof = merkleTree.generateSizeProof(options);
+  const proofValid = MerkleTree.verifySizeProof(proof, options);
+
+  expect(proofValid).to.be.true;
+};
+
 describe('Merkle-Tree', () => {
   describe('Merkle Tree Construction', () => {
     describe('Balanced', () => {
@@ -3639,6 +3666,161 @@ describe('Merkle-Tree', () => {
           const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
           testConsecutiveUpdateAndAppend(50, 3, 12, 12, options);
         });
+      });
+    });
+  });
+
+  describe('Size Proofs', () => {
+    describe('Size Proof Generation', () => {
+      it('should generate a Size Proof for a 1-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+
+        const expected = {
+          decommitments: ['0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60'],
+        };
+
+        testSizeProofGeneration(1, 'ff', expected, options);
+      });
+
+      it('should generate an Size Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+
+        const expected = {
+          decommitments: ['a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27'],
+        };
+
+        testSizeProofGeneration(2, 'ff', expected, options);
+      });
+
+      it('should generate an Size Proof for a 3-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+
+        const expected = {
+          decommitments: [
+            'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+            'a7220cb76d040b2fdf4e25b319539c769eb77147fcb92b6ea8962cd04096c27b',
+          ],
+        };
+
+        testSizeProofGeneration(3, 'ff', expected, options);
+      });
+
+      it('should generate an Size Proof for a 8-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+
+        const expected = {
+          decommitments: ['0c67c6340449c320fb4966988f319713e0610c40237a05fdef8e5da8c66db8a4'],
+        };
+
+        testSizeProofGeneration(8, 'ff', expected, options);
+      });
+
+      it('should generate an Size Proof for a 15-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+
+        const expected = {
+          decommitments: [
+            '0c67c6340449c320fb4966988f319713e0610c40237a05fdef8e5da8c66db8a4',
+            'd9df67e21f45396a2739193be4bb49cefb1ebac44dd283c07519b6de6f154f5b',
+            '712ed55abe1946b941876a6230b3135edadc400a18897e029ffdbff6900503e6',
+            'e481ff292c1b323f27dd2e7b0da511947e0d349a0616a739ea628a3a5888c529',
+          ],
+        };
+
+        testSizeProofGeneration(15, 'ff', expected, options);
+      });
+
+      it('should generate an Size Proof for a 20-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+
+        const expected = {
+          decommitments: [
+            'c7ec3e428ae2869b12c1b8e12a84e56f0d7f3cbe752cd1c3775158cf846412be',
+            'febc2d558e22b7e32db3a5dd0b4d8ac3dac5835493955c53e3eb0f8fdb2f4954',
+          ],
+        };
+
+        testSizeProofGeneration(20, 'ff', expected, options);
+      });
+
+      it('should generate a compact Size Proof for a 20-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: true };
+
+        const expected = {
+          compactProof: [
+            'c7ec3e428ae2869b12c1b8e12a84e56f0d7f3cbe752cd1c3775158cf846412be',
+            'febc2d558e22b7e32db3a5dd0b4d8ac3dac5835493955c53e3eb0f8fdb2f4954',
+          ],
+        };
+
+        testSizeProofGeneration(20, 'ff', expected, options);
+      });
+    });
+
+    describe('Size Proof Verification', () => {
+      it('should verify an Size Proof for a 1-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        testSizeProofVerification(1, options);
+      });
+
+      it('should verify an Size Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        testSizeProofVerification(2, options);
+      });
+
+      it('should verify an Size Proof for a 3-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        testSizeProofVerification(3, options);
+      });
+
+      it('should verify an Size Proof for a 8-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        testSizeProofVerification(8, options);
+      });
+
+      it('should verify an Size Proof for a 15-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        testSizeProofVerification(15, options);
+      });
+
+      it('should verify an Size Proof for a 20-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        testSizeProofVerification(20, options);
+      });
+
+      it('should verify an Size Proof for a 1-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        testSizeProofVerification(1, options);
+      });
+
+      it('should verify an Size Proof for a 2-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        testSizeProofVerification(2, options);
+      });
+
+      it('should verify an Size Proof for a 3-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        testSizeProofVerification(3, options);
+      });
+
+      it('should verify an Size Proof for a 8-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        testSizeProofVerification(8, options);
+      });
+
+      it('should verify an Size Proof for a 15-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        testSizeProofVerification(15, options);
+      });
+
+      it('should verify an Size Proof for a 20-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        testSizeProofVerification(20, options);
+      });
+
+      it('should verify a compact Size Proof for a 20-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: true };
+        testSizeProofVerification(20, options);
       });
     });
   });

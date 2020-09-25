@@ -105,4 +105,8 @@ contract Merkle_Storage_Using_Lib {
   function verify_indices(bytes32[] memory elements, bytes32[] memory proof) public pure returns (uint256[] memory) {
     return Merkle_Library.get_indices(elements, proof);
   }
+
+  function verify_size(uint256 size, bytes32[] memory proof) public view returns (bool) {
+    return Merkle_Library.verify_size(root, size, proof);
+  }
 }
