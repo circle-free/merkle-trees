@@ -220,6 +220,14 @@ const testGetIndices = async (indices, expectedGas, options) => {
   expect(results.map(index => index.toNumber())).to.deep.equal(indices);
 };
 
+const testVerifySize = async (expectedGas, options) => {
+  const { elementCount, compactProof } = merkleTree.generateSizeProof(options);
+  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const results = await contractInstance.verify_size(elementCount, hexProof);
+
+  expect(results).to.be.true;
+};
+
 const testAppendFromEmpty = async (elementCount, seed, expectedGas, options) => {
   const elements = generateElements(elementCount, { seed });
   newMerkleTree = new MerkleTree(elements, options);
@@ -249,156 +257,160 @@ describe("Merkle_Storage_Using_Libraries", async accounts => {
         elementCount = 20;
       });
     
-      it("should use 1 element for 29,402 gas.", () => {
-        return testUseOne(0, 29402, sortedOptions);
+      it("should use 1 element for 29,360 gas.", () => {
+        return testUseOne(0, 29360, sortedOptions);
       });
     
-      it("should update 1 element for 34,870 gas.", () => {
-        return testUpdateOne(0, '11', 34870, sortedOptions);
+      it("should update 1 element for 34,814 gas.", () => {
+        return testUpdateOne(0, '11', 34814, sortedOptions);
       });
     
-      it("should use and update 1 element for 35,713 gas.", () => {
-        return testUseAndUpdateOne(0, 35713, sortedOptions);
+      it("should use and update 1 element for 35,629 gas.", () => {
+        return testUseAndUpdateOne(0, 35629, sortedOptions);
       });
     
-      it("should use 2 elements for 32,514 gas.", () => {
-        return testUseMany([0, 1], 32514, sortedOptions);
+      it("should use 2 elements for 32,444 gas.", () => {
+        return testUseMany([0, 1], 32444, sortedOptions);
       });
     
-      it("should use 3 elements for 34,040 gas.", () => {
-        return testUseMany([0, 1, 2], 34040, sortedOptions);
+      it("should use 3 elements for 33,942 gas.", () => {
+        return testUseMany([0, 1, 2], 33942, sortedOptions);
       });
     
-      it("should use 4 elements for 34,549 gas.", () => {
-        return testUseMany([0, 1, 2, 3], 34549, sortedOptions);
+      it("should use 4 elements for 34,423 gas.", () => {
+        return testUseMany([0, 1, 2, 3], 34423, sortedOptions);
       });
     
-      it("should use 8 elements for 40,309 gas.", () => {
+      it("should use 8 elements for 40,071 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUseMany(firstHalf.concat(secondHalf), 40309, sortedOptions);
+        return testUseMany(firstHalf.concat(secondHalf), 40071, sortedOptions);
       });
     
-      it("should use 20 elements for 56,803 gas.", () => {
+      it("should use 20 elements for 56,229 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUseMany(firstHalf.concat(secondHalf), 56803, sortedOptions);
+        return testUseMany(firstHalf.concat(secondHalf), 56229, sortedOptions);
       });
     
-      it("should update 2 elements for 39,664 gas.", () => {
-        return testUpdateMany([0, 1], '11', 39664, sortedOptions);
+      it("should update 2 elements for 39,580 gas.", () => {
+        return testUpdateMany([0, 1], '11', 39580, sortedOptions);
       });
     
-      it("should update 3 elements for 42,110 gas.", () => {
-        return testUpdateMany([0, 1, 2], '11', 42110, sortedOptions);
+      it("should update 3 elements for 41,998 gas.", () => {
+        return testUpdateMany([0, 1, 2], '11', 41998, sortedOptions);
       });
     
-      it("should update 4 elements for 43,261 gas.", () => {
-        return testUpdateMany([0, 1, 2, 3], '11', 43261, sortedOptions);
+      it("should update 4 elements for 43,121 gas.", () => {
+        return testUpdateMany([0, 1, 2, 3], '11', 43121, sortedOptions);
       });
     
-      it("should update 8 elements for 52,652 gas.", () => {
+      it("should update 8 elements for 52,400 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUpdateMany(firstHalf.concat(secondHalf), '11', 52652, sortedOptions);
+        return testUpdateMany(firstHalf.concat(secondHalf), '11', 52400, sortedOptions);
       });
     
-      it("should update 20 elements for 79,591 gas.", () => {
+      it("should update 20 elements for 79,003 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUpdateMany(firstHalf.concat(secondHalf), '11', 79591, sortedOptions);
+        return testUpdateMany(firstHalf.concat(secondHalf), '11', 79003, sortedOptions);
       });
     
-      it("should use and update 2 elements for 40,073 gas.", () => {
-        return testUseAndUpdateMany([0, 1], 40511, sortedOptions);
+      it("should use and update 2 elements for 39,933 gas.", () => {
+        return testUseAndUpdateMany([0, 1], 39933, sortedOptions);
       });
     
-      it("should use and update 3 elements for 42,406 gas.", () => {
-        return testUseAndUpdateMany([0, 1, 2], 42406, sortedOptions);
+      it("should use and update 3 elements for 42,210 gas.", () => {
+        return testUseAndUpdateMany([0, 1, 2], 42210, sortedOptions);
       });
     
-      it("should use and update 4 elements for 43,456 gas.", () => {
-        return testUseAndUpdateMany([0, 1, 2, 3], 43456, sortedOptions);
+      it("should use and update 4 elements for 43,204 gas.", () => {
+        return testUseAndUpdateMany([0, 1, 2, 3], 43204, sortedOptions);
       });
     
-      it("should use and update 8 elements for 52,384 gas.", () => {
+      it("should use and update 8 elements for 51,908 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 52384, sortedOptions);
+        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 51908, sortedOptions);
       });
     
-      it("should use and update 20 elements for 77,954 gas.", () => {
+      it("should use and update 20 elements for 76,806 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 77954, sortedOptions);
+        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 76806, sortedOptions);
       });
     
-      it("should append 1 new element for 30,899 gas.", async () => {
-        return testAppendOne('22', 30899, sortedOptions);
+      it("should append 1 new element for 30,857 gas.", async () => {
+        return testAppendOne('22', 30857, sortedOptions);
       });
     
-      it.skip("should append 1 new element, 100 times consecutively, for 3,238,644 gas.", () => {
-        return testAppendOneConsecutively(100, '22', 3238644, sortedOptions);
+      it.skip("should append 1 new element, 100 times consecutively, for 3,234,4444 gas.", () => {
+        return testAppendOneConsecutively(100, '22', 3234444, sortedOptions);
       });
     
-      it(`should append 2 new elements, for 34,763 gas.`, async () => {
-        return testAppendMany(2, '22', 34763, sortedOptions);
+      it(`should append 2 new elements, for 34,818 gas.`, async () => {
+        return testAppendMany(2, '22', 34818, sortedOptions);
       });
     
-      it(`should append 3 new elements, for 35,915 gas.`, async () => {
-        return testAppendMany(3, '22', 35915, sortedOptions);
+      it(`should append 3 new elements, for 35,956 gas.`, async () => {
+        return testAppendMany(3, '22', 35956, sortedOptions);
       });
     
-      it(`should append 4 new elements, for 37,064 gas.`, async () => {
-        return testAppendMany(4, '22', 37064, sortedOptions);
+      it(`should append 4 new elements, for 37,091 gas.`, async () => {
+        return testAppendMany(4, '22', 37091, sortedOptions);
       });
     
-      it(`should append 8 new elements, for 42,090 gas.`, async () => {
-        return testAppendMany(8, '22', 42090, sortedOptions);
+      it(`should append 8 new elements, for 42,061 gas.`, async () => {
+        return testAppendMany(8, '22', 42061, sortedOptions);
       });
     
-      it(`should append 20 new elements, for 57,640 gas.`, async () => {
-        return testAppendMany(20, '22', 57640, sortedOptions);
+      it(`should append 20 new elements, for 57,443 gas.`, async () => {
+        return testAppendMany(20, '22', 57443, sortedOptions);
       });
     
-      it.skip("should append 2 new elements, 100 times consecutively, for 3,683,860 gas.", () => {
-        return testAppendManyConsecutively(100, 2, '22', 3683860, sortedOptions);
+      it.skip("should append 2 new elements, 100 times consecutively, for 3,689,360 gas.", () => {
+        return testAppendManyConsecutively(100, 2, '22', 3689360, sortedOptions);
       });
     
-      it.skip("should append 3 new elements, 100 times consecutively, for 3,901,542 gas.", () => {
-        return testAppendManyConsecutively(100, 3, '22', 3901542, sortedOptions);
+      it.skip("should append 3 new elements, 100 times consecutively, for 3,905,642 gas.", () => {
+        return testAppendManyConsecutively(100, 3, '22', 3905642, sortedOptions);
       });
     
-      it.skip("should append 4 new elements, 100 times consecutively, for 3,932,108 gas.", () => {
-        return testAppendManyConsecutively(100, 4, '22', 3932108, sortedOptions);
+      it.skip("should append 4 new elements, 100 times consecutively, for 3,934,808 gas.", () => {
+        return testAppendManyConsecutively(100, 4, '22', 3934808, sortedOptions);
       });
     
-      it.skip("should append 8 new elements, 100 times consecutively, for 4,563,952 gas.", () => {
-        return testAppendManyConsecutively(100, 8, '22', 4563952, sortedOptions);
+      it.skip("should append 8 new elements, 100 times consecutively, for 4,561,052 gas.", () => {
+        return testAppendManyConsecutively(100, 8, '22', 4561052, sortedOptions);
       });
     
-      it("should use, update, and append 2 new elements for 49,643 gas.", () => {
-        return testUseUpdateAndAppendMany([0, 19], 49643, sortedOptions);
+      it("should use, update, and append 2 new elements for 49,447 gas.", () => {
+        return testUseUpdateAndAppendMany([0, 19], 49447, sortedOptions);
       });
     
-      it("should use, update, and append 3 new elements for 51,460 gas.", () => {
-        return testUseUpdateAndAppendMany([0, 1, 19], 51460, sortedOptions);
+      it("should use, update, and append 3 new elements for 51,180 gas.", () => {
+        return testUseUpdateAndAppendMany([0, 1, 19], 51180, sortedOptions);
       });
     
-      it("should use, update, and append 4 new elements for 54,654 gas.", () => {
-        return testUseUpdateAndAppendMany([0, 1, 2, 19], 54654, sortedOptions);
+      it("should use, update, and append 4 new elements for 54,290 gas.", () => {
+        return testUseUpdateAndAppendMany([0, 1, 2, 19], 54290, sortedOptions);
       });
     
-      it("should use, update, and append 8 new elements for 63,728 gas.", () => {
+      it("should use, update, and append 8 new elements for 63,028 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 63728, sortedOptions);
+        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 63028, sortedOptions);
       });
     
-      it("should use, update, and append 20 new elements for 101,087 gas.", () => {
+      it("should use, update, and append 20 new elements for 99,379 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 101087, sortedOptions);
+        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 99379, sortedOptions);
+      });
+
+      it("should verify size.", () => {
+        return testVerifySize(null, unsortedOptions);
       });
     });
   
@@ -411,184 +423,188 @@ describe("Merkle_Storage_Using_Libraries", async accounts => {
         elementCount = 200;
       });
     
-      it("should use 1 element for 31,895 gas.", () => {
-        return testUseOne(0, 31895, sortedOptions);
+      it("should use 1 element for 31,853 gas.", () => {
+        return testUseOne(0, 31853, sortedOptions);
       });
     
-      it("should update 1 element for 37,873 gas.", () => {
-        return testUpdateOne(0, '11', 37873, sortedOptions);
+      it("should update 1 element for 37,817 gas.", () => {
+        return testUpdateOne(0, '11', 37817, sortedOptions);
       });
     
-      it("should use and update 1 element for 38,716 gas.", () => {
-        return testUseAndUpdateOne(0, 38716, sortedOptions);
+      it("should use and update 1 element for 38,632 gas.", () => {
+        return testUseAndUpdateOne(0, 38632, sortedOptions);
       });
     
-      it("should use 2 elements for 35,675 gas.", () => {
-        return testUseMany([0, 1], 35675, sortedOptions);
+      it("should use 2 elements for 35,605 gas.", () => {
+        return testUseMany([0, 1], 35605, sortedOptions);
       });
     
-      it("should use 3 elements for 37,212 gas.", () => {
-        return testUseMany([0, 1, 2], 37212, sortedOptions);
+      it("should use 3 elements for 37,114 gas.", () => {
+        return testUseMany([0, 1, 2], 37114, sortedOptions);
       });
     
-      it("should use 4 elements for 37,721 gas.", () => {
-        return testUseMany([0, 1, 2, 3], 37721, sortedOptions);
+      it("should use 4 elements for 37,595 gas.", () => {
+        return testUseMany([0, 1, 2, 3], 37595, sortedOptions);
       });
     
-      it("should use 8 elements for 45,839 gas.", () => {
+      it("should use 8 elements for 45,601 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUseMany(firstHalf.concat(secondHalf), 45839, sortedOptions);
+        return testUseMany(firstHalf.concat(secondHalf), 45601, sortedOptions);
       });
     
-      it("should use 20 elements for 67,675 gas.", () => {
+      it("should use 20 elements for 67,101 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUseMany(firstHalf.concat(secondHalf), 67675, sortedOptions);
+        return testUseMany(firstHalf.concat(secondHalf), 67101, sortedOptions);
       });
   
-      it("should use 100 elements for 188,945 gas.", () => {
+      it("should use 100 elements for 186,131 gas.", () => {
         const firstHalf = Array.from(Array(50).keys());
         const secondHalf = Array.from(Array(50).keys()).map(i => elementCount - 50 + i);
-        return testUseMany(firstHalf.concat(secondHalf), 188945, sortedOptions);
+        return testUseMany(firstHalf.concat(secondHalf), 186131, sortedOptions);
       });
     
-      it("should update 2 elements for 43,527 gas.", () => {
-        return testUpdateMany([0, 1], '11', 43527, sortedOptions);
+      it("should update 2 elements for 43,443 gas.", () => {
+        return testUpdateMany([0, 1], '11', 43443, sortedOptions);
       });
     
-      it("should update 3 elements for 45,983 gas.", () => {
-        return testUpdateMany([0, 1, 2], '11', 45983, sortedOptions);
+      it("should update 3 elements for 45,871 gas.", () => {
+        return testUpdateMany([0, 1, 2], '11', 45871, sortedOptions);
       });
     
-      it("should update 4 elements for 47,135 gas.", () => {
-        return testUpdateMany([0, 1, 2, 3], '11', 47135, sortedOptions);
+      it("should update 4 elements for 46,995 gas.", () => {
+        return testUpdateMany([0, 1, 2, 3], '11', 46995, sortedOptions);
       });
     
-      it("should update 8 elements for 59,446 gas.", () => {
+      it("should update 8 elements for 59,194 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUpdateMany(firstHalf.concat(secondHalf), '11', 59446, sortedOptions);
+        return testUpdateMany(firstHalf.concat(secondHalf), '11', 59194, sortedOptions);
       });
     
-      it("should update 20 elements for 92,866 gas.", () => {
+      it("should update 20 elements for 92,278 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUpdateMany(firstHalf.concat(secondHalf), '11', 92866, sortedOptions);
+        return testUpdateMany(firstHalf.concat(secondHalf), '11', 92278, sortedOptions);
       });
   
-      it("should update 100 elements for 285,807 gas.", () => {
+      it("should update 100 elements for 282,979 gas.", () => {
         const firstHalf = Array.from(Array(50).keys());
         const secondHalf = Array.from(Array(50).keys()).map(i => elementCount - 50 + i);
-        return testUpdateMany(firstHalf.concat(secondHalf), '11', 285807, sortedOptions);
+        return testUpdateMany(firstHalf.concat(secondHalf), '11', 282979, sortedOptions);
       });
     
-      it("should use and update 2 elements for 43,936 gas.", () => {
-        return testUseAndUpdateMany([0, 1], 43936, sortedOptions);
+      it("should use and update 2 elements for 43,796 gas.", () => {
+        return testUseAndUpdateMany([0, 1], 43796, sortedOptions);
       });
     
-      it("should use and update 3 elements for 46,279 gas.", () => {
-        return testUseAndUpdateMany([0, 1, 2], 46279, sortedOptions);
+      it("should use and update 3 elements for 46,083 gas.", () => {
+        return testUseAndUpdateMany([0, 1, 2], 46083, sortedOptions);
       });
     
-      it("should use and update 4 elements for 47,330 gas.", () => {
-        return testUseAndUpdateMany([0, 1, 2, 3], 47330, sortedOptions);
+      it("should use and update 4 elements for 47,078 gas.", () => {
+        return testUseAndUpdateMany([0, 1, 2, 3], 47078, sortedOptions);
       });
     
-      it("should use and update 8 elements for 59,202 gas.", () => {
+      it("should use and update 8 elements for 58,726 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 59202, sortedOptions);
+        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 58726, sortedOptions);
       });
     
-      it("should use and update 20 elements for 91,266 gas.", () => {
+      it("should use and update 20 elements for 90,118 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 91266, sortedOptions);
+        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 90118, sortedOptions);
       });
   
-      it("should use and update 100 elements for 275,299 gas.", () => {
+      it("should use and update 100 elements for 269,671 gas.", () => {
         const firstHalf = Array.from(Array(50).keys());
         const secondHalf = Array.from(Array(50).keys()).map(i => elementCount - 50 + i);
-        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 275299, sortedOptions);
+        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 269671, sortedOptions);
       });
     
-      it("should append 1 new element for 31,828 gas.", async () => {
-        return testAppendOne('22', 31828, sortedOptions);
+      it("should append 1 new element for 31,786 gas.", async () => {
+        return testAppendOne('22', 31786, sortedOptions);
       });
     
-      it.skip("should append 1 new element, 100 times consecutively, for 3,319,848 gas.", () => {
-        return testAppendOneConsecutively(100, '22', 3319848, sortedOptions);
+      it.skip("should append 1 new element, 100 times consecutively, for 3,315,648 gas.", () => {
+        return testAppendOneConsecutively(100, '22', 3315648, sortedOptions);
       });
     
-      it(`should append 2 new elements, for 36,743 gas.`, async () => {
-        return testAppendMany(2, '22', 36743, sortedOptions);
+      it(`should append 2 new elements, for 36,798 gas.`, async () => {
+        return testAppendMany(2, '22', 36798, sortedOptions);
       });
     
-      it(`should append 3 new elements, for 37,883 gas.`, async () => {
-        return testAppendMany(3, '22', 37883, sortedOptions);
+      it(`should append 3 new elements, for 37,924 gas.`, async () => {
+        return testAppendMany(3, '22', 37924, sortedOptions);
       });
     
-      it(`should append 4 new elements, for 39,044 gas.`, async () => {
-        return testAppendMany(4, '22', 39044, sortedOptions);
+      it(`should append 4 new elements, for 39,071 gas.`, async () => {
+        return testAppendMany(4, '22', 39071, sortedOptions);
       });
     
-      it(`should append 8 new elements, for 43,956 gas.`, async () => {
-        return testAppendMany(8, '22', 43956, sortedOptions);
+      it(`should append 8 new elements, for 43,927 gas.`, async () => {
+        return testAppendMany(8, '22', 43927, sortedOptions);
       });
     
-      it(`should append 20 new elements, for 59,185 gas.`, async () => {
-        return testAppendMany(20, '22', 59185, sortedOptions);
+      it(`should append 20 new elements, for 58,988 gas.`, async () => {
+        return testAppendMany(20, '22', 58988, sortedOptions);
       });
   
-      it(`should append 100 new elements, for 161,732 gas.`, async () => {
-        return testAppendMany(100, '22', 161732, sortedOptions);
+      it(`should append 100 new elements, for 160,415 gas.`, async () => {
+        return testAppendMany(100, '22', 160415, sortedOptions);
       });
     
-      it.skip("should append 2 new elements, 100 times consecutively, for 3,808,052 gas.", () => {
-        return testAppendManyConsecutively(100, 2, '22', 3808052, sortedOptions);
+      it.skip("should append 2 new elements, 100 times consecutively, for 3,813,552 gas.", () => {
+        return testAppendManyConsecutively(100, 2, '22', 3813552, sortedOptions);
       });
     
-      it.skip("should append 3 new elements, 100 times consecutively, for 4,020,150 gas.", () => {
-        return testAppendManyConsecutively(100, 3, '22', 4020150, sortedOptions);
+      it.skip("should append 3 new elements, 100 times consecutively, for 4,024,250 gas.", () => {
+        return testAppendManyConsecutively(100, 3, '22', 4024250, sortedOptions);
       });
     
-      it.skip("should append 4 new elements, 100 times consecutively, for 4,019,625 gas.", () => {
-        return testAppendManyConsecutively(100, 4, '22', 4019625, sortedOptions);
+      it.skip("should append 4 new elements, 100 times consecutively, for 4,022,325 gas.", () => {
+        return testAppendManyConsecutively(100, 4, '22', 4022325, sortedOptions);
       });
     
-      it.skip("should append 8 new elements, 100 times consecutively, for 4,518,610 gas.", () => {
-        return testAppendManyConsecutively(100, 8, '22', 4518610, sortedOptions);
+      it.skip("should append 8 new elements, 100 times consecutively, for 4,515,710 gas.", () => {
+        return testAppendManyConsecutively(100, 8, '22', 4515710, sortedOptions);
       });
     
-      it("should use, update, and append 2 new elements for 58,737 gas.", () => {
-        return testUseUpdateAndAppendMany([0, 199], 58737, sortedOptions);
+      it("should use, update, and append 2 new elements for 58,541 gas.", () => {
+        return testUseUpdateAndAppendMany([0, 199], 58541, sortedOptions);
       });
     
-      it("should use, update, and append 3 new elements for 60,542 gas.", () => {
-        return testUseUpdateAndAppendMany([0, 1, 199], 60542, sortedOptions);
+      it("should use, update, and append 3 new elements for 60,262 gas.", () => {
+        return testUseUpdateAndAppendMany([0, 1, 199], 60262, sortedOptions);
       });
     
-      it("should use, update, and append 4 new elements for 63,774 gas.", () => {
-        return testUseUpdateAndAppendMany([0, 1, 2, 199], 63774, sortedOptions);
+      it("should use, update, and append 4 new elements for 63,410 gas.", () => {
+        return testUseUpdateAndAppendMany([0, 1, 2, 199], 63410, sortedOptions);
       });
     
-      it("should use, update, and append 8 new elements for 72,684 gas.", () => {
+      it("should use, update, and append 8 new elements for 71,984 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 72684, sortedOptions);
+        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 71984, sortedOptions);
       });
     
-      it("should use, update, and append 20 new elements for 116,570 gas.", () => {
+      it("should use, update, and append 20 new elements for 114,862 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 116570, sortedOptions);
+        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 114862, sortedOptions);
       });
   
-      it("should use, update, and append 100 new elements for 378,820 gas.", () => {
+      it("should use, update, and append 100 new elements for 370,392 gas.", () => {
         const firstHalf = Array.from(Array(50).keys());
         const secondHalf = Array.from(Array(50).keys()).map(i => elementCount - 50 + i);
-        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 378820, sortedOptions);
+        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 370392, sortedOptions);
+      });
+
+      it("should verify size.", () => {
+        return testVerifySize(null, unsortedOptions);
       });
     });
   
@@ -601,184 +617,188 @@ describe("Merkle_Storage_Using_Libraries", async accounts => {
         elementCount = 2000;
       });
     
-      it("should use 1 element for 34,400 gas.", () => {
-        return testUseOne(0, 34400, sortedOptions);
+      it("should use 1 element for 34,358 gas.", () => {
+        return testUseOne(0, 34358, sortedOptions);
       });
     
-      it("should update 1 element for 40,876 gas.", () => {
-        return testUpdateOne(0, '11', 40876, sortedOptions);
+      it("should update 1 element for 40,820 gas.", () => {
+        return testUpdateOne(0, '11', 40820, sortedOptions);
       });
     
-      it("should use and update 1 element for 41,707 gas.", () => {
-        return testUseAndUpdateOne(0, 41707, sortedOptions);
+      it("should use and update 1 element for 41,623 gas.", () => {
+        return testUseAndUpdateOne(0, 41623, sortedOptions);
       });
     
-      it("should use 2 elements for 38,857 gas.", () => {
-        return testUseMany([0, 1], 38857, sortedOptions);
+      it("should use 2 elements for 38,787 gas.", () => {
+        return testUseMany([0, 1], 38787, sortedOptions);
       });
     
-      it("should use 3 elements for 40,383 gas.", () => {
-        return testUseMany([0, 1, 2], 40383, sortedOptions);
+      it("should use 3 elements for 40,285 gas.", () => {
+        return testUseMany([0, 1, 2], 40285, sortedOptions);
       });
     
-      it("should use 4 elements for 40,882 gas.", () => {
-        return testUseMany([0, 1, 2, 3], 40882, sortedOptions);
+      it("should use 4 elements for 40,756 gas.", () => {
+        return testUseMany([0, 1, 2, 3], 40756, sortedOptions);
       });
     
-      it("should use 8 elements for 52,959 gas.", () => {
+      it("should use 8 elements for 52,721 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUseMany(firstHalf.concat(secondHalf), 52959, sortedOptions);
+        return testUseMany(firstHalf.concat(secondHalf), 52721, sortedOptions);
       });
     
-      it("should use 20 elements for 71,624 gas.", () => {
+      it("should use 20 elements for 71,050 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUseMany(firstHalf.concat(secondHalf), 71624, sortedOptions);
+        return testUseMany(firstHalf.concat(secondHalf), 71050, sortedOptions);
       });
   
-      it("should use 100 elements for 196,010 gas.", () => {
+      it("should use 100 elements for 193,196 gas.", () => {
         const firstHalf = Array.from(Array(50).keys());
         const secondHalf = Array.from(Array(50).keys()).map(i => elementCount - 50 + i);
-        return testUseMany(firstHalf.concat(secondHalf), 196010, sortedOptions);
+        return testUseMany(firstHalf.concat(secondHalf), 193196, sortedOptions);
       });
     
-      it("should update 2 elements for 47,422 gas.", () => {
-        return testUpdateMany([0, 1], '11', 47422, sortedOptions);
+      it("should update 2 elements for 47,338 gas.", () => {
+        return testUpdateMany([0, 1], '11', 47338, sortedOptions);
       });
     
-      it("should update 3 elements for 49,857 gas.", () => {
-        return testUpdateMany([0, 1, 2], '11', 49857, sortedOptions);
+      it("should update 3 elements for 49,745 gas.", () => {
+        return testUpdateMany([0, 1, 2], '11', 49745, sortedOptions);
       });
     
-      it("should update 4 elements for 51,022 gas.", () => {
-        return testUpdateMany([0, 1, 2, 3], '11', 51022, sortedOptions);
+      it("should update 4 elements for 50,882 gas.", () => {
+        return testUpdateMany([0, 1, 2, 3], '11', 50882, sortedOptions);
       });
     
-      it("should update 8 elements for 68,111 gas.", () => {
+      it("should update 8 elements for 67,859 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUpdateMany(firstHalf.concat(secondHalf), '11', 68111, sortedOptions);
+        return testUpdateMany(firstHalf.concat(secondHalf), '11', 67859, sortedOptions);
       });
     
-      it("should update 20 elements for 97,622 gas.", () => {
+      it("should update 20 elements for 97,034 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUpdateMany(firstHalf.concat(secondHalf), '11', 97622, sortedOptions);
+        return testUpdateMany(firstHalf.concat(secondHalf), '11', 97034, sortedOptions);
       });
   
-      it("should update 100 elements for 294,469 gas.", () => {
+      it("should update 100 elements for 291,641 gas.", () => {
         const firstHalf = Array.from(Array(50).keys());
         const secondHalf = Array.from(Array(50).keys()).map(i => elementCount - 50 + i);
-        return testUpdateMany(firstHalf.concat(secondHalf), '11', 294469, sortedOptions);
+        return testUpdateMany(firstHalf.concat(secondHalf), '11', 291641, sortedOptions);
       });
     
-      it("should use and update 2 elements for 47,843 gas.", () => {
-        return testUseAndUpdateMany([0, 1], 47843, sortedOptions);
+      it("should use and update 2 elements for 47,703 gas.", () => {
+        return testUseAndUpdateMany([0, 1], 47703, sortedOptions);
       });
     
-      it("should use and update 3 elements for 50,165 gas.", () => {
-        return testUseAndUpdateMany([0, 1, 2], 50165, sortedOptions);
+      it("should use and update 3 elements for 49,969 gas.", () => {
+        return testUseAndUpdateMany([0, 1, 2], 49969, sortedOptions);
       });
     
-      it("should use and update 4 elements for 51,205 gas.", () => {
-        return testUseAndUpdateMany([0, 1, 2, 3], 51205, sortedOptions);
+      it("should use and update 4 elements for 50,953 gas.", () => {
+        return testUseAndUpdateMany([0, 1, 2, 3], 50953, sortedOptions);
       });
     
-      it("should use and update 8 elements for 67,890 gas.", () => {
+      it("should use and update 8 elements for 67,414 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 67890, sortedOptions);
+        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 67414, sortedOptions);
       });
     
-      it("should use and update 20 elements for 96,069 gas.", () => {
+      it("should use and update 20 elements for 94,921 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 96069, sortedOptions);
+        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 94921, sortedOptions);
       });
   
-      it("should use and update 100 elements for 283,914 gas.", () => {
+      it("should use and update 100 elements for 278,286 gas.", () => {
         const firstHalf = Array.from(Array(50).keys());
         const secondHalf = Array.from(Array(50).keys()).map(i => elementCount - 50 + i);
-        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 283914, sortedOptions);
+        return testUseAndUpdateMany(firstHalf.concat(secondHalf), 278286, sortedOptions);
       });
     
-      it("should append 1 new element for 34,615 gas.", async () => {
-        return testAppendOne('22', 34615, sortedOptions);
+      it("should append 1 new element for 34,573 gas.", async () => {
+        return testAppendOne('22', 34573, sortedOptions);
       });
     
-      it.skip("should append 1 new element, 100 times consecutively, for 3,453,012 gas.", () => {
-        return testAppendOneConsecutively(100, '22', 3453012, sortedOptions);
+      it.skip("should append 1 new element, 100 times consecutively, for 3,448,812 gas.", () => {
+        return testAppendOneConsecutively(100, '22', 3448812, sortedOptions);
       });
     
-      it(`should append 2 new elements, for 40,631 gas.`, async () => {
-        return testAppendMany(2, '22', 40631, sortedOptions);
+      it(`should append 2 new elements, for 40,686 gas.`, async () => {
+        return testAppendMany(2, '22', 40686, sortedOptions);
       });
     
-      it(`should append 3 new elements, for 41,795 gas.`, async () => {
-        return testAppendMany(3, '22', 41795, sortedOptions);
+      it(`should append 3 new elements, for 41,836 gas.`, async () => {
+        return testAppendMany(3, '22', 41836, sortedOptions);
       });
     
-      it(`should append 4 new elements, for 42,944 gas.`, async () => {
-        return testAppendMany(4, '22', 42944, sortedOptions);
+      it(`should append 4 new elements, for 42,971 gas.`, async () => {
+        return testAppendMany(4, '22', 42971, sortedOptions);
       });
     
-      it(`should append 8 new elements, for 47,856 gas.`, async () => {
-        return testAppendMany(8, '22', 47856, sortedOptions);
+      it(`should append 8 new elements, for 47,827 gas.`, async () => {
+        return testAppendMany(8, '22', 47827, sortedOptions);
       });
     
-      it(`should append 20 new elements, for 63,052 gas.`, async () => {
-        return testAppendMany(20, '22', 63052, sortedOptions);
+      it(`should append 20 new elements, for 62,855 gas.`, async () => {
+        return testAppendMany(20, '22', 62855, sortedOptions);
       });
   
-      it(`should append 100 new elements, for 165,941 gas.`, async () => {
-        return testAppendMany(100, '22', 165941, sortedOptions);
+      it(`should append 100 new elements, for 164,624 gas.`, async () => {
+        return testAppendMany(100, '22', 164624, sortedOptions);
       });
     
-      it.skip("should append 2 new elements, 100 times consecutively, for 3,978,804 gas.", () => {
-        return testAppendManyConsecutively(100, 2, '22', 3978804, sortedOptions);
+      it.skip("should append 2 new elements, 100 times consecutively, for 3,984,304 gas.", () => {
+        return testAppendManyConsecutively(100, 2, '22', 3984304, sortedOptions);
       });
     
-      it.skip("should append 3 new elements, 100 times consecutively, for 4,170,926 gas.", () => {
-        return testAppendManyConsecutively(100, 3, '22', 4170926, sortedOptions);
+      it.skip("should append 3 new elements, 100 times consecutively, for 4,175,026 gas.", () => {
+        return testAppendManyConsecutively(100, 3, '22', 4175026, sortedOptions);
       });
     
-      it.skip("should append 4 new elements, 100 times consecutively, for 4,172,891 gas.", () => {
-        return testAppendManyConsecutively(100, 4, '22', 4172891, sortedOptions);
+      it.skip("should append 4 new elements, 100 times consecutively, for 4,175,591 gas.", () => {
+        return testAppendManyConsecutively(100, 4, '22', 4175591, sortedOptions);
       });
     
-      it.skip("should append 8 new elements, 100 times consecutively, for 4,648,505 gas.", () => {
-        return testAppendManyConsecutively(100, 8, '22', 4648505, sortedOptions);
+      it.skip("should append 8 new elements, 100 times consecutively, for 4,645,605 gas.", () => {
+        return testAppendManyConsecutively(100, 8, '22', 4645605, sortedOptions);
       });
     
-      it("should use, update, and append 2 new elements for 71,164 gas.", () => {
-        return testUseUpdateAndAppendMany([0, 1999], 71164, sortedOptions);
+      it("should use, update, and append 2 new elements for 70,968 gas.", () => {
+        return testUseUpdateAndAppendMany([0, 1999], 70968, sortedOptions);
       });
     
-      it("should use, update, and append 3 new elements for 72,957 gas.", () => {
-        return testUseUpdateAndAppendMany([0, 1, 1999], 72957, sortedOptions);
+      it("should use, update, and append 3 new elements for 72,677 gas.", () => {
+        return testUseUpdateAndAppendMany([0, 1, 1999], 72677, sortedOptions);
       });
     
-      it("should use, update, and append 4 new elements for 76,140 gas.", () => {
-        return testUseUpdateAndAppendMany([0, 1, 2, 1999], 76140, sortedOptions);
+      it("should use, update, and append 4 new elements for 75,776 gas.", () => {
+        return testUseUpdateAndAppendMany([0, 1, 2, 1999], 75776, sortedOptions);
       });
     
-      it("should use, update, and append 8 new elements for 85,161 gas.", () => {
+      it("should use, update, and append 8 new elements for 84,461 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 85161, sortedOptions);
+        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 84461, sortedOptions);
       });
     
-      it("should use, update, and append 20 new elements for 124,867 gas.", () => {
+      it("should use, update, and append 20 new elements for 123,159 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 124867, sortedOptions);
+        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 123159, sortedOptions);
       });
   
-      it("should use, update, and append 100 new elements for 391,564 gas.", () => {
+      it("should use, update, and append 100 new elements for 383,136 gas.", () => {
         const firstHalf = Array.from(Array(50).keys());
         const secondHalf = Array.from(Array(50).keys()).map(i => elementCount - 50 + i);
-        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 391564, sortedOptions);
+        return testUseUpdateAndAppendMany(firstHalf.concat(secondHalf), 383136, sortedOptions);
+      });
+
+      it("should verify size.", () => {
+        return testVerifySize(null, unsortedOptions);
       });
     });
   });
@@ -793,16 +813,16 @@ describe("Merkle_Storage_Using_Libraries", async accounts => {
         elementCount = 200;
       });
     
-      it("should use 1 element for 31,769 gas.", () => {
-        return testUseOne(0, 31769, unsortedOptions);
+      it("should use 1 element for 31,747 gas.", () => {
+        return testUseOne(0, 31747, unsortedOptions);
       });
     
-      it("should update 1 element for 37,651 gas.", () => {
-        return testUpdateOne(0, '11', 37651, unsortedOptions);
+      it("should update 1 element for 37,696 gas.", () => {
+        return testUpdateOne(0, '11', 37696, unsortedOptions);
       });
     
-      it("should use and update 1 element for 38,512 gas.", () => {
-        return testUseAndUpdateOne(0, 38512, unsortedOptions);
+      it("should use and update 1 element for 38,490 gas.", () => {
+        return testUseAndUpdateOne(0, 38490, unsortedOptions);
       });
     
       it("should use 2 elements for 35,678 gas.", () => {
@@ -835,34 +855,34 @@ describe("Merkle_Storage_Using_Libraries", async accounts => {
         return testUseMany(firstHalf.concat(secondHalf), 184763, unsortedOptions);
       });
     
-      it("should update 2 elements for 43,361 gas.", () => {
-        return testUpdateMany([0, 1], '11', 43361, unsortedOptions);
+      it("should update 2 elements for 43,406 gas.", () => {
+        return testUpdateMany([0, 1], '11', 43406, unsortedOptions);
       });
     
-      it("should update 3 elements for 45,755 gas.", () => {
-        return testUpdateMany([0, 1, 2], '11', 45755, unsortedOptions);
+      it("should update 3 elements for 45,800 gas.", () => {
+        return testUpdateMany([0, 1, 2], '11', 45800, unsortedOptions);
       });
     
-      it("should update 4 elements for 46,891 gas.", () => {
-        return testUpdateMany([0, 1, 2, 3], '11', 46891, unsortedOptions);
+      it("should update 4 elements for 46,936 gas.", () => {
+        return testUpdateMany([0, 1, 2, 3], '11', 46936, unsortedOptions);
       });
     
-      it("should update 8 elements for 59,001 gas.", () => {
+      it("should update 8 elements for 59,046 gas.", () => {
         const firstHalf = Array.from(Array(4).keys());
         const secondHalf = Array.from(Array(4).keys()).map(i => elementCount - 4 + i);
-        return testUpdateMany(firstHalf.concat(secondHalf), '11', 59001, unsortedOptions);
+        return testUpdateMany(firstHalf.concat(secondHalf), '11', 59046, unsortedOptions);
       });
     
-      it("should update 20 elements for 91,581 gas.", () => {
+      it("should update 20 elements for 91,626 gas.", () => {
         const firstHalf = Array.from(Array(10).keys());
         const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
-        return testUpdateMany(firstHalf.concat(secondHalf), '11', 91581, unsortedOptions);
+        return testUpdateMany(firstHalf.concat(secondHalf), '11', 91626, unsortedOptions);
       });
   
-      it("should update 100 elements for 279,692 gas.", () => {
+      it("should update 100 elements for 279,737 gas.", () => {
         const firstHalf = Array.from(Array(50).keys());
         const secondHalf = Array.from(Array(50).keys()).map(i => elementCount - 50 + i);
-        return testUpdateMany(firstHalf.concat(secondHalf), '11', 279692, unsortedOptions);
+        return testUpdateMany(firstHalf.concat(secondHalf), '11', 279737, unsortedOptions);
       });
     
       it("should use and update 2 elements for 43,760 gas.", () => {
@@ -899,7 +919,7 @@ describe("Merkle_Storage_Using_Libraries", async accounts => {
         return testAppendOne('22', 31538, unsortedOptions);
       });
     
-      it("should append 1 new element, 100 times consecutively, for 3,277,832 gas.", () => {
+      it.skip("should append 1 new element, 100 times consecutively, for 3,277,832 gas.", () => {
         return testAppendOneConsecutively(100, '22', 3277832, unsortedOptions);
       });
     
@@ -979,6 +999,10 @@ describe("Merkle_Storage_Using_Libraries", async accounts => {
   
       it("should get indices for 5 elements.", () => {
         return testGetIndices([2, 7, 8, 15, 19], null, unsortedOptions);
+      });
+  
+      it("should verify size.", () => {
+        return testVerifySize(null, unsortedOptions);
       });
     });
 

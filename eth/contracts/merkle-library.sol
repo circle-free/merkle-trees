@@ -12,8 +12,6 @@ library Merkle_Library {
       mstore(0x20, b)
       hash := keccak256(0x00, 0x40)
     }
-
-    return hash;
   }
 
   function bit_count_32(uint32 n) internal pure returns (uint32) {
@@ -310,6 +308,15 @@ library Merkle_Library {
     }
   }
 
+  function get_root_from_size_proof(uint256 element_count, bytes32[] memory proof) internal pure returns (bytes32 hash) {
+    uint256 proof_index = bit_count_32(uint32(element_count)) - 1;
+    hash = proof[proof_index];
+
+    while (proof_index > 0) {
+      hash = hash_node(proof[--proof_index], hash);
+    }
+  }
+
   function get_root_from_append_proof(bytes32[] memory proof) internal pure returns (bytes32 hash) {
     uint256 proof_index = bit_count_32(uint32(uint256(proof[0])));
     hash = proof[proof_index];
@@ -317,8 +324,6 @@ library Merkle_Library {
     while (proof_index > 1) {
       hash = hash_node(proof[--proof_index], hash);
     }
-
-    return hash;
   }
 
   function get_roots_from_append_proof_single_append(bytes32 new_element, bytes32[] memory proof) internal pure returns (bytes32 hash, bytes32 new_hash) {
@@ -332,8 +337,6 @@ library Merkle_Library {
       new_hash = hash_node(scratch, new_hash);
       hash = hash_node(scratch, hash);
     }
-
-    return (hash, new_hash);
   }
 
   function get_roots_from_append_proof_multi_append(bytes32[] memory new_elements, bytes32[] memory proof) internal pure returns (bytes32 hash, bytes32) {
@@ -668,6 +671,10 @@ library Merkle_Library {
     // if (root == 0x0000000000000000000000000000000000000000000000000000000000000000 || proof[0] == 0x0000000000000000000000000000000000000000000000000000000000000000) return false;
 
     return hash_node(proof[0], get_root_from_multi_proof(elements, proof)) == root;
+  }
+  
+  function verify_size(bytes32 root, uint256 size, bytes32[] memory proof) internal pure returns (bool) {
+    return hash_node(bytes32(size), get_root_from_size_proof(size, proof)) == root;
   }
 
   function try_update_one(bytes32 root, uint256 index, bytes32 element, bytes32 new_element, bytes32[] memory proof) internal pure returns (bytes32) {
