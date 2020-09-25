@@ -102,7 +102,7 @@ contract Merkle_Storage_Using_Sorted_Hash_Lib {
     emit Some_Data(some_data);
   }
 
-  function verify_size(uint256 size, bytes32[] memory proof) public view returns (bool) {
-    return Merkle_Library_Sorted_Hash.verify_size(root, size, proof);
+  function verify_size(uint256 size, bytes32 element_root) public view returns (bool) {
+    return Merkle_Library_Sorted_Hash.verify_size(root, size, element_root);
   }
 }

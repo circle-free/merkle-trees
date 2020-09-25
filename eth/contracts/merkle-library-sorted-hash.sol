@@ -227,15 +227,6 @@ library Merkle_Library_Sorted_Hash {
     }
   }
 
-  function get_root_from_size_proof(uint256 element_count, bytes32[] memory proof) internal pure returns (bytes32 hash) {
-    uint256 proof_index = bit_count_32(uint32(element_count)) - 1;
-    hash = proof[proof_index];
-
-    while (proof_index > 0) {
-      hash = hash_pair(proof[--proof_index], hash);
-    }
-  }
-
   function get_root_from_append_proof(bytes32[] memory proof) internal pure returns (bytes32 hash) {
     uint256 proof_index = bit_count_32(uint32(uint256(proof[0])));
     hash = proof[proof_index];
@@ -570,8 +561,8 @@ library Merkle_Library_Sorted_Hash {
     return hash_node(proof[0], get_root_from_multi_proof(elements, proof)) == root;
   }
 
-  function verify_size(bytes32 root, uint256 size, bytes32[] memory proof) internal pure returns (bool) {
-    return hash_node(bytes32(size), get_root_from_size_proof(size, proof)) == root;
+  function verify_size(bytes32 root, uint256 size, bytes32 element_root) internal pure returns (bool) {
+    return hash_node(bytes32(size), element_root) == root;
   }
 
   function try_update_one(bytes32 root, uint256 index, bytes32 element, bytes32 new_element, bytes32[] memory proof) internal pure returns (bytes32) {

@@ -673,8 +673,12 @@ library Merkle_Library {
     return hash_node(proof[0], get_root_from_multi_proof(elements, proof)) == root;
   }
   
-  function verify_size(bytes32 root, uint256 size, bytes32[] memory proof) internal pure returns (bool) {
+  function verify_size_with_proof(bytes32 root, uint256 size, bytes32[] memory proof) internal pure returns (bool) {
     return hash_node(bytes32(size), get_root_from_size_proof(size, proof)) == root;
+  }
+  
+  function verify_size(bytes32 root, uint256 size, bytes32 element_root) internal pure returns (bool) {
+    return hash_node(bytes32(size), element_root) == root;
   }
 
   function try_update_one(bytes32 root, uint256 index, bytes32 element, bytes32 new_element, bytes32[] memory proof) internal pure returns (bytes32) {
