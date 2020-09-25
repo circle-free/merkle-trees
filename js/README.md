@@ -158,7 +158,7 @@ Given an unbalanced tree, where elements to the right of the append index do not
 - [ ] enable compact proofs for "large" trees (proof hash count > 255) with multiple 32-byte flags, given stop bits
 - [ ] Bring Your Own Hash Function
 - [X] Size Proofs using Append-Proof
-- [ ] Size Proofs using just element root
+- [X] Size Proofs using just element root (simple)
 - [ ] Handle empty tree (no elements to start)
 
 

@@ -443,7 +443,7 @@ class MerkleTree {
     const { compact, simple = true } = options;
     const elementCount = this._elements.length;
     const root = Buffer.from(this._tree[0]);
-    
+
     if (simple) return { root, elementCount, elementRoot: Buffer.from(this._tree[1]) };
 
     assert(!this._sortedHash, 'Can only generate simple Size Proofs for sorted hashed trees.');
