@@ -19,7 +19,7 @@ const simpleStorageContractInstance = await Simple_Storage.new();
 const hexElements = elements.map(e => '0x' + e.toString('hex'));
 await simpleStorageContractInstance.append_many(0, hexElements);
 
-// use the elements at the 8 above indices, update them, and append 8 more
+// Use the elements at the 8 above indices, update them, and append 8 more
 const { receipt: simpleStorageReceipt } = await simpleStorageContractInstance.use_and_update_and_append_many(indices, elementCount);
 console.log(simpleStorageReceipt.gasUsed); // 236,384
 
@@ -35,12 +35,12 @@ const { elements, compactProof } = merkleTree.generateCombinedProof(indices, pro
 const hexElements = elements.map(e => '0x' + e.toString('hex'));
 const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
 
-// use the elements at the 8 above indices (by proving them), update them, append 8 more, and save the merkle root to storage
+// With the proof, a contract can use the 8 items, update them however it wants, append (in this case) 8 more, and save the merkle root to storage
 const { receipt: merkleStorageReceipt } = await merkleStorageContractInstance.use_and_update_and_append_many(elementCount, hexElements, hexProof);
 console.log(merkleStorageReceipt.gasUsed); // 63,728  (less than 27% the cost)
 
 const retrievedRoot = await contractInstance.root();
-console.log(retrievedRoot === '0x' + merkleTree.root.toString('hex'));  // true
+console.log(retrievedRoot);  // merkle root of the new set of elements, 8 of which were updated and 8 of which were newly appended
 ```
 
 For more, see tests.
