@@ -12,16 +12,26 @@ class MerkleTree {
   constructor(elements, options = {}) {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
 
-    this._leafCount = MerkleTree.getLeafCountFromElements(elements);
-
-    assert(unbalanced || elements.length === this._leafCount, 'Incorrect element count for balanced tree.');
-
     this._elementPrefix = Buffer.from(elementPrefix, 'hex');
     this._sortedHash = sortedHash;
     this._unbalanced = unbalanced;
     this._elements = elements.map(Buffer.from);
-    this._depth = MerkleTree.getDepthFromElements(this._elements);
 
+    if (elements.length === 0) {
+      assert(unbalanced, 'Cannot initialize an empty balanced tree.');
+
+      this._leafCount = 0;
+      this._depth = 0;
+      this._tree = [];
+
+      return;
+    }
+
+    this._leafCount = MerkleTree.getLeafCountFromElements(this._elements);
+
+    assert(unbalanced || elements.length === this._leafCount, 'Incorrect element count for balanced tree.');
+
+    this._depth = MerkleTree.getDepthFromElements(this._elements);
     const leafs = Array(this._leafCount).fill(null);
     this._elements.forEach((element, index) => (leafs[index] = hashNode(this._elementPrefix, element)));
 
@@ -122,7 +132,9 @@ class MerkleTree {
   static verifyAppendProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true } = options;
 
-    assert(unbalanced, 'Append-Proofs not supported for balanced tress.');
+    assert(unbalanced, 'Append-Proofs not supported for balanced trees.');
+
+    if (parameters.root.equals(to32ByteBuffer(0))) return true;
 
     const hashFunction = getHashFunction(unbalanced, sortedHash);
     const opts = { hashFunction, sortedHash };
@@ -135,7 +147,12 @@ class MerkleTree {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
     const { root, newElement } = parameters;
 
-    assert(unbalanced, 'Append-Proofs not supported for balanced tress.');
+    assert(unbalanced, 'Append-Proofs not supported for balanced trees.');
+
+    if (root.equals(to32ByteBuffer(0))) {
+      const merkleTree = new MerkleTree([newElement], { sortedHash, unbalanced, elementPrefix });
+      return { root: merkleTree.root, elementCount: 1 };
+    }
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const newLeaf = hashNode(prefixBuffer, newElement);
@@ -154,7 +171,12 @@ class MerkleTree {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
     const { root, newElements } = parameters;
 
-    assert(unbalanced, 'Append-Proofs not supported for balanced tress.');
+    assert(unbalanced, 'Append-Proofs not supported for balanced trees.');
+
+    if (root.equals(to32ByteBuffer(0))) {
+      const merkleTree = new MerkleTree(newElements, { sortedHash, unbalanced, elementPrefix });
+      return { root: merkleTree.root, elementCount: newElements.length };
+    }
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const newLeafs = newElements.map((element) => hashNode(prefixBuffer, element));
@@ -172,7 +194,7 @@ class MerkleTree {
   static verifyCombinedProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
 
-    assert(unbalanced, 'Combined-Proofs not supported for unbalanced tress.');
+    assert(unbalanced, 'Combined-Proofs not supported for unbalanced trees.');
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashFunction = getHashFunction(true, sortedHash);
@@ -190,7 +212,7 @@ class MerkleTree {
   static updateAndAppendWithCombinedProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
 
-    assert(unbalanced, 'Combined-Proofs not supported for unbalanced tress.');
+    assert(unbalanced, 'Combined-Proofs not supported for unbalanced trees.');
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashFunction = getHashFunction(true, sortedHash);
@@ -222,6 +244,8 @@ class MerkleTree {
     const { sortedHash = true, unbalanced = true } = options;
     const { root, elementCount, elementRoot, compactProof, decommitments = compactProof } = parameters;
 
+    if (root.equals(to32ByteBuffer(0)) && elementCount === 0) return true;
+
     if (elementRoot) return MerkleTree.verifyMixedRoot(root, elementCount, elementRoot);
 
     assert(!sortedHash, 'Can only verify simple Size Proofs for sorted hashed trees.');
@@ -235,11 +259,11 @@ class MerkleTree {
   }
 
   get elementRoot() {
-    return Buffer.from(this._tree[1]);
+    return this._elements.length ? Buffer.from(this._tree[1]) : to32ByteBuffer(0);
   }
 
   get root() {
-    return Buffer.from(this._tree[0]);
+    return this._elements.length ? Buffer.from(this._tree[0]) : to32ByteBuffer(0);
   }
 
   get depth() {
@@ -255,13 +279,14 @@ class MerkleTree {
   }
 
   generateSingleProof(index, options = {}) {
+    assert(this._elements.length > 0, 'Tree is empty.');
     assert(index < this._elements.length, 'Index out of range.');
 
     const params = { tree: this._tree, elementCount: this._elements.length, index };
     const proof = SingleProofs.generate(params, options);
 
     const base = {
-      root: Buffer.from(this._tree[0]),
+      root: this.root,
       index,
       element: Buffer.from(this._elements[index]),
     };
@@ -289,6 +314,8 @@ class MerkleTree {
   }
 
   generateMultiProof(indices, options = {}) {
+    assert(this._elements.length > 0, 'Tree is empty.');
+
     const { indexed = false, compact = false } = options;
 
     assert(!indexed || !this._unbalanced, 'Indexed Multi-Proofs for unbalanced trees not yet supported.');
@@ -305,7 +332,7 @@ class MerkleTree {
     const elements = indices.map((index) => Buffer.from(this._elements[index]));
 
     const base = {
-      root: Buffer.from(this._tree[0]),
+      root: this.root,
       elements,
     };
 
@@ -341,10 +368,18 @@ class MerkleTree {
   generateAppendProof(options = {}) {
     assert(this._unbalanced, 'Can only generate Append-Proofs for unbalanced trees.');
 
+    const { compact } = options;
+
+    if (this._elements.length === 0) {
+      return compact
+        ? { root: this.root, compactProof: [to32ByteBuffer(0)] }
+        : { root: this.root, elementCount: 0, decommitments: [] };
+    }
+
     const params = { tree: this._tree, elementCount: this._elements.length };
     const proof = AppendProofs.generate(params, options);
 
-    return Object.assign({ root: Buffer.from(this._tree[0]) }, proof);
+    return Object.assign({ root: this.root }, proof);
   }
 
   generateSingleAppendProof(element, options = {}) {
@@ -389,6 +424,8 @@ class MerkleTree {
   }
 
   generateCombinedProof(indices, options = {}) {
+    assert(this._elements.length > 0, 'Tree is empty.');
+
     const { indexed = false, compact = true } = options;
 
     assert(!indexed, 'Indexed Combined-Proofs are not yet supported.');
@@ -409,7 +446,7 @@ class MerkleTree {
     const elements = indices.map((index) => Buffer.from(this._elements[index]));
 
     const base = {
-      root: Buffer.from(this._tree[0]),
+      root: this.root,
       elements,
     };
 
@@ -440,11 +477,21 @@ class MerkleTree {
   }
 
   generateSizeProof(options = {}) {
-    const { compact, simple = true } = options;
+    const { compact = false, simple = true } = options;
     const elementCount = this._elements.length;
-    const root = Buffer.from(this._tree[0]);
 
-    if (simple) return { root, elementCount, elementRoot: Buffer.from(this._tree[1]) };
+    if (elementCount === 0) {
+      const root = to32ByteBuffer(0);
+      const elementRoot = to32ByteBuffer(0);
+
+      if (simple) return { root, elementCount, elementRoot };
+
+      assert(!this._sortedHash, 'Can only generate simple Size Proofs for sorted hashed trees.');
+
+      return compact ? { root, elementCount, compactProof: [] } : { root, elementCount, decommitments: [] };
+    }
+
+    if (simple) return { root: this.root, elementCount, elementRoot: this.elementRoot };
 
     assert(!this._sortedHash, 'Can only generate simple Size Proofs for sorted hashed trees.');
 
@@ -453,9 +500,9 @@ class MerkleTree {
     const proof = AppendProofs.generate(params, proofOptions);
     const decommitments = proof.decommitments;
 
-    if (compact) return { root, elementCount, compactProof: decommitments };
+    if (compact) return { root: this.root, elementCount, compactProof: decommitments };
 
-    return { root, elementCount, decommitments };
+    return { root: this.root, elementCount, decommitments };
   }
 }
 

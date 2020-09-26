@@ -476,7 +476,7 @@ const testSizeProofVerification = (elementCount, options) => {
   expect(proofValid).to.be.true;
 };
 
-describe('Merkle-Tree', () => {
+describe.only('Merkle-Tree', () => {
   describe('Merkle Tree Construction', () => {
     describe('Balanced', () => {
       it('should build a 8-element Merkle Tree.', () => {
@@ -549,6 +549,18 @@ describe('Merkle-Tree', () => {
 
       it('should build the same sorted-hash 8-element Merkle Tree.', () => {
         compareTrees(8, { unbalanced: false, sortedHash: true }, { unbalanced: true, sortedHash: true });
+      });
+    });
+
+    describe('Empty', () => {
+      it('should build a 0-element Merkle Tree.', () => {
+        const expected = {
+          root: '0000000000000000000000000000000000000000000000000000000000000000',
+          elementRoot: '0000000000000000000000000000000000000000000000000000000000000000',
+          depth: 0,
+        };
+
+        testBuildTree(0, 'ff', expected, { unbalanced: true, sortedHash: false });
       });
     });
   });
@@ -2064,6 +2076,16 @@ describe('Merkle-Tree', () => {
 
   describe('Append Proofs', () => {
     describe('Append Proof Generation', () => {
+      it('should generate an Append Proof for a 0-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+
+        const expected = {
+          decommitments: [],
+        };
+
+        testAppendProofGeneration(0, 'ff', expected, options);
+      });
+
       it('should generate an Append Proof for a 1-element Merkle Tree.', () => {
         const options = { unbalanced: true, sortedHash: false };
 
@@ -2135,6 +2157,43 @@ describe('Merkle-Tree', () => {
         testAppendProofGeneration(20, 'ff', expected, options);
       });
 
+      it('should generate an Append Proof for a 20-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+
+        const expected = {
+          decommitments: [
+            '2c2cdc952c9d537709959cd357f6268fff33e5e21147f1a23db6cae78fb91eb9',
+            'b1b7aca080829feceb8c4da79c5552b533f4f1542667ca689217d04230f835b0',
+          ],
+        };
+
+        testAppendProofGeneration(20, 'ff', expected, options);
+      });
+
+      it('should generate a compact Append Proof for a 0-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: true };
+
+        const expected = {
+          compactProof: ['0000000000000000000000000000000000000000000000000000000000000000'],
+        };
+
+        testAppendProofGeneration(0, 'ff', expected, options);
+      });
+
+      it('should generate a compact Append Proof for a 20-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, compact: true };
+
+        const expected = {
+          compactProof: [
+            '0000000000000000000000000000000000000000000000000000000000000014',
+            '2c2cdc952c9d537709959cd357f6268fff33e5e21147f1a23db6cae78fb91eb9',
+            'b1b7aca080829feceb8c4da79c5552b533f4f1542667ca689217d04230f835b0',
+          ],
+        };
+
+        testAppendProofGeneration(20, 'ff', expected, options);
+      });
+
       it('should generate a compact Append Proof for a 20-element Merkle Tree.', () => {
         const options = { unbalanced: true, sortedHash: false, compact: true };
 
@@ -2151,6 +2210,11 @@ describe('Merkle-Tree', () => {
     });
 
     describe('Append Proof Verification', () => {
+      it('should verify an Append Proof for a 0-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        testAppendProofVerification(0, options);
+      });
+
       it('should verify an Append Proof for a 1-element Merkle Tree.', () => {
         const options = { unbalanced: true, sortedHash: false };
         testAppendProofVerification(1, options);
@@ -2179,6 +2243,11 @@ describe('Merkle-Tree', () => {
       it('should verify an Append Proof for a 20-element Merkle Tree.', () => {
         const options = { unbalanced: true, sortedHash: false };
         testAppendProofVerification(20, options);
+      });
+
+      it('should verify an Append Proof for a 0-element sorted-hash Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        testAppendProofVerification(0, options);
       });
 
       it('should verify an Append Proof for a 1-element sorted-hash Merkle Tree.', () => {
@@ -2211,6 +2280,11 @@ describe('Merkle-Tree', () => {
         testAppendProofVerification(20, options);
       });
 
+      it('should verify a compact Append Proof for a 0-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: true };
+        testAppendProofVerification(0, options);
+      });
+
       it('should verify a compact Append Proof for a 20-element Merkle Tree.', () => {
         const options = { unbalanced: true, sortedHash: false, compact: true };
         testAppendProofVerification(20, options);
@@ -2218,6 +2292,11 @@ describe('Merkle-Tree', () => {
     });
 
     describe('Append Proof Single Append', () => {
+      it('should use an Append Proof for a 0-element Merkle Tree, to append an element.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        testSingleAppend(0, options);
+      });
+
       it('should use an Append Proof for a 1-element Merkle Tree, to append an element.', () => {
         const options = { unbalanced: true, sortedHash: false };
         testSingleAppend(1, options);
@@ -2246,6 +2325,11 @@ describe('Merkle-Tree', () => {
       it('should use an Append Proof for a 20-element Merkle Tree, to append an element.', () => {
         const options = { unbalanced: true, sortedHash: false };
         testSingleAppend(20, options);
+      });
+
+      it('should use an Append Proof for a 0-element sorted-hash Merkle Tree, to append an element.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        testSingleAppend(0, options);
       });
 
       it('should use an Append Proof for a 1-element sorted-hash Merkle Tree, to append an element.', () => {
@@ -2278,6 +2362,11 @@ describe('Merkle-Tree', () => {
         testSingleAppend(20, options);
       });
 
+      it('should use a compact Append Proof for a 0-element Merkle Tree, to append an element.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: true };
+        testSingleAppend(0, options);
+      });
+
       it('should use a compact Append Proof for a 20-element Merkle Tree, to append an element.', () => {
         const options = { unbalanced: true, sortedHash: false, compact: true };
         testSingleAppend(20, options);
@@ -2285,6 +2374,11 @@ describe('Merkle-Tree', () => {
     });
 
     describe('Append Proof Single Append Consecutive Uses', () => {
+      it('should use 50 Append Proofs for a 0-element Merkle Tree, to append an 50 elements consecutively.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        testConsecutiveSingleAppend(50, 0, options);
+      });
+
       it('should use 100 Append Proofs for a 15-element Merkle Tree, to append an 100 elements consecutively.', () => {
         const options = { unbalanced: true, sortedHash: false };
         testConsecutiveSingleAppend(100, 15, options);
@@ -2292,6 +2386,11 @@ describe('Merkle-Tree', () => {
     });
 
     describe('Append Proof Multi Append', () => {
+      it('should use a Multi Append Proof for a 0-element Merkle Tree, to append 5 elements.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        testMultiAppend(0, 5, options);
+      });
+
       it('should use a Multi Append Proof for a 1-element Merkle Tree, to append 5 elements.', () => {
         const options = { unbalanced: true, sortedHash: false };
         testMultiAppend(1, 5, options);
@@ -2335,6 +2434,11 @@ describe('Merkle-Tree', () => {
       it('should use a Multi Append Proof for a 120-element Merkle Tree, to append 8 elements.', () => {
         const options = { unbalanced: true, sortedHash: false };
         testMultiAppend(120, 8, options);
+      });
+
+      it('should use a Multi Append Proof for a 0-element sorted-hash Merkle Tree, to append 5 elements.', () => {
+        const options = { unbalanced: true, sortedHash: true };
+        testMultiAppend(0, 5, options);
       });
 
       it('should use a Multi Append Proof for a 1-element sorted-hash Merkle Tree, to append 5 elements.', () => {
@@ -2382,6 +2486,11 @@ describe('Merkle-Tree', () => {
         testMultiAppend(120, 8, options);
       });
 
+      it('should use a compact Multi Append Proof for a 0-element Merkle Tree, to append 8 elements.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: true };
+        testMultiAppend(0, 8, options);
+      });
+
       it('should use a compact Multi Append Proof for a 120-element Merkle Tree, to append 8 elements.', () => {
         const options = { unbalanced: true, sortedHash: false, compact: true };
         testMultiAppend(120, 8, options);
@@ -2389,6 +2498,11 @@ describe('Merkle-Tree', () => {
     });
 
     describe('Append Proof Multi Append Consecutive Uses', () => {
+      it('should use 25 Multi Append Proofs for a 0-element Merkle Tree, to perform 25 appends of up to 4 random elements.', () => {
+        const options = { unbalanced: true, sortedHash: false };
+        testConsecutiveMultiAppend(25, 0, 4, options);
+      });
+
       it('should use 100 Multi Append Proofs for a 1-element Merkle Tree, to perform 100 appends of up to 6 random elements.', () => {
         const options = { unbalanced: true, sortedHash: false };
         testConsecutiveMultiAppend(100, 1, 6, options);
@@ -3677,6 +3791,16 @@ describe('Merkle-Tree', () => {
 
   describe('Size Proofs', () => {
     describe('Size Proof Generation', () => {
+      it('should generate a Size Proof for a 0-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
+
+        const expected = {
+          decommitments: [],
+        };
+
+        testSizeProofGeneration(0, 'ff', expected, options);
+      });
+
       it('should generate a Size Proof for a 1-element Merkle Tree.', () => {
         const options = { unbalanced: true, sortedHash: false, simple: false };
 
@@ -3748,6 +3872,39 @@ describe('Merkle-Tree', () => {
         testSizeProofGeneration(20, 'ff', expected, options);
       });
 
+      it('should generate a compact Size Proof for a 0-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: true, simple: false };
+
+        const expected = {
+          compactProof: [],
+        };
+
+        testSizeProofGeneration(0, 'ff', expected, options);
+      });
+
+      it('should generate a compact Size Proof for a 20-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: true, simple: false };
+
+        const expected = {
+          compactProof: [
+            'c7ec3e428ae2869b12c1b8e12a84e56f0d7f3cbe752cd1c3775158cf846412be',
+            'febc2d558e22b7e32db3a5dd0b4d8ac3dac5835493955c53e3eb0f8fdb2f4954',
+          ],
+        };
+
+        testSizeProofGeneration(20, 'ff', expected, options);
+      });
+
+      it('should generate a simple Size Proof for a 0-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: true };
+
+        const expected = {
+          elementRoot: '0000000000000000000000000000000000000000000000000000000000000000',
+        };
+
+        testSizeProofGeneration(0, 'ff', expected, options);
+      });
+
       it('should generate a simple Size Proof for a 20-element Merkle Tree.', () => {
         const options = { unbalanced: true, sortedHash: false, simple: true };
 
@@ -3770,6 +3927,11 @@ describe('Merkle-Tree', () => {
     });
 
     describe('Size Proof Verification', () => {
+      it('should verify a Size Proof for a 0-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: false };
+        testSizeProofVerification(0, options);
+      });
+
       it('should verify a Size Proof for a 1-element Merkle Tree.', () => {
         const options = { unbalanced: true, sortedHash: false, simple: false };
         testSizeProofVerification(1, options);
@@ -3798,6 +3960,21 @@ describe('Merkle-Tree', () => {
       it('should verify a Size Proof for a 20-element Merkle Tree.', () => {
         const options = { unbalanced: true, sortedHash: false, simple: false };
         testSizeProofVerification(20, options);
+      });
+
+      it('should verify a compact Size Proof for a 0-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: true, simple: false };
+        testSizeProofVerification(0, options);
+      });
+
+      it('should verify a compact Size Proof for a 20-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: true, simple: false };
+        testSizeProofVerification(20, options);
+      });
+
+      it('should verify a simple Size Proof for a 0-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, simple: true };
+        testSizeProofVerification(0, options);
       });
 
       it('should verify a simple Size Proof for a 20-element Merkle Tree.', () => {

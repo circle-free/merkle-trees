@@ -295,28 +295,6 @@ const testVerifySize = async (options) => {
   expect(results).to.be.true;
 };
 
-const testAppendFromEmpty = async (elementCount, seed, options) => {
-  const gasFixtureString = `testAppendFromEmpty_${elementCount}_${elementCount}_${seed}_${options.sortedHash ? 'sorted' : 'unsorted'}`;
-  const expectedGas = gasCosts[gasFixtureString];
-
-  const elements = generateElements(elementCount, { seed });
-  newMerkleTree = new MerkleTree(elements, options);
-  const hexElements = elements.map(e => '0x' + e.toString('hex'));
-  const hexProof = ['0x' + to32ByteBuffer(0).toString('hex')];
-
-  const { receipt } = await contractInstance.append_many(hexElements, hexProof);
-
-  gasCosts[gasFixtureString] = receipt.gasUsed;
-
-  expect(receipt.gasUsed).to.equal(expectedGas);
-  
-  const retrievedRoot = await contractInstance.root();
-
-  expect(retrievedRoot).to.equal('0x' + newMerkleTree.root.toString('hex'));
-
-  merkleTree = newMerkleTree;
-};
-
 
 describe("Merkle_Storage_Using_Libraries", async accounts => {
   after(() => {
@@ -1086,14 +1064,29 @@ describe("Merkle_Storage_Using_Libraries", async accounts => {
       });
     });
 
-    describe("Starting empty", async accounts => {
+    describe("Starting with 0 elements (empty)", async accounts => {
       beforeEach(async () => {
         contractInstance = await Merkle_Storage_Using_Lib.new();
+        const elements = generateElements(0, { seed: 'ff' });
+        merkleTree = new MerkleTree(elements, unsortedOptions);
+        await contractInstance._debug_set_root('0x' + merkleTree.root.toString('hex'));
         elementCount = 0;
       });
+
+      it(`should append 1 new element (the first).`, () => {
+        return testAppendOne('ff', unsortedOptions);
+      });
     
-      it(`should initialize a 4-element root.`, () => {
-        return testAppendFromEmpty(4, 'ff', unsortedOptions);
+      it(`should append 4 new elements (the first 4 elements).`, () => {
+        return testAppendMany(4, 'ff', unsortedOptions);
+      });
+
+      it("should verify size with proof.", () => {
+        return testVerifySizeWithProof(unsortedOptions);
+      });
+
+      it("should verify size simply with element root", () => {
+        return testVerifySize(unsortedOptions);
       });
     });
   });
