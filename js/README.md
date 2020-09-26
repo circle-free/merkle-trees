@@ -132,34 +132,39 @@ Given an unbalanced tree, where elements to the right of the append index do not
 
 ## Various TODOs and Notes ##
 
-- [ ] serialize method (likely just elements, possibly redundant)
-- [ ] test elements greater than 32 bytes
-- [X] argument validation (i.e. parameter lengths, mutually exclusive options like indexed and compact)
-- [ ] unbalanced proofs for indexed multi-proofs (with tests)
+- [ ] append (one and multi) by proving one of the required last few (no updating)
+- [ ] append (one and multi) while proving specifically the last item (no updating)
+- [ ] append (one and multi) while proving many (no updating)
+- [ ] option to output all data as eth-compatible prefixed hex strings
+- [ ] deleting elements (from the end)
+- [ ] support for arbitrary size elements
+- [ ] TypeScript (possibly with a Proof class)
 - [ ] index-less (existence-only) single-proofs
-- [ ] verify and update single proof can probably be cheaper with sortedHash given that element count is required
-- [ ] deleting elements
+- [ ] support index-less (compact existence-only) single-proofs
+- [ ] unbalanced proofs for indexed multi-proofs (with tests)
+- [ ] enable compact proofs for "large" trees (proof hash count > 255) with multiple 32-byte flags, given stop bits
+- [ ] bitCount256
+- [ ] deleting elements at any point
 - [ ] re-balancing a tree (that has undergone several deletions)
-- [ ] some auto-magic mechanism that keeps prioritized elements "to the right"
+- [ ] explore, test, and document failure cases (or rather, cases with invalid proofs)
 - [ ] consider separate set of js implementations easily translatable to solidity (16 local vars, no maps, etc)
+- [ ] verify and update single proof can probably be cheaper with sortedHash given that element count is required
+- [ ] some auto-magic mechanism that keeps prioritized elements "to the right"
 - [ ] recursive proofs (arrays of arrays)
 - [ ] recursive proofs (objects of objects)
-- [ ] TypeScript (possibly with a Proof class)
-- [ ] option to output all data as eth-compatible prefixed hex strings
 - [ ] benchmarking
-- [ ] bitCount256
 - [ ] giving options better names (i.e. flag > existence-proof vs. indexed > index-proof)
 - [ ] visual documentation of how individual proofs work
 - [ ] test how null/undefined elements before the append index affect trees/proofs
-- [ ] explore, test, and document failure cases (or rather, cases with invalid proofs)
+- [ ] explore efficiency of separate boolean-array, in the multi-proof, to inform when to take a hash as an append-decommitment
+- [ ] Bring Your Own Hash Function
+- [ ] serialize method (likely just elements, possibly redundant)
 - [X] ~~explore combined and existence-only (flag) multi-proofs, without sorted hashing, (possibly separate set of hash order booleans)~~
 - [X] ~~given hash order booleans, implement index inferring for multi-proofs without sorted hashing (it is possible)~~
-- [ ] explore efficiency of separate boolean-array, in the multi-proof, to inform when to take a hash as an append-decommitment
-- [ ] enable compact proofs for "large" trees (proof hash count > 255) with multiple 32-byte flags, given stop bits
-- [ ] Bring Your Own Hash Function
-- [X] Size Proofs using Append-Proof
-- [X] Size Proofs using just element root (simple)
-- [ ] Handle empty tree (no elements to start)
+- [X] ~~argument validation (i.e. parameter lengths, mutually exclusive options like indexed and compact)~~
+- [X] ~~Size Proofs using Append-Proof~~
+- [X] ~~Size Proofs using just element root (simple)~~
+- [X] ~~Handle empty tree (no elements to start)~~
 
 
 ## Tests ##
@@ -172,5 +177,5 @@ foo@bar:~$ yarn install
 Done in 0.16s.
 foo@bar:~$ yarn test
 ...
-500 passing (12s)
+520 passing (14s)
 ```

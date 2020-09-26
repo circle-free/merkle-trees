@@ -20,25 +20,16 @@ Merkle-storage library works and is tested, with an example, but could be optimi
 
 ## Various TODOs (mostly dependent on `merkle-trees/js`) ##
 
-- [ ] support indexed multi-proofs for non-sorted-hash (either by inference or with the larger indexed proofs)
-- [ ] support index-less (compact existence-only) single-proofs
-- [ ] support deleting elements
-- [ ] recursive proofs (arrays of arrays)
-- [ ] recursive proofs (objects of objects)
+- [ ] Anything done in the JS lib
 - [ ] some optimizations and more assembly wouldn't hurt
-- [ ] benchmark break-evens
-- [ ] bit_count_256
-- [ ] support proofs that require more than 255 hashes (a bit excessive)
-- [ ] implement and test use_many_and_append_many in merkle-storage.sol and merkle-storage-using-library.sol
+- [ ] security review
+- [ ] non-assembly logic optimizations (i.e. argument and variable order, reusing variables)
+- [ ] test gas cost of view functions (i.e. index inferring, size proofs)
+- [ ] try to squeeze in index inferring during normal multi-proof algorithm (to return old and new root, and indices)
+- [X] ~~implement index inferring for multi-proofs without sorted hashing~~
 - [X] ~~an example using the library contract~~
 - [X] ~~testing of the library contract~~
-- [ ] support for arbitrary size elements (currently, each element must be 32-bytes)
-- [ ] security review
-- [ ] ensure logical shift right (to prevent leading bit-flags from propagating down)
-- [ ] non-assembly logic optimizations (i.e. argument and variable order, reusing variables)
-- [X] ~~implement index inferring for multi-proofs without sorted hashing~~
-- [ ] test gas cost of index inferring
-- [ ] try to squeeze in index inferring during normal multi-proof algorithm (to return old and new root, and indices)
+
 
 ## Tests ##
 
@@ -52,5 +43,5 @@ foo@bar:~$ ganache-cli
 ...
 foo@bar:~$ yarn test
 ...
-127 passing
+142 passing (1m)
 ```

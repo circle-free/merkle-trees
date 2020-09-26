@@ -562,6 +562,8 @@ library Merkle_Library_Sorted_Hash {
   }
 
   function verify_size(bytes32 root, uint256 size, bytes32 element_root) internal pure returns (bool) {
+    if (root == bytes32(0) && size == 0) return true;
+    
     return hash_node(bytes32(size), element_root) == root;
   }
 

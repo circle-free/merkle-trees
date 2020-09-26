@@ -199,7 +199,7 @@ const testUseUpdateAndAppendManyConsecutively = async (iterations, seed, count, 
   return;
 };
 
-describe("Merkle_Storage", async accounts => {
+describe.skip("Merkle_Storage", async accounts => {
   beforeEach(async () => {
     contractInstance = await Merkle_Storage.new();
     const elements = generateElements(20, { seed: 'ff' });

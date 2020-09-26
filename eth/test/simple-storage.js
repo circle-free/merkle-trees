@@ -165,7 +165,7 @@ const testUseUpdateAndAppendManyConsecutively = async (iterations, seed, count, 
   expect(originalElement).to.not.equal(retrievedElement);
 };
 
-describe("Simple_Storage", async accounts => {
+describe.skip("Simple_Storage", async accounts => {
   describe("Starting with 20 elements", async accounts => {
     beforeEach(async () => {
       contractInstance = await Simple_Storage.new();

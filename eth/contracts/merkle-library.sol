@@ -674,10 +674,14 @@ library Merkle_Library {
   }
   
   function verify_size_with_proof(bytes32 root, uint256 size, bytes32[] memory proof) internal pure returns (bool) {
+    if (root == bytes32(0) && size == 0) return true;
+    
     return hash_node(bytes32(size), get_root_from_size_proof(size, proof)) == root;
   }
   
   function verify_size(bytes32 root, uint256 size, bytes32 element_root) internal pure returns (bool) {
+    if (root == bytes32(0) && size == 0) return true;
+
     return hash_node(bytes32(size), element_root) == root;
   }
 
