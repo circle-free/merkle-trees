@@ -16,10 +16,10 @@ library Merkle_Library {
   }
 
   function bit_count_32(uint32 n) internal pure returns (uint32) {
-    uint32 m = n - ((n >> 1) & 0x55555555);
-    m = (m & 0x33333333) + ((m >> 2) & 0x33333333);
+    n = n - ((n >> 1) & 0x55555555);
+    n = (n & 0x33333333) + ((n >> 2) & 0x33333333);
 
-    return ((m + (m >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
+    return ((n + (n >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
   }
 
   function round_up_to_power_of_2(uint32 n) internal pure returns (uint32) {
@@ -117,8 +117,8 @@ library Merkle_Library {
     }
   }
 
-  function get_indices_from_multi_proof(uint256 elements_count, bytes32 flags, bytes32 skips, bytes32 orders) internal pure returns (uint256[] memory) {
-    uint256[] memory indices = new uint256[](elements_count);
+  function get_indices_from_multi_proof(uint256 elements_count, bytes32 flags, bytes32 skips, bytes32 orders) internal pure returns (uint256[] memory indices) {
+    indices = new uint256[](elements_count);
     uint256[] memory bits_pushed = new uint256[](elements_count);
     bool[] memory grouped_with_next = new bool[](elements_count);
     elements_count -= 1;
@@ -331,12 +331,12 @@ library Merkle_Library {
     uint256 proof_index = bit_count_32(uint32(uint256(proof[0])));
     hash = proof[proof_index];
     new_hash = hash_node(hash, hash_node(0x0000000000000000000000000000000000000000000000000000000000000000, new_element));
-    bytes32 scratch;
 
     while (proof_index > 1) {
-      scratch = proof[--proof_index];
-      new_hash = hash_node(scratch, new_hash);
-      hash = hash_node(scratch, hash);
+      // reuse new_element as scratch variable
+      new_element = proof[--proof_index];
+      new_hash = hash_node(new_element, new_hash);
+      hash = hash_node(new_element, hash);
     }
   }
 
@@ -613,7 +613,7 @@ library Merkle_Library {
     uint256 offset = uint256(proof[0]);
     uint256 index = offset;
 
-    // resuse new_elements_count var here, since old one no longer needed (is now total)
+    // reuse new_elements_count var here, since old one no longer needed (is now total)
     new_elements_count += offset;
     uint256 upper_bound = new_elements_count - 1;
     uint256 proof_index = proof.length - 1;
@@ -646,18 +646,16 @@ library Merkle_Library {
     return new_hashes[0];
   }
 
-  function get_roots_from_combined_proof_and_append(bytes32[] memory elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32) {
-    (bytes32 old_element_root, bytes32[] memory append_proof) = get_append_proof_from_multi_proof(elements, proof);
-    bytes32 new_element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
-
-    return (old_element_root, new_element_root);
+  function get_roots_from_combined_proof_and_append(bytes32[] memory elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32 old_element_root, bytes32 new_element_root) {
+    bytes32[] memory append_proof;
+    (old_element_root, append_proof) = get_append_proof_from_multi_proof(elements, proof);
+    new_element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
   }
 
-  function get_roots_from_combined_proof_update_and_append(bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32) {
-    (bytes32 old_element_root, bytes32[] memory append_proof) = get_append_proof_from_multi_proof_update(elements, update_elements, proof);
-    bytes32 new_element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
-
-    return (old_element_root, new_element_root);
+  function get_roots_from_combined_proof_update_and_append(bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32 old_element_root, bytes32 new_element_root) {
+    bytes32[] memory append_proof;
+    (old_element_root, append_proof) = get_append_proof_from_multi_proof_update(elements, update_elements, proof);
+    new_element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
   }
 
   function element_exists(bytes32 root, uint256 index, bytes32 element, bytes32[] memory proof) internal pure returns (bool) {
@@ -689,7 +687,7 @@ library Merkle_Library {
   function try_update_one(bytes32 root, uint256 index, bytes32 element, bytes32 new_element, bytes32[] memory proof) internal pure returns (bytes32) {
     bytes32 total_element_count = proof[0];
     
-    require(root != 0x0000000000000000000000000000000000000000000000000000000000000000 || total_element_count == 0x0000000000000000000000000000000000000000000000000000000000000000, "EMPTY_TREE");
+    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
     
     (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_single_proof_update(index, element, new_element, proof);
 
@@ -701,7 +699,7 @@ library Merkle_Library {
   function try_update_many(bytes32 root, bytes32[] memory elements, bytes32[] memory new_elements, bytes32[] memory proof) internal pure returns (bytes32) {
     bytes32 total_element_count = proof[0];
     
-    require(root != 0x0000000000000000000000000000000000000000000000000000000000000000 || total_element_count == 0x0000000000000000000000000000000000000000000000000000000000000000, "EMPTY_TREE");
+    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
     
     (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_multi_proof_update(elements, new_elements, proof);
 
@@ -713,9 +711,9 @@ library Merkle_Library {
   function try_append_one(bytes32 root, bytes32 new_element, bytes32[] memory proof) internal pure returns (bytes32) {
     bytes32 total_element_count = proof[0];
     
-    require((root == 0x0000000000000000000000000000000000000000000000000000000000000000) == (total_element_count == 0x0000000000000000000000000000000000000000000000000000000000000000), "INVALID_TREE");
+    require((root == bytes32(0)) == (total_element_count == bytes32(0)), "INVALID_TREE");
 
-    if (root == 0x0000000000000000000000000000000000000000000000000000000000000000) return hash_node(0x0000000000000000000000000000000000000000000000000000000000000001, get_root_from_one(new_element));
+    if (root == bytes32(0)) return hash_node(0x0000000000000000000000000000000000000000000000000000000000000001, get_root_from_one(new_element));
     
     (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_append_proof_single_append(new_element, proof);
 
@@ -727,9 +725,9 @@ library Merkle_Library {
   function try_append_many(bytes32 root, bytes32[] memory new_elements, bytes32[] memory proof) internal pure returns (bytes32) {
     bytes32 total_element_count = proof[0];
 
-    require((root == 0x0000000000000000000000000000000000000000000000000000000000000000) == (total_element_count == 0x0000000000000000000000000000000000000000000000000000000000000000), "INVALID_TREE");
+    require((root == bytes32(0)) == (total_element_count == bytes32(0)), "INVALID_TREE");
     
-    if (root == 0x0000000000000000000000000000000000000000000000000000000000000000) return hash_node(bytes32(new_elements.length), get_root_from_many(new_elements));
+    if (root == bytes32(0)) return hash_node(bytes32(new_elements.length), get_root_from_many(new_elements));
     
     (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_append_proof_multi_append(new_elements, proof);
 
@@ -741,7 +739,7 @@ library Merkle_Library {
   function try_elements_exist_and_append_many(bytes32 root, bytes32[] memory elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32) {
     bytes32 total_element_count = proof[0];
     
-    require(root != 0x0000000000000000000000000000000000000000000000000000000000000000 || total_element_count == 0x0000000000000000000000000000000000000000000000000000000000000000, "EMPTY_TREE");
+    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
     
     (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_combined_proof_and_append(elements, append_elements, proof);
 
@@ -753,7 +751,7 @@ library Merkle_Library {
   function try_update_many_and_append_many(bytes32 root, bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32) {
     bytes32 total_element_count = proof[0];
     
-    require(root != 0x0000000000000000000000000000000000000000000000000000000000000000 || total_element_count == 0x0000000000000000000000000000000000000000000000000000000000000000, "EMPTY_TREE");
+    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
     
     (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_combined_proof_update_and_append(elements, update_elements, append_elements, proof);
 
