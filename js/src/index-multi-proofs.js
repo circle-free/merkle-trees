@@ -35,9 +35,16 @@ const generate = ({ tree, elementCount, indices }, options = {}) => {
 
   const clonedDecommitments = decommitments.map(Buffer.from);
 
-  if (compact) return { compactProof: [to32ByteBuffer(elementCount)].concat(clonedDecommitments) };
-
-  return { elementCount, decommitments: clonedDecommitments };
+  return compact
+    ? {
+        indices,
+        compactProof: [to32ByteBuffer(elementCount)].concat(clonedDecommitments),
+      }
+    : {
+        indices,
+        elementCount,
+        decommitments: clonedDecommitments,
+      };
 };
 
 // Compute the root given a set of leafs, their indices, and a set of decommitments
@@ -93,7 +100,7 @@ const getRoot = ({ indices, leafs, compactProof, elementCount, decommitments }, 
 // Compute the existing root given a set of leafs, their indices, and a set of decommitments
 // and computes a new root, along the way, given new leafs to take their place.
 // See getRoot for relevant inline comments.
-const getNewRoot = ({ indices, leafs, newLeafs, compactProof, elementCount, decommitments }, options = {}) => {
+const getNewRoot = ({ indices, leafs, updateLeafs, compactProof, elementCount, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
 
   if (compactProof) {
@@ -102,7 +109,7 @@ const getNewRoot = ({ indices, leafs, newLeafs, compactProof, elementCount, deco
   }
 
   const hashes = leafs.map((leaf) => leaf).reverse();
-  const newHashes = newLeafs.map((leaf) => leaf).reverse();
+  const updateHashes = updateLeafs.map((leaf) => leaf).reverse();
   const treeIndices = indices.map((index) => elementCount + index).reverse();
   const indexCount = indices.length;
 
@@ -116,7 +123,7 @@ const getNewRoot = ({ indices, leafs, newLeafs, compactProof, elementCount, deco
     if (index === 1) {
       const rootIndex = (writeIndex === 0 ? indexCount : writeIndex) - 1;
 
-      return { root: hashes[rootIndex], newRoot: newHashes[rootIndex], elementCount };
+      return { root: hashes[rootIndex], newRoot: updateHashes[rootIndex], elementCount };
     }
 
     const nextReadIndex = (readIndex + 1) % indexCount;
@@ -124,14 +131,14 @@ const getNewRoot = ({ indices, leafs, newLeafs, compactProof, elementCount, deco
     const nextIsPair = treeIndices[nextReadIndex] === index - 1;
 
     const right = indexIsOdd ? hashes[readIndex] : decommitments[decommitmentIndex];
-    const newRight = indexIsOdd ? newHashes[readIndex++] : decommitments[decommitmentIndex++];
+    const newRight = indexIsOdd ? updateHashes[readIndex++] : decommitments[decommitmentIndex++];
     readIndex %= indexCount;
     const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex] : hashes[readIndex];
-    const newLeft = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : newHashes[readIndex++];
+    const newLeft = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : updateHashes[readIndex++];
 
     treeIndices[writeIndex] = index >>> 1;
     hashes[writeIndex] = hashFunction(left, right);
-    newHashes[writeIndex++] = hashFunction(newLeft, newRight);
+    updateHashes[writeIndex++] = hashFunction(newLeft, newRight);
 
     readIndex %= indexCount;
     writeIndex %= indexCount;

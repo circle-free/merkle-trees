@@ -2,6 +2,7 @@
 
 // TODO: test return values when they are already declared returns
 // TODO: hash_pair(a, b, order)
+// TODO: reuse function arguments
 
 pragma solidity >=0.6.0 <0.8.0;
 
@@ -354,7 +355,7 @@ library Merkle_Library {
     uint256 offset = uint256(proof[0]);
     uint256 index = offset;
 
-    // resuse new_elements_count var here, since old one no longer needed (is now total)
+    // reuse new_elements_count var here, since old one no longer needed (is now total)
     new_elements_count += offset;
     uint256 upper_bound = new_elements_count - 1;
     uint256 proof_index = bit_count_32(uint32(offset));

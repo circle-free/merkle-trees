@@ -51,7 +51,7 @@ const getRoot = ({ compactProof, elementCount, decommitments }, options = {}) =>
 // Note, it is implied that there is nothing to the right of the leaf being
 // appended, explaining the departure from the SingleProof.getNewRoot algorithm.
 // See getRoot for relevant inline comments.
-const getNewRootSingle = ({ newLeaf, compactProof, elementCount, decommitments }, options = {}) => {
+const getNewRootSingle = ({ appendLeaf, compactProof, elementCount, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
 
   if (compactProof) {
@@ -61,22 +61,22 @@ const getNewRootSingle = ({ newLeaf, compactProof, elementCount, decommitments }
 
   let index = bitCount32(elementCount);
   let hash = decommitments[--index];
-  let newHash = hashFunction(decommitments[index], newLeaf);
+  let appendHash = hashFunction(decommitments[index], appendLeaf);
 
   while (index > 0) {
-    newHash = hashFunction(decommitments[--index], newHash);
+    appendHash = hashFunction(decommitments[--index], appendHash);
     hash = hashFunction(decommitments[index], hash);
   }
 
-  return { root: hash, newRoot: newHash, elementCount };
+  return { root: hash, newRoot: appendHash, elementCount };
 };
 
-// If newHashes[0]'s level-localized index is odd, merge with decommitment at this level. If more
-// elements are appended than existed in the tree, newHashes[0]'s level-localized index will tend
-// to 0, and no longer be merged with decommitments. If newHashes[0]'s level-localized index is
-// even, hash with node to the right. An odd level-localized index is either at newHashes[0] or
+// If appendHashes[0]'s level-localized index is odd, merge with decommitment at this level. If more
+// elements are appended than existed in the tree, appendHashes[0]'s level-localized index will tend
+// to 0, and no longer be merged with decommitments. If appendHashes[0]'s level-localized index is
+// even, hash with node to the right. An odd level-localized index is either at appendHashes[0] or
 // index == upperBound. If upperBound == 0, we got to the new root.
-const getNewRootMulti = ({ newLeafs, compactProof, elementCount, decommitments }, options = {}) => {
+const getNewRootMulti = ({ appendLeafs, compactProof, elementCount, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
 
   if (compactProof) {
@@ -86,35 +86,27 @@ const getNewRootMulti = ({ newLeafs, compactProof, elementCount, decommitments }
 
   let decommitmentIndex = bitCount32(elementCount) - 1;
   let hash = decommitments[decommitmentIndex];
-  let newHashes = Array((newLeafs.length >>> 1) + 1).fill(null);
-  let upperBound = elementCount + newLeafs.length - 1;
+  let appendHashes = appendLeafs.map((leaf) => leaf);
+  let upperBound = elementCount + appendLeafs.length - 1;
   let writeIndex = 0;
   let readIndex = 0;
   let offset = elementCount;
   let index = offset;
 
   while (upperBound > 0) {
-    const useLeafs = offset >= elementCount;
-
     if (writeIndex === 0 && index & 1) {
-      newHashes[writeIndex++] = hashFunction(
-        decommitments[decommitmentIndex--],
-        useLeafs ? newLeafs[readIndex++] : newHashes[readIndex++]
-      );
+      appendHashes[writeIndex++] = hashFunction(decommitments[decommitmentIndex--], appendHashes[readIndex++]);
 
       if (decommitmentIndex >= 0) hash = hashFunction(decommitments[decommitmentIndex], hash);
 
       index++;
     } else if (index < upperBound) {
-      newHashes[writeIndex++] = hashFunction(
-        useLeafs ? newLeafs[readIndex++] : newHashes[readIndex++],
-        useLeafs ? newLeafs[readIndex++] : newHashes[readIndex++]
-      );
+      appendHashes[writeIndex++] = hashFunction(appendHashes[readIndex++], appendHashes[readIndex++]);
       index += 2;
     }
 
     if (index >= upperBound) {
-      if (index === upperBound) newHashes[writeIndex] = useLeafs ? newLeafs[readIndex] : newHashes[readIndex];
+      if (index === upperBound) appendHashes[writeIndex] = appendHashes[readIndex];
 
       readIndex = 0;
       writeIndex = 0;
@@ -124,11 +116,61 @@ const getNewRootMulti = ({ newLeafs, compactProof, elementCount, decommitments }
     }
   }
 
-  return { root: hash, newRoot: newHashes[0], elementCount };
+  return { root: hash, newRoot: appendHashes[0], elementCount };
 };
 
 const getNewRoot = (parameters, options = {}) => {
-  return parameters.newLeafs ? getNewRootMulti(parameters, options) : getNewRootSingle(parameters, options);
+  return parameters.appendLeafs ? getNewRootMulti(parameters, options) : getNewRootSingle(parameters, options);
 };
 
-module.exports = { generate, getRoot, getNewRoot };
+// This is identical to getNewRootSingle, but it does not compute the old root.
+// See getNewRootSingle for relevant inline comments.
+const appendSingle = (appendLeaf, elementCount, decommitments, options = {}) => {
+  const { hashFunction = hashNode } = options;
+  let index = bitCount32(elementCount);
+  let appendHash = appendLeaf;
+
+  while (index > 0) {
+    appendHash = hashFunction(decommitments[--index], appendHash);
+  }
+
+  return appendHash;
+};
+
+// This is identical to getNewRootMulti, but it does not compute the old root.
+// See getNewRootMulti for relevant inline comments.
+const appendMulti = (appendLeafs, elementCount, decommitments, options = {}) => {
+  const { hashFunction = hashNode } = options;
+
+  let decommitmentIndex = bitCount32(elementCount) - 1;
+  let appendHashes = appendLeafs.map((leaf) => leaf);
+  let upperBound = elementCount + appendLeafs.length - 1;
+  let writeIndex = 0;
+  let readIndex = 0;
+  let offset = elementCount;
+  let index = offset;
+
+  while (upperBound > 0) {
+    if (writeIndex === 0 && index & 1) {
+      appendHashes[writeIndex++] = hashFunction(decommitments[decommitmentIndex--], appendHashes[readIndex++]);
+      index++;
+    } else if (index < upperBound) {
+      appendHashes[writeIndex++] = hashFunction(appendHashes[readIndex++], appendHashes[readIndex++]);
+      index += 2;
+    }
+
+    if (index >= upperBound) {
+      if (index === upperBound) appendHashes[writeIndex] = appendHashes[readIndex];
+
+      readIndex = 0;
+      writeIndex = 0;
+      upperBound >>>= 1;
+      offset >>>= 1;
+      index = offset;
+    }
+  }
+
+  return appendHashes[0];
+};
+
+module.exports = { generate, getRoot, getNewRoot, appendSingle, appendMulti };

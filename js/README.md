@@ -90,7 +90,7 @@ const { newMerkleTree: myUpdatedTree, proof } = myTree.appendMulti(someArrayOf32
 const proofIsValid = MerkleTree.verifyAppendProof(proof, options);
 console.log(`The proof is ${proofIsValid ? '' : 'not'} sufficient to append items.`); // it is
 
-const { root } = MerkleTree.appendMultiWithProof(proof, options);
+const { root } = MerkleTree.appendWithCombinedProof(proof, options);
 console.log(myUpdatedTree.root.equals(root)); // still true
 
 const myOtherTree = new MerkleTree(someArrayOf32ByteBuffers.concat(someArrayOf32ByteBuffersOfLength4));
@@ -115,7 +115,7 @@ const options = { indexed: false };
 const oneIndexMustBeEqualOrGreaterThanThis = myTree.minimumCombinedProofIndex;  // 16 in this case
 
 // merkleTree is immutable, so it will give you back a new tree and a proof
-const { newMerkleTree, proof } = myTree.updateAndAppendMulti([2, 9, 17], ThreeBuffers, SixBuffers, options);
+const { newMerkleTree, proof } = myTree.updateAndAppend([2, 9, 17], ThreeBuffers, SixBuffers, options);
 
 const proofIsValid = MerkleTree.verifyCombinedProof(proof, options);
 console.log(`The proof is ${proofIsValid ? '' : 'not'} sufficient to update and append items.`); // it is
@@ -130,11 +130,9 @@ console.log(newMerkleTree.root.equals(root)); // still true
 Given an unbalanced tree, where elements to the right of the append index do not exist, there may be some single and multi-proof optimizations, particularly with verifications.
 
 
-## Various TODOs and Notes ##
+## Various TODOs and Notes (In Order of Priority) ##
 
-- [ ] append (one and multi) by proving one of the required last few (no updating)
-- [ ] append (one and multi) while proving specifically the last item (no updating)
-- [ ] append (one and multi) while proving many (no updating)
+- [ ] API documentation
 - [ ] option to output all data as eth-compatible prefixed hex strings
 - [ ] deleting elements (from the end)
 - [ ] support for arbitrary size elements
@@ -159,6 +157,8 @@ Given an unbalanced tree, where elements to the right of the append index do not
 - [ ] explore efficiency of separate boolean-array, in the multi-proof, to inform when to take a hash as an append-decommitment
 - [ ] Bring Your Own Hash Function
 - [ ] serialize method (likely just elements, possibly redundant)
+- [X] ~~append one/many with a single or multi proof~~
+- [X] ~~update one/many and append one/many~~
 - [X] ~~explore combined and existence-only (flag) multi-proofs, without sorted hashing, (possibly separate set of hash order booleans)~~
 - [X] ~~given hash order booleans, implement index inferring for multi-proofs without sorted hashing (it is possible)~~
 - [X] ~~argument validation (i.e. parameter lengths, mutually exclusive options like indexed and compact)~~
@@ -170,12 +170,12 @@ Given an unbalanced tree, where elements to the right of the append index do not
 ## Tests ##
 
 ```console
-foo@bar:~$ nvm use 14.8.0
-Now using node v14.8.0 (npm v6.14.7)
+foo@bar:~$ nvm use 14
+Now using node v14.12.0 (npm v6.14.8)
 foo@bar:~$ yarn install
 ...
 Done in 0.16s.
 foo@bar:~$ yarn test
 ...
-520 passing (14s)
+630 passing (14s)
 ```

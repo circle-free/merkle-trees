@@ -15,9 +15,16 @@ const generate = ({ tree, elementCount, index }, options = {}) => {
   // Filter out non-existent decommitments, which are nodes to the "right" of the last leaf
   const filteredDecommitments = decommitments.filter((d) => d).map(Buffer.from);
 
-  if (compact) return { compactProof: [to32ByteBuffer(elementCount)].concat(filteredDecommitments) };
-
-  return { elementCount, decommitments: filteredDecommitments };
+  return compact
+    ? {
+        index,
+        compactProof: [to32ByteBuffer(elementCount)].concat(filteredDecommitments),
+      }
+    : {
+        index,
+        elementCount,
+        decommitments: filteredDecommitments,
+      };
 };
 
 // Compute the root given a leaf, its index, and a set of decommitments.
@@ -34,7 +41,7 @@ const getRoot = ({ index, leaf, compactProof, elementCount, decommitments }, opt
   let upperBound = elementCount - 1;
 
   while (decommitmentIndex > 0) {
-    // If even and the "right-most" node at this level, the parent hash is this child
+    // If "right-most" node at this level, and even, the parent hash is this child
     if (index === upperBound && !(index & 1)) {
       index >>>= 1;
       upperBound >>>= 1;
@@ -57,7 +64,7 @@ const getRoot = ({ index, leaf, compactProof, elementCount, decommitments }, opt
 // Compute the existing root given a leaf, its index, and a set of decommitments
 // and computes a new root, along the way, given a new leaf to take its place.
 // See getRoot for relevant inline comments.
-const getNewRoot = ({ index, leaf, newLeaf, compactProof, elementCount, decommitments }, options = {}) => {
+const getNewRoot = ({ index, leaf, updateLeaf, compactProof, elementCount, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
 
   if (compactProof) {
@@ -67,7 +74,7 @@ const getNewRoot = ({ index, leaf, newLeaf, compactProof, elementCount, decommit
 
   let decommitmentIndex = decommitments.length;
   let hash = Buffer.from(leaf);
-  let newHash = Buffer.from(newLeaf);
+  let updateHash = Buffer.from(updateLeaf);
   let upperBound = elementCount - 1;
 
   while (decommitmentIndex > 0) {
@@ -82,16 +89,16 @@ const getNewRoot = ({ index, leaf, newLeaf, compactProof, elementCount, decommit
         ? hashFunction(decommitments[--decommitmentIndex], hash)
         : hashFunction(hash, decommitments[--decommitmentIndex]);
 
-    newHash =
+    updateHash =
       index & 1
-        ? hashFunction(decommitments[decommitmentIndex], newHash)
-        : hashFunction(newHash, decommitments[decommitmentIndex]);
+        ? hashFunction(decommitments[decommitmentIndex], updateHash)
+        : hashFunction(updateHash, decommitments[decommitmentIndex]);
 
     index >>>= 1;
     upperBound >>>= 1;
   }
 
-  return { root: hash, newRoot: newHash, elementCount };
+  return { root: hash, newRoot: updateHash, elementCount };
 };
 
 module.exports = { generate, getRoot, getNewRoot };

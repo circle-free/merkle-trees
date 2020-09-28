@@ -18,7 +18,7 @@ Merkle-storage library works and is tested, with an example, but could be optimi
 - More work can still be done to make these contracts more readable
 
 
-## Various TODOs (mostly dependent on `merkle-trees/js`) ##
+## Various TODOs (In Order of Priority) ##
 
 - [ ] Anything done in the JS lib
 - [ ] some optimizations and more assembly wouldn't hurt
