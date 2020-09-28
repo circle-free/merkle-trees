@@ -4,6 +4,7 @@
     "SPDX",
     "appendable",
     "keccak",
-    "mstore"
+    "mstore",
+    "solhint"
   ]
 }
