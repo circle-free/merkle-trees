@@ -296,7 +296,7 @@ const testVerifySize = async (options) => {
 };
 
 
-describe("Merkle_Storage_Using_Libraries", async accounts => {
+describe.skip("Merkle_Storage_Using_Libraries", async accounts => {
   after(() => {
     fs.writeFileSync('./test/fixtures/gas-costs.json', JSON.stringify(gasCosts, null, ' '));
   });

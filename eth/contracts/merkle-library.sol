@@ -81,6 +81,16 @@ library Merkle_Library {
     return hashes[0];
   }
 
+  // Get the original Element Merkle Root, given a Size Proof
+  function get_root_from_size_proof(uint256 element_count, bytes32[] memory proof) internal pure returns (bytes32 hash) {
+    uint256 proof_index = bit_count_32(uint32(element_count)) - 1;
+    hash = proof[proof_index];
+
+    while (proof_index > 0) {
+      hash = hash_node(proof[--proof_index], hash);
+    }
+  }
+
   // Get the original Element Merkle Root, given a Single Proof
   function get_root_from_single_proof(uint256 index, bytes32 element, bytes32[] memory proof) internal pure returns (bytes32 hash) {
     uint256 proof_index = proof.length - 1;
@@ -329,16 +339,6 @@ library Merkle_Library {
     }
   }
 
-  // Get the original Element Merkle Root, given a Size Proof
-  function get_root_from_size_proof(uint256 element_count, bytes32[] memory proof) internal pure returns (bytes32 hash) {
-    uint256 proof_index = bit_count_32(uint32(element_count)) - 1;
-    hash = proof[proof_index];
-
-    while (proof_index > 0) {
-      hash = hash_node(proof[--proof_index], hash);
-    }
-  }
-
   // Get the original Element Merkle Root, given an Append Proof
   function get_root_from_append_proof(bytes32[] memory proof) internal pure returns (bytes32 hash) {
     uint256 proof_index = bit_count_32(uint32(uint256(proof[0])));
@@ -418,12 +418,159 @@ library Merkle_Library {
     return (hash, append_hashes[0]);
   }
 
-  // Derive Append Proof, given an Existence Multi Proof
+  // Get the updated Element Merkle Root, given an Append Proof and an element to append
+  function get_new_root_from_append_proof_single_append(bytes32 append_element, bytes32[] memory proof) internal pure returns (bytes32 append_hash) {
+    uint256 proof_index = bit_count_32(uint32(uint256(proof[0])));
+    append_hash = hash_node(proof[proof_index], hash_node(bytes32(0), append_element));
+
+    while (proof_index > 1) {
+      proof_index -= 1;
+      append_hash = hash_node(proof[proof_index], append_hash);
+    }
+  }
+
+  // Get the updated Element Merkle Root, given an Append Proof and elements to append
+  function get_new_root_from_append_proof_multi_append(bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32) {
+    uint256 append_elements_count = append_elements.length;
+    bytes32[] memory append_hashes = new bytes32[](append_elements_count);
+    uint256 write_index;
+
+    while (write_index < append_elements_count) {
+      append_hashes[write_index] = hash_node(bytes32(0), append_elements[write_index]);
+      write_index += 1;
+    }
+
+    write_index = 0;
+    uint256 read_index;
+    uint256 offset = uint256(proof[0]);
+    uint256 index = offset;
+
+    // reuse append_elements_count var here, since old one no longer needed (is now total)
+    append_elements_count += offset;
+    uint256 upper_bound = append_elements_count - 1;
+    uint256 proof_index = proof.length - 1;
+
+    while (upper_bound > 0) {
+      if ((write_index == 0) && (index & 1 == 1)) {
+        append_hashes[0] = hash_node(proof[proof_index], append_hashes[read_index]);
+
+        read_index += 1;
+        proof_index -= 1;
+        write_index = 1;
+        index += 1;
+      } else if (index < upper_bound) {
+        append_hashes[write_index++] = hash_node(append_hashes[read_index++], append_hashes[read_index++]);
+
+        index += 2;
+      }
+
+      if (index >= upper_bound) {
+        if (index == upper_bound) append_hashes[write_index] = append_hashes[read_index];
+
+        read_index = 0;
+        write_index = 0;
+        upper_bound >>= 1;
+        offset >>= 1;
+        index = offset;
+      }
+    }
+
+    return append_hashes[0];
+  }
+
+  // Get the original Element Merkle Root and derive Append Proof, given a Single Proof
+  function get_append_proof_from_single_proof(uint256 index, bytes32 element, bytes32[] memory proof) internal pure returns (bytes32 hash, bytes32[] memory append_proof) {
+    uint256 proof_index = proof.length - 1;
+    hash = hash_node(bytes32(0), element);
+    uint256 upperBound = uint256(proof[0]) - 1;
+    uint256 append_node_index = uint256(proof[0]);
+    uint256 append_proof_index = bit_count_32(uint32(append_node_index)) + 1;
+    bytes32 append_hash;
+    append_proof[0] = bytes32(append_node_index);
+
+    while(proof_index > 0) {
+      if (index != upperBound || (index & 1 == 1)) {
+        hash = (index & 1 == 1)
+          ? hash_node(proof[proof_index], hash)
+          : hash_node(hash, proof[proof_index]);
+
+        if (append_node_index & 1 == 1) {
+          append_proof_index -= 1;
+          append_proof[append_proof_index] = proof[proof_index];
+          append_hash = hash_node(proof[proof_index], append_hash);
+        }
+
+        proof_index -= 1;
+      } else if (append_node_index & 1 == 1) {
+        append_proof_index -= 1;
+        append_proof[append_proof_index] = hash;
+        append_hash = hash;
+      }
+
+      index >>= 1;
+      upperBound >>= 1;
+      append_node_index >>= 1;
+    }
+
+    require(append_proof_index == 2 || append_hash == hash, 'INVALID_PROOF');
+
+    if (append_proof_index == 2) {
+      append_proof[1] = hash;
+    }
+  }
+
+  // Get the original Element Merkle Root and derive Append Proof, given a Single Proof, with an element to update
+  function get_append_proof_from_single_proof_update(uint256 index, bytes32 element, bytes32 update_element, bytes32[] memory proof) internal pure returns (bytes32 hash, bytes32[] memory append_proof) {
+    uint256 proof_index = proof.length - 1;
+    hash = hash_node(bytes32(0), element);
+    bytes32 update_hash = hash_node(bytes32(0), update_element);
+    uint256 upperBound = uint256(proof[0]) - 1;
+    uint256 append_node_index = uint256(proof[0]);
+    uint256 append_proof_index = bit_count_32(uint32(append_node_index)) + 1;
+    bytes32 append_hash;
+    append_proof[0] = bytes32(append_node_index);
+
+    while(proof_index > 0) {
+      if (index != upperBound || (index & 1 == 1)) {
+        hash = (index & 1 == 1)
+          ? hash_node(proof[proof_index], hash)
+          : hash_node(hash, proof[proof_index]);
+
+        update_hash = (index & 1 == 1)
+          ? hash_node(proof[proof_index], update_hash)
+          : hash_node(update_hash, proof[proof_index]);
+
+        if (append_node_index & 1 == 1) {
+          append_proof_index -= 1;
+          append_proof[append_proof_index] = proof[proof_index];
+          append_hash = hash_node(proof[proof_index], append_hash);
+        }
+
+        proof_index -= 1;
+      } else if (append_node_index & 1 == 1) {
+        append_proof_index -= 1;
+        append_proof[append_proof_index] = update_hash;
+        append_hash = hash;
+      }
+
+      index >>= 1;
+      upperBound >>= 1;
+      append_node_index >>= 1;
+    }
+
+    require(append_proof_index == 2 || append_hash == hash, 'INVALID_PROOF');
+
+    if (append_proof_index == 2) {
+      append_proof[1] = update_hash;
+    }
+  }
+
+  // Get the original Element Merkle Root and derive Append Proof, given an Existence Multi Proof
   function get_append_proof_from_multi_proof(bytes32[] memory elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32[] memory append_proof) {
     uint256 element_count = elements.length;
     require(elements.length == element_count, "LENGTH_MISMATCH");
 
-    bytes32[] memory hashes = new bytes32[](element_count);
+    bytes32[] memory hashes = new bytes32[](element_count + 1);
     uint256 read_index = element_count - 1;
     uint256 write_index;
 
@@ -436,33 +583,33 @@ library Merkle_Library {
     read_index = 0;
     write_index = 0;
     uint256 proof_index = 4;
-    bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     uint256 append_node_index = uint256(proof[0]);
     uint256 read_index_of_append_node = 0;
     uint256 append_proof_index = bit_count_32(uint32(append_node_index)) + 1;
     append_proof = new bytes32[](append_proof_index);
     append_proof[0] = bytes32(append_node_index);
-    bytes32 hash;
     bytes32 flags = proof[1];
     bytes32 skips = proof[2];
     bytes32 orders = proof[3];
 
     while (true) {
-      if (skips & bit_check == bit_check) {
-        if (flags & bit_check == bit_check) {
+      if (skips & 0x0000000000000000000000000000000000000000000000000000000000000001 == 0x0000000000000000000000000000000000000000000000000000000000000001) {
+        if (flags & 0x0000000000000000000000000000000000000000000000000000000000000001 == 0x0000000000000000000000000000000000000000000000000000000000000001) {
           read_index = (write_index == 0 ? element_count : write_index) - 1;
 
-          require(append_proof_index == 2 || hash == hashes[read_index], "INVALID_PROOF");
+          require(append_proof_index == 2 || hashes[element_count] == hashes[read_index], "INVALID_PROOF");
 
-          if (append_proof_index == 2) append_proof[1] = hashes[read_index];
+          if (append_proof_index == 2) {
+            append_proof[1] = hashes[read_index];
+          }
 
           return (hashes[read_index], append_proof);
         }
 
         if (append_node_index & 1 == 1) {
-          hash = hashes[read_index];
+          hashes[element_count] = hashes[read_index];
           append_proof_index -= 1;
-          append_proof[append_proof_index] = hash;
+          append_proof[append_proof_index] = hashes[read_index];
         }
 
         read_index_of_append_node = write_index;
@@ -472,7 +619,10 @@ library Merkle_Library {
 
         read_index = (read_index + 1) % element_count;
         write_index = (write_index + 1) % element_count;
-        bit_check <<= 1;
+        
+        flags >>= 1;
+        skips >>= 1;
+        orders >>= 1;
         continue;
       }
 
@@ -480,14 +630,14 @@ library Merkle_Library {
         if (append_node_index & 1 == 1) {
           append_proof_index -= 1;
 
-          if (flags & bit_check == bit_check) {
+          if (flags & 0x0000000000000000000000000000000000000000000000000000000000000001 == 0x0000000000000000000000000000000000000000000000000000000000000001) {
             // use read_index_of_append_node as temporary scratch
             read_index_of_append_node = (read_index + 1) % element_count;
 
-            hash = hash_node(hashes[read_index_of_append_node], hash);
+            hashes[element_count] = hash_node(hashes[read_index_of_append_node], hashes[element_count]);
             append_proof[append_proof_index] = hashes[read_index_of_append_node];
           } else {
-            hash = hash_node(proof[proof_index], hash);
+            hashes[element_count] = hash_node(proof[proof_index], hashes[element_count]);
             append_proof[append_proof_index] = proof[proof_index];
           }
         }
@@ -497,14 +647,14 @@ library Merkle_Library {
       }
 
       // TODO: use scratch or hashes[write_index] = hash_pair(hashes[read_index++], hashes[(read_index % update_element_count)]);
-      if (flags & bit_check == bit_check) {
-        hashes[write_index] = (orders & bit_check == bit_check)
+      if (flags & 0x0000000000000000000000000000000000000000000000000000000000000001 == 0x0000000000000000000000000000000000000000000000000000000000000001) {
+        hashes[write_index] = (orders & 0x0000000000000000000000000000000000000000000000000000000000000001 == 0x0000000000000000000000000000000000000000000000000000000000000001)
           ? hash_node(hashes[(read_index + 1) % element_count], hashes[read_index])
           : hash_node(hashes[read_index], hashes[(read_index + 1) % element_count]);
 
         read_index += 2;
       } else {
-        hashes[write_index] = (orders & bit_check == bit_check)
+        hashes[write_index] = (orders & 0x0000000000000000000000000000000000000000000000000000000000000001 == 0x0000000000000000000000000000000000000000000000000000000000000001)
           ? hash_node(hashes[read_index], proof[proof_index])
           : hash_node(proof[proof_index], hashes[read_index]);
 
@@ -513,11 +663,14 @@ library Merkle_Library {
 
       read_index %= element_count;
       write_index = (write_index + 1) % element_count;
-      bit_check <<= 1;
+      
+      flags >>= 1;
+      skips >>= 1;
+      orders >>= 1;
     }
   }
 
-  // Derive Append Proof, given an Existence Multi Proof, with elements to update
+  // Get the original Element Merkle Root and derive Append Proof, given an Existence Multi Proof, with elements to update
   function get_append_proof_from_multi_proof_update(bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory proof) internal pure returns (bytes32, bytes32[] memory append_proof) {
     uint256 update_element_count = update_elements.length;
     require(elements.length == update_element_count, "LENGTH_MISMATCH");
@@ -551,7 +704,9 @@ library Merkle_Library {
 
           require(append_proof_index == 2 || hashes[update_element_count << 1] == hashes[read_index], "INVALID_PROOF");
 
-          if (append_proof_index == 2) append_proof[1] = hashes[update_element_count + read_index];
+          if (append_proof_index == 2) {
+            append_proof[1] = hashes[update_element_count + read_index];
+          }
 
           return (hashes[read_index], append_proof);
         }
@@ -634,71 +789,6 @@ library Merkle_Library {
       skips >>= 1;
       orders >>= 1;
     }
-  }
-
-  // TODO: get_new_root_from_append_proof_single_append
-
-  // Get the updated Element Merkle Root, given an Append Proof and elements to append
-  function get_new_root_from_append_proof_multi_append(bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32) {
-    uint256 append_elements_count = append_elements.length;
-    bytes32[] memory append_hashes = new bytes32[](append_elements_count);
-    uint256 write_index;
-
-    while (write_index < append_elements_count) {
-      append_hashes[write_index] = hash_node(bytes32(0), append_elements[write_index]);
-      write_index += 1;
-    }
-
-    write_index = 0;
-    uint256 read_index;
-    uint256 offset = uint256(proof[0]);
-    uint256 index = offset;
-
-    // reuse append_elements_count var here, since old one no longer needed (is now total)
-    append_elements_count += offset;
-    uint256 upper_bound = append_elements_count - 1;
-    uint256 proof_index = proof.length - 1;
-
-    while (upper_bound > 0) {
-      if ((write_index == 0) && (index & 1 == 1)) {
-        append_hashes[0] = hash_node(proof[proof_index], append_hashes[read_index]);
-
-        read_index += 1;
-        proof_index -= 1;
-        write_index = 1;
-        index += 1;
-      } else if (index < upper_bound) {
-        append_hashes[write_index++] = hash_node(append_hashes[read_index++], append_hashes[read_index++]);
-
-        index += 2;
-      }
-
-      if (index >= upper_bound) {
-        if (index == upper_bound) append_hashes[write_index] = append_hashes[read_index];
-
-        read_index = 0;
-        write_index = 0;
-        upper_bound >>= 1;
-        offset >>= 1;
-        index = offset;
-      }
-    }
-
-    return append_hashes[0];
-  }
-
-  // Get the original and updated Element Merkle Root, given an Existence Multi Proof and elements to append
-  function get_roots_from_combined_proof_and_append(bytes32[] memory elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32 old_element_root, bytes32 new_element_root) {
-    bytes32[] memory append_proof;
-    (old_element_root, append_proof) = get_append_proof_from_multi_proof(elements, proof);
-    new_element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
-  }
-
-  // Get the original and updated Element Merkle Root, given an Existence Multi Proof, elements to update, and elements to append
-  function get_roots_from_combined_proof_update_and_append(bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32 old_element_root, bytes32 new_element_root) {
-    bytes32[] memory append_proof;
-    (old_element_root, append_proof) = get_append_proof_from_multi_proof_update(elements, update_elements, proof);
-    new_element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
   }
 
   // Check if element exists, given a Single Proof
@@ -787,30 +877,124 @@ library Merkle_Library {
     return hash_node(bytes32(uint256(total_element_count) + append_elements.length), new_element_root);
   }
 
-  // Try to append elements, given an Existence Multi Proof and elements to append
-  function try_elements_exist_and_append_many(bytes32 root, bytes32[] memory elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32) {
+  // Try to append an element, given a Single Proof and an element to append
+  function try_append_one_using_one(bytes32 root, uint256 index, bytes32 element, bytes32 append_element, bytes32[] memory proof) internal pure returns (bytes32) {
     bytes32 total_element_count = proof[0];
     
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-    
-    (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_combined_proof_and_append(elements, append_elements, proof);
 
-    require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
+    (bytes32 element_root, bytes32[] memory append_proof) = get_append_proof_from_single_proof(index, element, proof);
 
-    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), new_element_root);
+    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
+
+    element_root = get_new_root_from_append_proof_single_append(append_element, append_proof);
+
+    return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
   }
 
-  // Try to update elements and append elements, given an Existence Multi Proof and elements to update and elements to append
+  // Try to append elements, given a Single Proof and elements to append
+  function try_append_many_using_one(bytes32 root, uint256 index, bytes32 element, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32) {
+    bytes32 total_element_count = proof[0];
+    
+    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
+
+    (bytes32 element_root, bytes32[] memory append_proof) = get_append_proof_from_single_proof(index, element, proof);
+
+    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
+
+    element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
+
+    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
+  }
+
+  // Try to append an element, given an Existence Multi Proof and an element to append
+  function try_append_one_using_many(bytes32 root, bytes32[] memory elements, bytes32 append_element, bytes32[] memory proof) internal pure returns (bytes32) {
+    bytes32 total_element_count = proof[0];
+    
+    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
+
+    (bytes32 element_root, bytes32[] memory append_proof) = get_append_proof_from_multi_proof(elements, proof);
+
+    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
+
+    element_root = get_new_root_from_append_proof_single_append(append_element, append_proof);
+
+    return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
+  }
+
+  // Try to append elements, given an Existence Multi Proof and elements to append
+  function try_append_many_using_many(bytes32 root, bytes32[] memory elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32) {
+    bytes32 total_element_count = proof[0];
+    
+    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
+
+    (bytes32 element_root, bytes32[] memory append_proof) = get_append_proof_from_multi_proof(elements, proof);
+
+    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
+
+    element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
+
+    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
+  }
+
+  // Try to update an element and append an element, given a Single Proof, an element to update, and an element to append
+  function try_update_one_and_append_one(bytes32 root, uint256 index, bytes32 element, bytes32 update_element, bytes32 append_element, bytes32[] memory proof) internal pure returns (bytes32) {
+    bytes32 total_element_count = proof[0];
+    
+    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
+
+    (bytes32 element_root, bytes32[] memory append_proof) = get_append_proof_from_single_proof_update(index, element, update_element, proof);
+
+    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
+
+    element_root = get_new_root_from_append_proof_single_append(append_element, append_proof);
+
+    return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
+  }
+
+  // Try to update an element and append elements, given a Single Proof, an element to update, and elements to append
+  function try_update_one_and_append_many(bytes32 root, uint256 index, bytes32 element, bytes32 update_element, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32) {
+    bytes32 total_element_count = proof[0];
+    
+    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
+
+    (bytes32 element_root, bytes32[] memory append_proof) = get_append_proof_from_single_proof_update(index, element, update_element, proof);
+
+    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
+
+    element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
+
+    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
+  }
+
+  // Try to update elements and append an element, given an Existence Multi Proof, elements to update, and an element to append
+  function try_update_many_and_append_one(bytes32 root, bytes32[] memory elements, bytes32[] memory update_elements, bytes32 append_element, bytes32[] memory proof) internal pure returns (bytes32) {
+    bytes32 total_element_count = proof[0];
+    
+    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
+
+    (bytes32 element_root, bytes32[] memory append_proof) = get_append_proof_from_multi_proof_update(elements, update_elements, proof);
+
+    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
+
+    element_root = get_new_root_from_append_proof_single_append(append_element, append_proof);
+
+    return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
+  }
+
+  // Try to update elements and append elements, given an Existence Multi Proof, elements to update, and elements to append
   function try_update_many_and_append_many(bytes32 root, bytes32[] memory elements, bytes32[] memory update_elements, bytes32[] memory append_elements, bytes32[] memory proof) internal pure returns (bytes32) {
     bytes32 total_element_count = proof[0];
     
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-    
-    (bytes32 old_element_root, bytes32 new_element_root) = get_roots_from_combined_proof_update_and_append(elements, update_elements, append_elements, proof);
 
-    require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
+    (bytes32 element_root, bytes32[] memory append_proof) = get_append_proof_from_multi_proof_update(elements, update_elements, proof);
 
-    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), new_element_root);
+    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
+
+    element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
+
+    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
   }
 
   // Get the indices of the elements, given an Existence Multi Proof

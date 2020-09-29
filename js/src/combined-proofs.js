@@ -240,7 +240,7 @@ const getRootFromSingle = ({ index, leaf, compactProof, elementCount, decommitme
 
     if (appendNodeIndex & 1) {
       appendDecommitments[--appendDecommitmentIndex] = decommitments[decommitmentIndex];
-      appendHash = hashFunction(decommitments[decommitmentIndex], hash);
+      appendHash = hashFunction(decommitments[decommitmentIndex], appendHash);
     }
 
     hash =
@@ -491,7 +491,7 @@ const getNewRootFromSingle = ({ index, leaf, updateLeaf, compactProof, elementCo
 
     if (appendNodeIndex & 1) {
       appendDecommitments[--appendDecommitmentIndex] = decommitments[decommitmentIndex];
-      appendHash = hashFunction(decommitments[decommitmentIndex], hash);
+      appendHash = hashFunction(decommitments[decommitmentIndex], appendHash);
     }
 
     hash =
