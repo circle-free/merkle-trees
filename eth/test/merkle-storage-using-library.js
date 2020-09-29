@@ -296,7 +296,7 @@ const testVerifySize = async (options) => {
 };
 
 
-describe.only("Merkle_Storage_Using_Libraries", async accounts => {
+describe("Merkle_Storage_Using_Libraries", async accounts => {
   after(() => {
     fs.writeFileSync('./test/fixtures/gas-costs.json', JSON.stringify(gasCosts, null, ' '));
   });
@@ -857,7 +857,7 @@ describe.only("Merkle_Storage_Using_Libraries", async accounts => {
     });
   });
 
-  describe.only("Merkle_Storage_Using_Lib", async accounts => {
+  describe("Merkle_Storage_Using_Lib", async accounts => {
     describe("Starting with 200 elements", async accounts => {
       beforeEach(async () => {
         contractInstance = await Merkle_Storage_Using_Lib.new();
