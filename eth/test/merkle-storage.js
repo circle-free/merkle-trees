@@ -1,12 +1,23 @@
+const fs = require('fs');
 const chai = require('chai');
 const { expect } = chai;
 
-const { generateElements, randomNumberGenerator } = require('./helpers');
+const gasCosts = require('./fixtures/merkle-gas-costs.json');
+const { generateElements } = require('./helpers');
 const MerkleTree = require('../../js');
 
-const Merkle_Storage = artifacts.require("Merkle_Storage");
+const Merkle_Storage_Using_Lib = artifacts.require("Merkle_Storage_Using_Lib");
+const Merkle_Storage_Using_Sorted_Hash_Lib = artifacts.require("Merkle_Storage_Using_Sorted_Hash_Lib");
 
-const options = {
+const unsortedOptions = {
+  unbalanced: true,
+  sortedHash: false,
+  elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+  indexed: false,
+  compact: true,
+};
+
+const sortedOptions = {
   unbalanced: true,
   sortedHash: true,
   elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
@@ -15,319 +26,729 @@ const options = {
 };
 
 let contractInstance = null;
-let merkleTree = null
+let merkleTree = null;
+let elementCount = null;
 
-const testUseOne = async (index, expectedGas) => {
+const testUseOne = async (index, options) => {
+  const gasFixtureString = `testUseOne_${elementCount}_${index}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
   const { element, compactProof } = merkleTree.generateSingleProof(index, options);
   const hexElement = '0x' + element.toString('hex');
   const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
   const { receipt } = await contractInstance.use_one(index, hexElement, hexProof);
 
+  gasCosts[gasFixtureString] = receipt.gasUsed;
+
   expect(receipt.gasUsed).to.equal(expectedGas);
 };
 
-const testUpdateOne = async (index, seed, expectedGas) => {
-  const newElement = generateElements(1, { seed })[0];
-  const hexNewElement = '0x' + newElement.toString('hex');
-  const { newMerkleTree, proof } = merkleTree.updateSingle(index, newElement, options);
-  const { element, compactProof } = proof;
-  const hexElement = '0x' + element.toString('hex');
-  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
-  const { receipt } = await contractInstance.update_one(index, hexElement, hexNewElement, hexProof);
+const testUseMany = async (indices, options) => {
+  const gasFixtureString = `testUseMany_${elementCount}_${indices.join('-')}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
 
-  expect(receipt.gasUsed).to.equal(expectedGas);
-  
-  const retrievedRoot = await contractInstance.root();
-
-  expect(retrievedRoot).to.equal('0x' + newMerkleTree.root.toString('hex'));
-
-  merkleTree = newMerkleTree;
-};
-
-const testUseAndUpdateOne = async (index, expectedGas) => {
-  const { element, compactProof } = merkleTree.generateSingleProof(index, options);
-  const hexElement = '0x' + element.toString('hex');
-  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
-  const { receipt } = await contractInstance.use_and_update_one(index, hexElement, hexProof);
-
-  expect(receipt.gasUsed).to.equal(expectedGas);
-
-  const retrievedRoot = await contractInstance.root();
-
-  expect(retrievedRoot).to.not.equal('0x' + merkleTree.root.toString('hex'));
-};
-
-const testUseMany = async (indices, expectedGas) => {
   const { elements, compactProof } = merkleTree.generateMultiProof(indices, options);
   const hexElements = elements.map(e => '0x' + e.toString('hex'));
   const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
   const { receipt } = await contractInstance.use_many(hexElements, hexProof);
 
+  gasCosts[gasFixtureString] = receipt.gasUsed;
+
   expect(receipt.gasUsed).to.equal(expectedGas);
 };
 
-const testUpdateMany = async (indices, seed, expectedGas) => {
-  const newElements = generateElements(indices.length, { seed });
-  const hexNewElements = newElements.map(e => '0x' + e.toString('hex'));
-  const { newMerkleTree, proof } = merkleTree.updateMulti(indices, newElements, options);
+const testUpdateOne = async (index, seed, options) => {
+  const gasFixtureString = `testUpdateOne_${elementCount}_${index}_${seed}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
+  const updateElement = generateElements(1, { seed })[0];
+  const hexUpdateElement = '0x' + updateElement.toString('hex');
+  const { newMerkleTree, proof } = merkleTree.updateSingle(index, updateElement, options);
+  const { element, compactProof } = proof;
+  const hexElement = '0x' + element.toString('hex');
+  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.update_one(index, hexElement, hexUpdateElement, hexProof);
+  merkleTree = newMerkleTree;
+
+  gasCosts[gasFixtureString] = receipt.gasUsed;
+
+  expect(receipt.gasUsed).to.equal(expectedGas);
+
+  const retrievedRoot = await contractInstance.root();
+
+  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
+};
+
+const testUpdateMany = async (indices, seed, options) => {
+  const gasFixtureString = `testUpdateMany_${elementCount}_${indices.join('-')}_${seed}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
+  const updateElements = generateElements(indices.length, { seed });
+  const hexUpdateElements = updateElements.map(e => '0x' + e.toString('hex'));
+  const { newMerkleTree, proof } = merkleTree.updateMulti(indices, updateElements, options);
   const { elements, compactProof } = proof;
   const hexElements = elements.map(e => '0x' + e.toString('hex'));
   const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
-  const { receipt } = await contractInstance.update_many(hexElements, hexNewElements, hexProof);
-
-  expect(receipt.gasUsed).to.equal(expectedGas);
-  
-  const retrievedRoot = await contractInstance.root();
-
-  expect(retrievedRoot).to.equal('0x' + newMerkleTree.root.toString('hex'));
-
+  const { receipt } = await contractInstance.update_many(hexElements, hexUpdateElements, hexProof);
   merkleTree = newMerkleTree;
-};
 
-const testUseAndUpdateMany = async (indices, expectedGas) => {
-  const { elements, compactProof } = merkleTree.generateMultiProof(indices, options);
-  const hexElements = elements.map(e => '0x' + e.toString('hex'));
-  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
-  const { receipt } = await contractInstance.use_and_update_many(hexElements, hexProof);
+  gasCosts[gasFixtureString] = receipt.gasUsed;
 
   expect(receipt.gasUsed).to.equal(expectedGas);
-
-  const retrievedRoot = await contractInstance.root();
-
-  expect(retrievedRoot).to.not.equal('0x' + merkleTree.root.toString('hex'));
-};
-
-const testAppendOne = async (seed, expectedGas) => {
-  const newElement = generateElements(1, { seed })[0];
-  const hexNewElement = '0x' + newElement.toString('hex');
-  const { newMerkleTree, proof } = merkleTree.appendSingle(newElement, options);
-  const { compactProof } = proof;
-  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
-  const { receipt } = await contractInstance.append_one(hexNewElement, hexProof);
-
-  expect(receipt.gasUsed).to.equal(expectedGas);
-  
-  const retrievedRoot = await contractInstance.root();
-
-  expect(retrievedRoot).to.equal('0x' + newMerkleTree.root.toString('hex'));
-
-  merkleTree = newMerkleTree;
-};
-
-const testAppendOneConsecutively = async (iterations, seed, expectedGas) => {
-  const newElements = generateElements(iterations, { seed });
-
-  const cumulativeGasUsed = await newElements.reduce(async (cGasUsed, newElement) => {
-    const cumulativeGasUsed = await cGasUsed;
-    const hexNewElement = '0x' + newElement.toString('hex');
-    const { newMerkleTree, proof } = merkleTree.appendSingle(newElement, options);
-    const { compactProof } = proof;
-    merkleTree = newMerkleTree;
-    const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
-    const { receipt } = await contractInstance.append_one(hexNewElement, hexProof);
-    
-    return cumulativeGasUsed + receipt.gasUsed;
-  }, 0);
-
-  expect(cumulativeGasUsed).to.equal(expectedGas);
 
   const retrievedRoot = await contractInstance.root();
 
   expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
 };
 
-const testAppendMany = async (appendSize, seed, expectedGas) => {
-  const newElements = generateElements(appendSize, { seed });
-  const hexNewElements = newElements.map(e => '0x' + e.toString('hex'));
-  const { newMerkleTree, proof } = merkleTree.appendMulti(newElements, options);
+const testAppendOne = async (seed, options) => {
+  const gasFixtureString = `testAppendOne_${elementCount}_${seed}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
+  const appendElement = generateElements(1, { seed })[0];
+  const hexAppendElement = '0x' + appendElement.toString('hex');
+  const { newMerkleTree, proof } = merkleTree.appendSingle(appendElement, options);
   const { compactProof } = proof;
   const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
-  const { receipt } = await contractInstance.append_many(hexNewElements, hexProof);
+  const { receipt } = await contractInstance.append_one(hexAppendElement, hexProof);
+  merkleTree = newMerkleTree;
+
+  gasCosts[gasFixtureString] = receipt.gasUsed;
 
   expect(receipt.gasUsed).to.equal(expectedGas);
-  
-  const retrievedRoot = await contractInstance.root();
-
-  expect(retrievedRoot).to.equal('0x' + newMerkleTree.root.toString('hex'));
-
-  merkleTree = newMerkleTree;
-};
-
-const testAppendManyConsecutively = async (iterations, appendSize, seed, expectedGas) => {
-  let cumulativeGasUsed = 0;
-
-  const newElementsMatrix = Array(iterations).fill(null).map(() => {
-    const newElements = generateElements(appendSize, { seed });
-    seed = newElements[0].toString('hex');
-
-    return newElements;
-  });
-  
-  for (let i = 0; i < iterations; i++) {
-    const newElements = newElementsMatrix[i];
-    const hexNewElements = newElements.map(e => '0x' + e.toString('hex'));
-    const { newMerkleTree, proof } = merkleTree.appendMulti(newElements, options);
-    const { compactProof } = proof;
-    merkleTree = newMerkleTree;
-    const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
-    const { receipt } = await contractInstance.append_many(hexNewElements, hexProof);
-    cumulativeGasUsed = cumulativeGasUsed + receipt.gasUsed;
-  }
-
-  expect(cumulativeGasUsed).to.equal(expectedGas);
 
   const retrievedRoot = await contractInstance.root();
 
   expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
 };
 
-const testUseUpdateAndAppendMany = async (indices, expectedGas) => {
-  const { elements, compactProof } = merkleTree.generateCombinedProof(indices, options);
-  const hexElements = elements.map(e => '0x' + e.toString('hex'));
+const testAppendMany = async (appendSize, seed, options) => {
+  const gasFixtureString = `testAppendMany_${elementCount}_${appendSize}_${seed}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
+  const appendElements = generateElements(appendSize, { seed });
+  const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+  const { newMerkleTree, proof } = merkleTree.appendMulti(appendElements, options);
+  const { compactProof } = proof;
   const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
-  const { receipt } = await contractInstance.use_and_update_and_append_many(hexElements, hexProof);
+  const { receipt } = await contractInstance.append_many(hexAppendElements, hexProof);
+  merkleTree = newMerkleTree;
+
+  gasCosts[gasFixtureString] = receipt.gasUsed;
 
   expect(receipt.gasUsed).to.equal(expectedGas);
-  
+
   const retrievedRoot = await contractInstance.root();
 
-  expect(retrievedRoot).to.not.equal('0x' + merkleTree.root.toString('hex'));
+  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
 };
 
-const testUseUpdateAndAppendManyConsecutively = async (iterations, seed, count, expectedGas) => {
-  // TODO: can't be tested without duplicating the update and append element logic here
-  return;
+const testUseOneAndAppendOne = async (index, seed, options) => {
+  const gasFixtureString = `testUseOneAndAppendOne_${elementCount}_${index}_${seed}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
+  const appendElement = generateElements(1, { seed })[0];
+  const hexAppendElement = '0x' + appendElement.toString('hex');
+  const { newMerkleTree, proof } = merkleTree.useAndAppend(index, appendElement, options);
+  const { element, compactProof } = proof;
+  const hexElement = '0x' + element.toString('hex');
+  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.use_one_and_append_one(index, hexElement, hexAppendElement, hexProof);
+  merkleTree = newMerkleTree;
+
+  gasCosts[gasFixtureString] = receipt.gasUsed;
+
+  expect(receipt.gasUsed).to.equal(expectedGas);
+
+  const retrievedRoot = await contractInstance.root();
+
+  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
 };
 
-describe.skip("Merkle_Storage", async accounts => {
-  beforeEach(async () => {
-    contractInstance = await Merkle_Storage.new();
-    const elements = generateElements(20, { seed: 'ff' });
-    merkleTree = new MerkleTree(elements, options);
-    await contractInstance._debug_set_root('0x' + merkleTree.root.toString('hex'));
+const testUseOneAndAppendMany = async (index, appendSize, seed, options) => {
+  const gasFixtureString = `testUseOneAndAppendMany_${elementCount}_${index}_${appendSize}_${seed}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
+  const appendElements = generateElements(appendSize, { seed });
+  const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+  const { newMerkleTree, proof } = merkleTree.useAndAppend(index, appendElements, options);
+  const { element, compactProof } = proof;
+  const hexElement = '0x' + element.toString('hex');
+  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.use_one_and_append_many(index, hexElement, hexAppendElements, hexProof);
+  merkleTree = newMerkleTree;
+
+  gasCosts[gasFixtureString] = receipt.gasUsed;
+
+  expect(receipt.gasUsed).to.equal(expectedGas);
+
+  const retrievedRoot = await contractInstance.root();
+
+  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
+};
+
+const testUseManyAndAppendOne = async (indices, seed, options) => {
+  const gasFixtureString = `testUseManyAndAppendOne_${elementCount}_${indices.join('-')}_${seed}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
+  const appendElement = generateElements(1, { seed })[0];
+  const hexAppendElement = '0x' + appendElement.toString('hex');
+  const { newMerkleTree, proof } = merkleTree.useAndAppend(indices, appendElement, options);
+  const { elements, compactProof } = proof;
+  const hexElements = elements.map(e => '0x' + e.toString('hex'));
+  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.use_many_and_append_one(hexElements, hexAppendElement, hexProof);
+  merkleTree = newMerkleTree;
+
+  gasCosts[gasFixtureString] = receipt.gasUsed;
+
+  expect(receipt.gasUsed).to.equal(expectedGas);
+
+  const retrievedRoot = await contractInstance.root();
+
+  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
+};
+
+const testUseManyAndAppendMany = async (indices, appendSize, seed, options) => {
+  const gasFixtureString = `testUseManyAndAppendMany_${elementCount}_${indices.join('-')}_${appendSize}_${seed}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
+  const appendElements = generateElements(appendSize, { seed });
+  const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+  const { newMerkleTree, proof } = merkleTree.useAndAppend(indices, appendElements, options);
+  const { elements, compactProof } = proof;
+  const hexElements = elements.map(e => '0x' + e.toString('hex'));
+  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.use_many_and_append_many(hexElements, hexAppendElements, hexProof);
+  merkleTree = newMerkleTree;
+
+  gasCosts[gasFixtureString] = receipt.gasUsed;
+
+  expect(receipt.gasUsed).to.equal(expectedGas);
+
+  const retrievedRoot = await contractInstance.root();
+
+  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
+};
+
+const testUpdateOneAndAppendOne = async (index, updateSeed, appendSeed, options) => {
+  const gasFixtureString = `testUpdateOneAndAppendOne_${elementCount}_${index}_${updateSeed}_${appendSeed}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
+  const updateElement = generateElements(1, { seed: updateSeed })[0];
+  const hexUpdateElement = '0x' + updateElement.toString('hex');
+  const appendElement = generateElements(1, { seed: appendSeed })[0];
+  const hexAppendElement = '0x' + appendElement.toString('hex');
+  const { newMerkleTree, proof } = merkleTree.updateAndAppend(index, updateElement, appendElement, options);
+  const { element, compactProof } = proof;
+  const hexElement = '0x' + element.toString('hex');
+  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.update_one_and_append_one(index, hexElement, hexUpdateElement, hexAppendElement, hexProof);
+  merkleTree = newMerkleTree;
+
+  gasCosts[gasFixtureString] = receipt.gasUsed;
+
+  expect(receipt.gasUsed).to.equal(expectedGas);
+
+  const retrievedRoot = await contractInstance.root();
+
+  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
+};
+
+const testUpdateOneAndAppendMany = async (index, updateSeed, appendSize, appendSeed, options) => {
+  const gasFixtureString = `testUpdateOneAndAppendMany_${elementCount}_${index}_${updateSeed}_${appendSize}_${appendSeed}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
+  const updateElement = generateElements(1, { seed: updateSeed })[0];
+  const hexUpdateElement = '0x' + updateElement.toString('hex');
+  const appendElements = generateElements(appendSize, { seed: appendSeed });
+  const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+  const { newMerkleTree, proof } = merkleTree.updateAndAppend(index, updateElement, appendElements, options);
+  const { element, compactProof } = proof;
+  const hexElement = '0x' + element.toString('hex');
+  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.update_one_and_append_many(index, hexElement, hexUpdateElement, hexAppendElements, hexProof);
+  merkleTree = newMerkleTree;
+
+  gasCosts[gasFixtureString] = receipt.gasUsed;
+
+  expect(receipt.gasUsed).to.equal(expectedGas);
+
+  const retrievedRoot = await contractInstance.root();
+
+  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
+};
+
+const testUpdateManyAndAppendOne = async (indices, updateSeed, appendSeed, options) => {
+  const gasFixtureString = `testUpdateOneAndAppendMany_${elementCount}_${indices.join('-')}_${updateSeed}_${appendSeed}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
+  const updateElements = generateElements(indices.length, { seed: updateSeed });
+  const hexUpdateElements = updateElements.map(e => '0x' + e.toString('hex'));
+  const appendElement = generateElements(1, { seed: appendSeed })[0];
+  const hexAppendElement = '0x' + appendElement.toString('hex');
+  const { newMerkleTree, proof } = merkleTree.updateAndAppend(indices, updateElements, appendElement, options);
+  const { elements, compactProof } = proof;
+  const hexElements = elements.map(e => '0x' + e.toString('hex'));
+  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.update_many_and_append_one(hexElements, hexUpdateElements, hexAppendElement, hexProof);
+  merkleTree = newMerkleTree;
+
+  gasCosts[gasFixtureString] = receipt.gasUsed;
+
+  expect(receipt.gasUsed).to.equal(expectedGas);
+
+  const retrievedRoot = await contractInstance.root();
+
+  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
+};
+
+const testUpdateManyAndAppendMany = async (indices, updateSeed, appendSize, appendSeed, options) => {
+  const gasFixtureString = `testUpdateManyAndAppendMany_${elementCount}_${indices.join('-')}_${updateSeed}_${appendSize}_${appendSeed}_${options.sortedHash ? 's' : 'u'}`;
+  const expectedGas = gasCosts[gasFixtureString];
+
+  const updateElements = generateElements(indices.length, { seed: updateSeed });
+  const hexUpdateElements = updateElements.map(e => '0x' + e.toString('hex'));
+  const appendElements = generateElements(appendSize, { seed: appendSeed });
+  const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+  const { newMerkleTree, proof } = merkleTree.updateAndAppend(indices, updateElements, appendElements, options);
+  const { elements, compactProof } = proof;
+  const hexElements = elements.map(e => '0x' + e.toString('hex'));
+  const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+  const { receipt } = await contractInstance.update_many_and_append_many(hexElements, hexUpdateElements, hexAppendElements, hexProof);
+  merkleTree = newMerkleTree;
+
+  gasCosts[gasFixtureString] = receipt.gasUsed;
+
+  expect(receipt.gasUsed).to.equal(expectedGas);
+
+  const retrievedRoot = await contractInstance.root();
+
+  expect(retrievedRoot).to.equal('0x' + merkleTree.root.toString('hex'));
+};
+
+
+describe("Merkle Storage Using Merkle Library", async accounts => {
+  after(() => {
+    fs.writeFileSync('./test/fixtures/merkle-gas-costs.json', JSON.stringify(gasCosts, null, ' '));
   });
 
-  it("should use 1 element for 29,426 gas.", () => {
-    return testUseOne(0, 29426);
+  describe("Starting with 200 elements (Unsorted Hash)", async accounts => {
+    beforeEach(async () => {
+      contractInstance = await Merkle_Storage_Using_Lib.new();
+      const seed = 'ff';
+      const elements = [];
+      merkleTree = new MerkleTree(elements, unsortedOptions);
+
+      const appendElements = generateElements(200, { seed });
+      const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+      const { newMerkleTree, proof } = merkleTree.appendMulti(appendElements, unsortedOptions);
+      const { compactProof } = proof;
+      const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+      const { receipt } = await contractInstance.append_many(hexAppendElements, hexProof);
+      merkleTree = newMerkleTree;
+      elementCount = 200;
+
+      const gasFixtureString = `constructAppendMany_${elementCount}_${seed}_u`;
+      gasCosts[gasFixtureString] = receipt.gasUsed;
+    });
+  
+    it("should use 1 element.", () => {
+      return testUseOne(0, unsortedOptions);
+    });
+
+    it("should use 2 elements.", () => {
+      return testUseMany([0, 1], unsortedOptions);
+    });
+  
+    it("should use 5 elements.", () => {
+      return testUseMany([0, 1, 2, 3, 4], unsortedOptions);
+    });
+  
+    it("should use 10 elements.", () => {
+      const firstHalf = Array.from(Array(5).keys());
+      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      return testUseMany(firstHalf.concat(secondHalf), unsortedOptions);
+    });
+  
+    it("should use 20 elements.", () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      return testUseMany(firstHalf.concat(secondHalf), unsortedOptions);
+    });
+
+    it("should update 1 element.", () => {
+      return testUpdateOne(0, '11', unsortedOptions);
+    });
+
+    it("should update 2 elements.", () => {
+      return testUpdateMany([0, 1], '11', unsortedOptions);
+    });
+  
+    it("should update 5 elements.", () => {
+      return testUpdateMany([0, 1, 2, 3, 4], '11', unsortedOptions);
+    });
+  
+    it("should update 10 elements.", () => {
+      const firstHalf = Array.from(Array(5).keys());
+      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      return testUpdateMany(firstHalf.concat(secondHalf), '11', unsortedOptions);
+    });
+  
+    it("should update 20 elements.", () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      return testUpdateMany(firstHalf.concat(secondHalf), '11', unsortedOptions);
+    });
+
+    it("should append 1 new element.", async () => {
+      return testAppendOne('22', unsortedOptions);
+    });
+  
+    it(`should append 2 new elements.`, async () => {
+      return testAppendMany(2, '22', unsortedOptions);
+    });
+  
+    it(`should append 5 new elements.`, async () => {
+      return testAppendMany(5, '22', unsortedOptions);
+    });
+  
+    it(`should append 10 new elements.`, async () => {
+      return testAppendMany(10, '22', unsortedOptions);
+    });
+  
+    it(`should append 20 new elements.`, async () => {
+      return testAppendMany(20, '22', unsortedOptions);
+    });
+
+    it(`should use 1 element and append 1 element.`, async () => {
+      return testUseOneAndAppendOne(elementCount - 1, '22', unsortedOptions);
+    });
+
+    it(`should use 1 element and append 2 elements.`, async () => {
+      return testUseOneAndAppendMany(elementCount - 1, 2, '22', unsortedOptions);
+    });
+
+    it(`should use 1 element and append 5 elements.`, async () => {
+      return testUseOneAndAppendMany(elementCount - 1, 5, '22', unsortedOptions);
+    });
+
+    it(`should use 1 element and append 10 elements.`, async () => {
+      return testUseOneAndAppendMany(elementCount - 1, 10, '22', unsortedOptions);
+    });
+
+    it(`should use 1 element and append 20 elements.`, async () => {
+      return testUseOneAndAppendMany(elementCount - 1, 20, '22', unsortedOptions);
+    });
+
+    it(`should use 2 elements and append 1 element.`, async () => {
+      return testUseManyAndAppendOne([58, 199], '22', unsortedOptions);
+    });
+
+    it(`should use 5 elements and append 1 element.`, async () => {
+      return testUseManyAndAppendOne([25, 47, 95, 130, 199], '22', unsortedOptions);
+    });
+
+    it(`should use 10 elements and append 1 element.`, async () => {
+      const firstHalf = Array.from(Array(5).keys());
+      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      return testUseManyAndAppendOne(firstHalf.concat(secondHalf), '22', unsortedOptions);
+    });
+
+    it(`should use 20 elements and append 1 element.`, async () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      return testUseManyAndAppendOne(firstHalf.concat(secondHalf), '22', unsortedOptions);
+    });
+
+    it(`should use 2 elements and append 2 elements.`, async () => {
+      return testUseManyAndAppendMany([58, 199], 2, '22', unsortedOptions);
+    });
+
+    it(`should use 5 elements and append 5 elements.`, async () => {
+      return testUseManyAndAppendMany([25, 47, 95, 130, 199], 5, '22', unsortedOptions);
+    });
+
+    it(`should use 10 elements and append 10 elements.`, async () => {
+      const firstHalf = Array.from(Array(5).keys());
+      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      return testUseManyAndAppendMany(firstHalf.concat(secondHalf), 10, '22', unsortedOptions);
+    });
+
+    it(`should use 20 elements and append 20 elements.`, async () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      return testUseManyAndAppendMany(firstHalf.concat(secondHalf), 20, '22', unsortedOptions);
+    });
+
+    it(`should update 1 element and append 1 element.`, async () => {
+      return testUpdateOneAndAppendOne(199, '11', '22', unsortedOptions);
+    });
+
+    it(`should update 1 element and append 2 elements.`, async () => {
+      return testUpdateOneAndAppendMany(elementCount - 1, '11', 2, '22', unsortedOptions);
+    });
+
+    it(`should update 1 element and append 5 elements.`, async () => {
+      return testUpdateOneAndAppendMany(elementCount - 1, '11', 5, '22', unsortedOptions);
+    });
+
+    it(`should update 1 element and append 10 elements.`, async () => {
+      return testUpdateOneAndAppendMany(elementCount - 1, '11', 10, '22', unsortedOptions);
+    });
+
+    it(`should update 1 element and append 20 elements.`, async () => {
+      return testUpdateOneAndAppendMany(elementCount - 1, '11', 20, '22', unsortedOptions);
+    });
+
+    it(`should update 2 elements and append 1 element.`, async () => {
+      return testUpdateManyAndAppendOne([58, 199], '11', '22', unsortedOptions);
+    });
+
+    it(`should update 5 elements and append 1 element.`, async () => {
+      return testUpdateManyAndAppendOne([25, 47, 95, 130, 199], '11', '22', unsortedOptions);
+    });
+
+    it(`should update 10 elements and append 1 element.`, async () => {
+      const firstHalf = Array.from(Array(5).keys());
+      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      return testUpdateManyAndAppendOne(firstHalf.concat(secondHalf), '11', '22', unsortedOptions);
+    });
+
+    it(`should update 20 elements and append 1 element.`, async () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      return testUpdateManyAndAppendOne(firstHalf.concat(secondHalf), '11', '22', unsortedOptions);
+    });
+
+    it(`should update 2 elements and append 2 elements.`, async () => {
+      return testUpdateManyAndAppendMany([58, 199], '11', 2, '22', unsortedOptions);
+    });
+
+    it(`should update 5 elements and append 5 elements.`, async () => {
+      return testUpdateManyAndAppendMany([25, 47, 95, 130, 199], '11', 5, '22', unsortedOptions);
+    });
+
+    it(`should update 10 elements and append 10 elements.`, async () => {
+      const firstHalf = Array.from(Array(5).keys());
+      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      return testUpdateManyAndAppendMany(firstHalf.concat(secondHalf), '11', 10, '22', unsortedOptions);
+    });
+
+    it(`should update 20 elements and append 20 elements.`, async () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      return testUpdateManyAndAppendMany(firstHalf.concat(secondHalf), '11', 20, '22', unsortedOptions);
+    });
   });
 
-  it("should update 1 element for 35,869 gas.", () => {
-    return testUpdateOne(0, '11', 35869);
-  });
+  describe("Starting with 200 elements (Sorted Hash)", async accounts => {
+    beforeEach(async () => {
+      contractInstance = await Merkle_Storage_Using_Sorted_Hash_Lib.new();
+      const seed = 'ff';
+      const elements = [];
+      merkleTree = new MerkleTree(elements, sortedOptions);
 
-  it("should use and update 1 element for 36,782 gas.", () => {
-    return testUseAndUpdateOne(0, 36782);
-  });
+      const appendElements = generateElements(200, { seed });
+      const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+      const { newMerkleTree, proof } = merkleTree.appendMulti(appendElements, sortedOptions);
+      const { compactProof } = proof;
+      const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+      const { receipt } = await contractInstance.append_many(hexAppendElements, hexProof);
+      merkleTree = newMerkleTree;
+      elementCount = 200;
 
-  it("should use 2 elements for 33,034 gas.", () => {
-    return testUseMany([0, 1], 33034);
-  });
+      const gasFixtureString = `constructAppendMany_${elementCount}_${seed}_s`;
+      gasCosts[gasFixtureString] = receipt.gasUsed;
 
-  it("should use 3 elements for 34,669 gas.", () => {
-    return testUseMany([0, 1, 2], 34669);
-  });
+    });
+  
+    it("should use 1 element.", () => {
+      return testUseOne(0, sortedOptions);
+    });
 
-  it("should use 4 elements for 35,150 gas.", () => {
-    return testUseMany([0, 1, 2, 3], 35150);
-  });
+    it("should use 2 elements.", () => {
+      return testUseMany([0, 1], sortedOptions);
+    });
+  
+    it("should use 5 elements.", () => {
+      return testUseMany([0, 1, 2, 3, 4], sortedOptions);
+    });
+  
+    it("should use 10 elements.", () => {
+      const firstHalf = Array.from(Array(5).keys());
+      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      return testUseMany(firstHalf.concat(secondHalf), sortedOptions);
+    });
+  
+    it("should use 20 elements.", () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      return testUseMany(firstHalf.concat(secondHalf), sortedOptions);
+    });
 
-  it("should use 8 elements for 41,769 gas.", () => {
-    return testUseMany([0, 1, 2, 3, 12, 13, 14, 15], 41769);
-  });
+    it("should update 1 element.", () => {
+      return testUpdateOne(0, '11', sortedOptions);
+    });
 
-  it("should update 2 elements for 41,099 gas.", () => {
-    return testUpdateMany([0, 1], '11', 41099);
-  });
+    it("should update 2 elements.", () => {
+      return testUpdateMany([0, 1], '11', sortedOptions);
+    });
+  
+    it("should update 5 elements.", () => {
+      return testUpdateMany([0, 1, 2, 3, 4], '11', sortedOptions);
+    });
+  
+    it("should update 10 elements.", () => {
+      const firstHalf = Array.from(Array(5).keys());
+      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      return testUpdateMany(firstHalf.concat(secondHalf), '11', sortedOptions);
+    });
+  
+    it("should update 20 elements.", () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      return testUpdateMany(firstHalf.concat(secondHalf), '11', sortedOptions);
+    });
 
-  it("should update 3 elements for 43,636 gas.", () => {
-    return testUpdateMany([0, 1, 2], '11', 43636);
-  });
+    it("should append 1 new element.", async () => {
+      return testAppendOne('22', sortedOptions);
+    });
+  
+    it(`should append 2 new elements.`, async () => {
+      return testAppendMany(2, '22', sortedOptions);
+    });
+  
+    it(`should append 5 new elements.`, async () => {
+      return testAppendMany(5, '22', sortedOptions);
+    });
+  
+    it(`should append 10 new elements.`, async () => {
+      return testAppendMany(10, '22', sortedOptions);
+    });
+  
+    it(`should append 20 new elements.`, async () => {
+      return testAppendMany(20, '22', sortedOptions);
+    });
 
-  it("should update 4 elements for 44,739 gas.", () => {
-    return testUpdateMany([0, 1, 2, 3], '11', 44739);
-  });
+    it(`should use 1 element and append 1 element.`, async () => {
+      return testUseOneAndAppendOne(elementCount - 1, '22', sortedOptions);
+    });
 
-  it("should update 8 elements for 55,000 gas.", () => {
-    return testUpdateMany([0, 1, 2, 3, 12, 13, 14, 15], '11', 55000);
-  });
+    it(`should use 1 element and append 2 elements.`, async () => {
+      return testUseOneAndAppendMany(elementCount - 1, 2, '22', sortedOptions);
+    });
 
-  it("should use and update 2 element for 41,511 gas.", () => {
-    return testUseAndUpdateMany([0, 1], 41511);
-  });
+    it(`should use 1 element and append 5 elements.`, async () => {
+      return testUseOneAndAppendMany(elementCount - 1, 5, '22', sortedOptions);
+    });
 
-  it("should use and update 3 element for 43,907 gas.", () => {
-    return testUseAndUpdateMany([0, 1, 2], 43907);
-  });
+    it(`should use 1 element and append 10 elements.`, async () => {
+      return testUseOneAndAppendMany(elementCount - 1, 10, '22', sortedOptions);
+    });
 
-  it("should use and update 4 element for 44,881 gas.", () => {
-    return testUseAndUpdateMany([0, 1, 2, 3], 44881);
-  });
+    it(`should use 1 element and append 20 elements.`, async () => {
+      return testUseOneAndAppendMany(elementCount - 1, 20, '22', sortedOptions);
+    });
 
-  it("should use and update 8 element for 54,579 gas.", () => {
-    return testUseAndUpdateMany([0, 1, 2, 3, 12, 13, 14, 15], 54579);
-  });
+    it(`should use 2 elements and append 1 element.`, async () => {
+      return testUseManyAndAppendOne([58, 199], '22', sortedOptions);
+    });
 
-  it("should append 1 new element for 31,571 gas.", async () => {
-    return testAppendOne('22', 31571);
-  });
+    it(`should use 5 elements and append 1 element.`, async () => {
+      return testUseManyAndAppendOne([25, 47, 95, 130, 199], '22', sortedOptions);
+    });
 
-  it("should append 1 new element, 100 times consecutively, for 3,319,303 gas.", () => {
-    return testAppendOneConsecutively(100, '22', 3319303);
-  });
+    it(`should use 10 elements and append 1 element.`, async () => {
+      const firstHalf = Array.from(Array(5).keys());
+      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      return testUseManyAndAppendOne(firstHalf.concat(secondHalf), '22', sortedOptions);
+    });
 
-  it(`should append 2 new elements, for 35,411 gas.`, async () => {
-    return testAppendMany(2, '22', 35411);
-  });
+    it(`should use 20 elements and append 1 element.`, async () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      return testUseManyAndAppendOne(firstHalf.concat(secondHalf), '22', sortedOptions);
+    });
 
-  it(`should append 3 new elements, for 36,588 gas.`, async () => {
-    return testAppendMany(3, '22', 36588);
-  });
+    it(`should use 2 elements and append 2 elements.`, async () => {
+      return testUseManyAndAppendMany([58, 199], 2, '22', sortedOptions);
+    });
 
-  it(`should append 4 new elements, for 37,785 gas.`, async () => {
-    return testAppendMany(4, '22', 37785);
-  });
+    it(`should use 5 elements and append 5 elements.`, async () => {
+      return testUseManyAndAppendMany([25, 47, 95, 130, 199], 5, '22', sortedOptions);
+    });
 
-  it(`should append 8 new elements, for 42,842 gas.`, async () => {
-    return testAppendMany(8, '22', 42842);
-  });
+    it(`should use 10 elements and append 10 elements.`, async () => {
+      const firstHalf = Array.from(Array(5).keys());
+      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      return testUseManyAndAppendMany(firstHalf.concat(secondHalf), 10, '22', sortedOptions);
+    });
 
-  it("should append 2 new elements, 100 times consecutively, for 3,759,828 gas.", () => {
-    return testAppendManyConsecutively(100, 2, '22', 3759828);
-  });
+    it(`should use 20 elements and append 20 elements.`, async () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      return testUseManyAndAppendMany(firstHalf.concat(secondHalf), 20, '22', sortedOptions);
+    });
 
-  it("should append 3 new elements, 100 times consecutively, for 3,982,273 gas.", () => {
-    return testAppendManyConsecutively(100, 3, '22', 3982273);
-  });
+    it(`should update 1 element and append 1 element.`, async () => {
+      return testUpdateOneAndAppendOne(199, '11', '22', sortedOptions);
+    });
 
-  it("should append 4 new elements, 100 times consecutively, for 4,010,093 gas.", () => {
-    return testAppendManyConsecutively(100, 4, '22', 4010093);
-  });
+    it(`should update 1 element and append 2 elements.`, async () => {
+      return testUpdateOneAndAppendMany(elementCount - 1, '11', 2, '22', sortedOptions);
+    });
 
-  it("should append 8 new elements, 100 times consecutively, for 4,651,523 gas.", () => {
-    return testAppendManyConsecutively(100, 8, '22', 4651523);
-  });
+    it(`should update 1 element and append 5 elements.`, async () => {
+      return testUpdateOneAndAppendMany(elementCount - 1, '11', 5, '22', sortedOptions);
+    });
 
-  it("should use, update, and append 2 new elements for 51,481 gas.", () => {
-    return testUseUpdateAndAppendMany([0, 19], 51481);
-  });
+    it(`should update 1 element and append 10 elements.`, async () => {
+      return testUpdateOneAndAppendMany(elementCount - 1, '11', 10, '22', sortedOptions);
+    });
 
-  it("should use, update, and append 3 new elements for 53,241 gas.", () => {
-    return testUseUpdateAndAppendMany([0, 1, 19], 53241);
-  });
+    it(`should update 1 element and append 20 elements.`, async () => {
+      return testUpdateOneAndAppendMany(elementCount - 1, '11', 20, '22', sortedOptions);
+    });
 
-  it("should use, update, and append 4 new elements for 56,498 gas.", () => {
-    return testUseUpdateAndAppendMany([0, 1, 2, 19], 56498);
-  });
+    it(`should update 2 elements and append 1 element.`, async () => {
+      return testUpdateManyAndAppendOne([58, 199], '11', '22', sortedOptions);
+    });
 
-  it("should use, update, and append 8 new elements for 69,878 gas.", () => {
-    return testUseUpdateAndAppendMany([0, 1, 2, 3, 12, 13, 14, 19], 69878);
-  });
+    it(`should update 5 elements and append 1 element.`, async () => {
+      return testUpdateManyAndAppendOne([25, 47, 95, 130, 199], '11', '22', sortedOptions);
+    });
 
-  it.skip("should use, update, and append 2 elements, 100 times consecutively, for 7,645,388 gas.", () => {
-    return testUseUpdateAndAppendManyConsecutively(100, 33, 2, 7645388);
-  });
+    it(`should update 10 elements and append 1 element.`, async () => {
+      const firstHalf = Array.from(Array(5).keys());
+      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      return testUpdateManyAndAppendOne(firstHalf.concat(secondHalf), '11', '22', sortedOptions);
+    });
 
-  it.skip("should use, update, and append 8 elements, 100 times consecutively, for 23,643,980 gas.", () => {
-    return testUseUpdateAndAppendManyConsecutively(100, 33, 8, 23643980);
+    it(`should update 20 elements and append 1 element.`, async () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      return testUpdateManyAndAppendOne(firstHalf.concat(secondHalf), '11', '22', sortedOptions);
+    });
+
+    it(`should update 2 elements and append 2 elements.`, async () => {
+      return testUpdateManyAndAppendMany([58, 199], '11', 2, '22', sortedOptions);
+    });
+
+    it(`should update 5 elements and append 5 elements.`, async () => {
+      return testUpdateManyAndAppendMany([25, 47, 95, 130, 199], '11', 5, '22', sortedOptions);
+    });
+
+    it(`should update 10 elements and append 10 elements.`, async () => {
+      const firstHalf = Array.from(Array(5).keys());
+      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      return testUpdateManyAndAppendMany(firstHalf.concat(secondHalf), '11', 10, '22', sortedOptions);
+    });
+
+    it(`should update 20 elements and append 20 elements.`, async () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      return testUpdateManyAndAppendMany(firstHalf.concat(secondHalf), '11', 20, '22', sortedOptions);
+    });
   });
 });

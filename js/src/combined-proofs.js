@@ -6,18 +6,23 @@ const assert = require('assert');
 const { leftShift, and, or } = require('bitwise-buffer');
 
 const { hashNode, bitCount32, from32ByteBuffer } = require('./utils');
-const { generate } = require('./flag-multi-proofs');
+const { generate: generateMulti } = require('./flag-multi-proofs');
+const { generate: generateSingle } = require('./single-proofs');
+
+const generate = (parameters, options = {}) => {
+  return parameters.index != null ? generateSingle(parameters, options) : generateMulti(parameters, options);
+};
 
 // This is the MultiFlagProof.getRootBooleans algorithm, however, it additionally infers and
 // verifies the decommitments needed for the append-proof, as the provided decommitments for the
-// multi proof are verified. In order for the correct append-proof decommitments to be inferred,
-// the multi-proof must be proving the existence of the last element. Two roots will be computed:
-// one from the multi-proof and one from the inferred append-proof decommitments. They should
-// match, so long as the multi-proof is valid, and the last element is being proved. The algorithm
-// to inferring the append-proof decommitments is to take the left node of each hashing pair, if
-// the right node of the hashing pair is both the "right-most" (last) node, and odd.
+// multi-proof are verified. In order for the correct append-proof decommitments to be inferred,
+// the multi-proof must be proving the existence of one of last elements. Two roots will be
+// computed: one from the multi-proof and one from the inferred append-proof decommitments. They
+// should match, so long as the multi-proof is valid, and on of the last element is being proved.
+// The algorithm to infer the append-proof decommitments is to take the left node of each
+// hashing pair, if the right node of the hashing pair is to be the appending node.
 // See MultiFlagProof.getRootBooleans for relevant inline comments.
-const getRootBooleans = ({ leafs, elementCount, flags, orders, skips, decommitments }, options = {}) => {
+const getRootBooleansFromMulti = ({ leafs, elementCount, flags, orders, skips, decommitments }, options = {}) => {
   const { hashFunction = hashNode } = options;
   const hashCount = flags.length;
   const leafCount = leafs.length;
@@ -39,7 +44,7 @@ const getRootBooleans = ({ leafs, elementCount, flags, orders, skips, decommitme
   const appendDecommitments = Array(appendDecommitmentIndex).fill(null);
 
   // We will be accumulating the computed append-proof inferred root here
-  let hash;
+  let appendHash;
 
   for (let i = 0; i < hashCount; i++) {
     if (skips[i]) {
@@ -54,8 +59,8 @@ const getRootBooleans = ({ leafs, elementCount, flags, orders, skips, decommitme
       if (appendNodeIndex & 1) {
         appendDecommitments[--appendDecommitmentIndex] = skippedHash;
 
-        // Since we know this will always be the first append decommitment, hash starts as it
-        hash = skippedHash;
+        // Since we know this will always be the first append decommitment, appendHash starts as it
+        appendHash = skippedHash;
       }
 
       // Remember this circular queue index so we can tell when we've at the end of a new level
@@ -78,14 +83,14 @@ const getRootBooleans = ({ leafs, elementCount, flags, orders, skips, decommitme
         const nextReadIndex = (readIndex + 1) % leafCount;
 
         // Note: we can save variables here by swapping flag/decommitment inclusion from "right"
-        // to "left" below, and using left as the appendHash, if hash order is not relevant.
-        const appendHash = flags[i] ? hashes[nextReadIndex] : decommitments[decommitmentIndex];
+        // to "left" below, and using left as the appendDecommitment, if hash order is not relevant.
+        const appendDecommitment = flags[i] ? hashes[nextReadIndex] : decommitments[decommitmentIndex];
 
         // flag informs if the "left" node is a previously computed hash, or a decommitment
-        appendDecommitments[--appendDecommitmentIndex] = appendHash;
+        appendDecommitments[--appendDecommitmentIndex] = appendDecommitment;
 
-        // Accumulate the append-proof decommitment
-        hash = hashFunction(appendHash, hash);
+        // Accumulate the into the append hash
+        appendHash = hashFunction(appendDecommitment, appendHash);
       }
 
       // Remember this circular queue index so we can tell when we've at the end of a new level
@@ -107,15 +112,18 @@ const getRootBooleans = ({ leafs, elementCount, flags, orders, skips, decommitme
   const root = hashes[(writeIndex === 0 ? leafCount : writeIndex) - 1];
 
   // For a balanced tree, there is only 1 append-proof decommitment: the root itself
-  assert(appendDecommitmentIndex === 1 || hash.equals(root), 'Invalid Proof.');
+  assert(appendDecommitmentIndex === 1 || appendHash.equals(root), 'Invalid Proof.');
 
-  return { root: Buffer.from(root), elementCount };
+  // The new append decommitments is simply the new root, for a balanced tree.
+  if (appendDecommitmentIndex === 1) appendDecommitments[0] = root;
+
+  return { root: Buffer.from(root), elementCount, appendDecommitments };
 };
 
 // This is identical to the above getRootBooleans algorithm, differing only in that the
 // the flag and skip bit-set is shifted and checked, rather than boolean arrays.
 // See getRootBooleans for relevant inline comments.
-const getRootBits = ({ leafs, compactProof }, options = {}) => {
+const getRootBitsFromMulti = ({ leafs, compactProof }, options = {}) => {
   const { hashFunction = hashNode, sortedHash = true } = options;
   const elementCount = from32ByteBuffer(compactProof[0]);
   const flags = compactProof[1];
@@ -134,7 +142,7 @@ const getRootBits = ({ leafs, compactProof }, options = {}) => {
   let readIndexOfAppendNode = 0;
   let appendDecommitmentIndex = bitCount32(elementCount);
   const appendDecommitments = Array(appendDecommitmentIndex).fill(null);
-  let hash;
+  let appendHash;
 
   while (true) {
     const flag = and(flags, bitCheck).equals(bitCheck);
@@ -143,16 +151,18 @@ const getRootBits = ({ leafs, compactProof }, options = {}) => {
       if (flag) {
         const root = hashes[(writeIndex === 0 ? leafCount : writeIndex) - 1];
 
-        assert(appendDecommitmentIndex === 1 || hash.equals(root), 'Invalid Proof.');
+        assert(appendDecommitmentIndex === 1 || appendHash.equals(root), 'Invalid Proof.');
 
-        return { root: Buffer.from(root), elementCount };
+        if (appendDecommitmentIndex === 1) appendDecommitments[0] = root;
+
+        return { root: Buffer.from(root), elementCount, appendDecommitments };
       }
 
       const skippedHash = hashes[readIndex++];
 
       if (appendNodeIndex & 1) {
         appendDecommitments[--appendDecommitmentIndex] = skippedHash;
-        hash = skippedHash;
+        appendHash = skippedHash;
       }
 
       readIndexOfAppendNode = writeIndex;
@@ -168,11 +178,11 @@ const getRootBits = ({ leafs, compactProof }, options = {}) => {
 
     if (readIndexOfAppendNode === readIndex) {
       const nextReadIndex = (readIndex + 1) % leafCount;
-      const appendHash = flag ? hashes[nextReadIndex] : decommitments[decommitmentIndex];
+      const appendDecommitment = flag ? hashes[nextReadIndex] : decommitments[decommitmentIndex];
 
       if (appendNodeIndex & 1) {
-        appendDecommitments[--appendDecommitmentIndex] = appendHash;
-        hash = hashFunction(appendHash, hash);
+        appendDecommitments[--appendDecommitmentIndex] = appendDecommitment;
+        appendHash = hashFunction(appendDecommitment, appendHash);
       }
 
       readIndexOfAppendNode = writeIndex;
@@ -192,8 +202,70 @@ const getRootBits = ({ leafs, compactProof }, options = {}) => {
   }
 };
 
+// This is the SingleProof.getRoot algorithm, however, it additionally infers and verifies the
+// decommitments needed for the append-proof, as the provided decommitments for the single proof
+// are verified. It is effectively a combination of the SingleProof.getRoot and the above
+// getRootBooleansFromMulti.
+// See MultiFlagProof.getRootBooleans and getRootBooleansFromMulti for relevant inline comments.
+const getRootFromSingle = ({ index, leaf, compactProof, elementCount, decommitments }, options = {}) => {
+  const { hashFunction = hashNode } = options;
+
+  if (compactProof) {
+    elementCount = from32ByteBuffer(compactProof[0]);
+    decommitments = compactProof.slice(1);
+  }
+
+  let decommitmentIndex = decommitments.length;
+  let hash = Buffer.from(leaf);
+  let upperBound = elementCount - 1;
+  let appendNodeIndex = elementCount;
+  let appendDecommitmentIndex = bitCount32(elementCount);
+  const appendDecommitments = Array(appendDecommitmentIndex).fill(null);
+  let appendHash;
+
+  while (decommitmentIndex > 0) {
+    if (index === upperBound && !(index & 1)) {
+      if (appendNodeIndex & 1) {
+        appendDecommitments[--appendDecommitmentIndex] = hash;
+        appendHash = hash;
+      }
+
+      index >>>= 1;
+      upperBound >>>= 1;
+      appendNodeIndex >>>= 1;
+      continue;
+    }
+
+    --decommitmentIndex;
+
+    if (appendNodeIndex & 1) {
+      appendDecommitments[--appendDecommitmentIndex] = decommitments[decommitmentIndex];
+      appendHash = hashFunction(decommitments[decommitmentIndex], appendHash);
+    }
+
+    hash =
+      index & 1
+        ? hashFunction(decommitments[decommitmentIndex], hash)
+        : hashFunction(hash, decommitments[decommitmentIndex]);
+
+    index >>>= 1;
+    upperBound >>>= 1;
+    appendNodeIndex >>>= 1;
+  }
+
+  assert(appendDecommitmentIndex === 1 || appendHash.equals(hash), 'Invalid Proof.');
+
+  if (appendDecommitmentIndex === 1) appendDecommitments[0] = hash;
+
+  return { root: hash, elementCount, appendDecommitments };
+};
+
 const getRoot = (parameters, options = {}) => {
-  return parameters.compactProof ? getRootBits(parameters, options) : getRootBooleans(parameters, options);
+  return parameters.leaf
+    ? getRootFromSingle(parameters, options)
+    : parameters.compactProof
+    ? getRootBitsFromMulti(parameters, options)
+    : getRootBooleansFromMulti(parameters, options);
 };
 
 // This is identical to the above getRootBooleans followed by the AppendProof.getNewRootMulti.
@@ -201,22 +273,17 @@ const getRoot = (parameters, options = {}) => {
 // time, the old root is computed, from the decommitments and original elements. Also, at the
 // same time, the old root is computed, from the inferred append-proof decommitments. And also,
 // at the same time, the new append-proof decommitments are computed from the updated elements.
+// Finally either appendMulti or appendSingle above is called to get the new root.
 // See getRootBooleans for relevant inline comments.
-const getNewRootBooleans = (
-  { leafs, updateLeafs, appendLeafs, elementCount, flags, skips, orders, decommitments },
+const getNewRootBooleansFromMulti = (
+  { leafs, updateLeafs, elementCount, flags, skips, orders, decommitments },
   options = {}
 ) => {
   const { hashFunction = hashNode } = options;
   const hashCount = flags.length;
   const leafCount = leafs.length;
   const hashes = leafs.map((leaf) => leaf).reverse();
-
-  // Will be used as a circular queue, then a stack, so needs to be large enough for either use.
-  const newHashes = Array(Math.max(leafCount, (appendLeafs.length >>> 1) + 1)).fill(null);
-
-  for (let i = 0; i < leafCount; i++) {
-    newHashes[i] = updateLeafs[leafCount - 1 - i];
-  }
+  const newHashes = updateLeafs.map((leaf) => leaf).reverse();
 
   let readIndex = 0;
   let writeIndex = 0;
@@ -289,61 +356,15 @@ const getNewRootBooleans = (
 
   assert(appendDecommitmentIndex === 1 || hash.equals(oldRoot), 'Invalid Proof.');
 
-  // The new append decommitments is simply thew new root, for a balanced tree.
   if (appendDecommitmentIndex === 1) appendDecommitments[0] = newRoot;
 
-  // The rest is a exactly the AppendProof.getNewRootMulti, with some reused
-  // variables previously declared. Also, since the above steps validated the
-  // decommitments and generated new valid ones, there is no need to compute
-  // an accumulated root, as it is not being returned.
-  appendDecommitmentIndex = bitCount32(elementCount) - 1;
-  let upperBound = elementCount + appendLeafs.length - 1;
-  writeIndex = 0;
-  readIndex = 0;
-  let offset = elementCount;
-  let index = offset;
-  let useLeafs = false;
-
-  for (let i = 0; i < leafCount; i++) {
-    newHashes[i] = updateLeafs[leafCount - 1 - i];
-  }
-
-  while (upperBound > 0) {
-    useLeafs = offset >= elementCount;
-
-    if (writeIndex === 0 && index & 1) {
-      newHashes[writeIndex++] = hashFunction(
-        appendDecommitments[appendDecommitmentIndex--],
-        useLeafs ? appendLeafs[readIndex++] : newHashes[readIndex++]
-      );
-
-      index++;
-    } else if (index < upperBound) {
-      newHashes[writeIndex++] = hashFunction(
-        useLeafs ? appendLeafs[readIndex++] : newHashes[readIndex++],
-        useLeafs ? appendLeafs[readIndex++] : newHashes[readIndex++]
-      );
-      index += 2;
-    }
-
-    if (index >= upperBound) {
-      if (index === upperBound) newHashes[writeIndex] = useLeafs ? appendLeafs[readIndex] : newHashes[readIndex];
-
-      readIndex = 0;
-      writeIndex = 0;
-      upperBound >>>= 1;
-      offset >>>= 1;
-      index = offset;
-    }
-  }
-
-  return { root: Buffer.from(oldRoot), newRoot: newHashes[0], elementCount };
+  return { root: Buffer.from(oldRoot), newRoot, elementCount, appendDecommitments };
 };
 
 // This is identical to the above getNewRootBooleans algorithm, differing only in that the
 // the flag and skip bit-set is shifted and checked, rather than boolean arrays.
 // See getNewRootBooleans for relevant inline comments.
-const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, compactProof }, options = {}) => {
+const getNewRootBitsFromMulti = ({ leafs, updateLeafs, compactProof }, options = {}) => {
   const { hashFunction = hashNode, sortedHash = true } = options;
   const elementCount = from32ByteBuffer(compactProof[0]);
   const flags = compactProof[1];
@@ -352,11 +373,7 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, compactProof }, optio
   const decommitments = compactProof.slice(sortedHash ? 3 : 4);
   const leafCount = leafs.length;
   const hashes = leafs.map((leaf) => leaf).reverse();
-  const newHashes = Array(Math.max(leafCount, (appendLeafs.length >>> 1) + 1)).fill(null);
-
-  for (let i = 0; i < leafCount; i++) {
-    newHashes[i] = updateLeafs[leafCount - 1 - i];
-  }
+  const newHashes = updateLeafs.map((leaf) => leaf).reverse();
 
   let readIndex = 0;
   let writeIndex = 0;
@@ -379,11 +396,9 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, compactProof }, optio
 
         assert(appendDecommitmentIndex === 1 || hash.equals(oldRoot), 'Invalid Proof.');
 
-        hash = oldRoot;
-
         if (appendDecommitmentIndex === 1) appendDecommitments[0] = newRoot;
 
-        break;
+        return { root: oldRoot, newRoot, elementCount, appendDecommitments };
       }
 
       const skippedHash = hashes[readIndex];
@@ -436,49 +451,77 @@ const getNewRootBits = ({ leafs, updateLeafs, appendLeafs, compactProof }, optio
     writeIndex %= leafCount;
     bitCheck = leftShift(bitCheck, 1);
   }
+};
 
-  appendDecommitmentIndex = bitCount32(elementCount) - 1;
-  let upperBound = elementCount + appendLeafs.length - 1;
-  writeIndex = 0;
-  readIndex = 0;
-  let offset = elementCount;
-  let index = offset;
-  let useLeafs = true;
+// This is identical to the above getRootFromSingle algorithm, except the append decommitments are
+// built taking the update leaf into account, followed by just calling the appendMulti or
+// appendSingle above to get the new root.
+// See getRootFromSingle for relevant inline comments.
+const getNewRootFromSingle = ({ index, leaf, updateLeaf, compactProof, elementCount, decommitments }, options = {}) => {
+  const { hashFunction = hashNode } = options;
 
-  while (upperBound > 0) {
-    useLeafs = offset >= elementCount;
-
-    if (writeIndex === 0 && index & 1) {
-      newHashes[writeIndex++] = hashFunction(
-        appendDecommitments[appendDecommitmentIndex--],
-        useLeafs ? appendLeafs[readIndex++] : newHashes[readIndex++]
-      );
-
-      index++;
-    } else if (index < upperBound) {
-      newHashes[writeIndex++] = hashFunction(
-        useLeafs ? appendLeafs[readIndex++] : newHashes[readIndex++],
-        useLeafs ? appendLeafs[readIndex++] : newHashes[readIndex++]
-      );
-      index += 2;
-    }
-
-    if (index >= upperBound) {
-      if (index === upperBound) newHashes[writeIndex] = useLeafs ? appendLeafs[readIndex] : newHashes[readIndex];
-
-      readIndex = 0;
-      writeIndex = 0;
-      upperBound >>= 1;
-      offset >>>= 1;
-      index = offset;
-    }
+  if (compactProof) {
+    elementCount = from32ByteBuffer(compactProof[0]);
+    decommitments = compactProof.slice(1);
   }
 
-  return { root: Buffer.from(hash), newRoot: newHashes[0], elementCount };
+  let decommitmentIndex = decommitments.length;
+  let hash = Buffer.from(leaf);
+  let updateHash = Buffer.from(updateLeaf);
+  let upperBound = elementCount - 1;
+  let appendNodeIndex = elementCount;
+  let appendDecommitmentIndex = bitCount32(elementCount);
+  const appendDecommitments = Array(appendDecommitmentIndex).fill(null);
+  let appendHash;
+
+  while (decommitmentIndex > 0) {
+    if (index === upperBound && !(index & 1)) {
+      if (appendNodeIndex & 1) {
+        appendDecommitments[--appendDecommitmentIndex] = updateHash;
+        appendHash = hash;
+      }
+
+      index >>>= 1;
+      upperBound >>>= 1;
+      appendNodeIndex >>>= 1;
+      continue;
+    }
+
+    --decommitmentIndex;
+
+    if (appendNodeIndex & 1) {
+      appendDecommitments[--appendDecommitmentIndex] = decommitments[decommitmentIndex];
+      appendHash = hashFunction(decommitments[decommitmentIndex], appendHash);
+    }
+
+    hash =
+      index & 1
+        ? hashFunction(decommitments[decommitmentIndex], hash)
+        : hashFunction(hash, decommitments[decommitmentIndex]);
+
+    updateHash =
+      index & 1
+        ? hashFunction(decommitments[decommitmentIndex], updateHash)
+        : hashFunction(updateHash, decommitments[decommitmentIndex]);
+
+    index >>>= 1;
+    upperBound >>>= 1;
+    appendNodeIndex >>>= 1;
+  }
+
+  assert(appendDecommitmentIndex === 1 || appendHash.equals(hash), 'Invalid Proof.');
+
+  if (appendDecommitmentIndex === 1) appendDecommitments[0] = updateHash;
+
+  return { root: hash, newRoot: updateHash, elementCount, appendDecommitments };
 };
 
 const getNewRoot = (parameters, options = {}) => {
-  return parameters.compactProof ? getNewRootBits(parameters, options) : getNewRootBooleans(parameters, options);
+  return parameters.leaf
+    ? getNewRootFromSingle(parameters, options)
+    : parameters.compactProof
+    ? getNewRootBitsFromMulti(parameters, options)
+    : getNewRootBooleansFromMulti(parameters, options);
 };
 
 // This returns the minimum index that must be in the proof, to result in a proof that will be
@@ -492,4 +535,9 @@ const getMinimumIndex = (elementCount) => {
   }
 };
 
-module.exports = { generate, getRoot, getNewRoot, getMinimumIndex };
+module.exports = {
+  generate,
+  getRoot,
+  getNewRoot,
+  getMinimumIndex,
+};

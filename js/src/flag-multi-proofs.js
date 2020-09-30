@@ -176,12 +176,15 @@ const getRoot = (parameters, options = {}) => {
 // This is identical to the above getRootBooleans algorithm, differing only in that the
 // new root (due to the updated leafs), is computed along the way.
 // See getRootBooleans for relevant inline comments.
-const getNewRootBooleans = ({ leafs, newLeafs, elementCount, flags, skips, orders, decommitments }, options = {}) => {
+const getNewRootBooleans = (
+  { leafs, updateLeafs, elementCount, flags, skips, orders, decommitments },
+  options = {}
+) => {
   const { hashFunction = hashNode } = options;
   const hashCount = flags.length;
   const leafCount = leafs.length;
   const hashes = leafs.map((leaf) => leaf).reverse();
-  const newHashes = newLeafs.map((leaf) => leaf).reverse();
+  const updateHashes = updateLeafs.map((leaf) => leaf).reverse();
 
   let readIndex = 0;
   let writeIndex = 0;
@@ -190,7 +193,7 @@ const getNewRootBooleans = ({ leafs, newLeafs, elementCount, flags, skips, order
   for (let i = 0; i < hashCount; i++) {
     if (skips[i]) {
       hashes[writeIndex] = hashes[readIndex];
-      newHashes[writeIndex++] = newHashes[readIndex++];
+      updateHashes[writeIndex++] = updateHashes[readIndex++];
 
       readIndex %= leafCount;
       writeIndex %= leafCount;
@@ -198,13 +201,13 @@ const getNewRootBooleans = ({ leafs, newLeafs, elementCount, flags, skips, order
     }
 
     const right = flags[i] ? hashes[readIndex] : decommitments[decommitmentIndex];
-    const newRight = flags[i] ? newHashes[readIndex++] : decommitments[decommitmentIndex++];
+    const newRight = flags[i] ? updateHashes[readIndex++] : decommitments[decommitmentIndex++];
     readIndex %= leafCount;
 
     const left = hashes[readIndex];
-    const newLeft = newHashes[readIndex++];
+    const newLeft = updateHashes[readIndex++];
     hashes[writeIndex] = orders?.[i] ? hashFunction(left, right) : hashFunction(right, left);
-    newHashes[writeIndex++] = orders?.[i] ? hashFunction(newLeft, newRight) : hashFunction(newRight, newLeft);
+    updateHashes[writeIndex++] = orders?.[i] ? hashFunction(newLeft, newRight) : hashFunction(newRight, newLeft);
 
     readIndex %= leafCount;
     writeIndex %= leafCount;
@@ -214,7 +217,7 @@ const getNewRootBooleans = ({ leafs, newLeafs, elementCount, flags, skips, order
 
   return {
     root: Buffer.from(hashes[rootIndex]),
-    newRoot: Buffer.from(newHashes[rootIndex]),
+    newRoot: Buffer.from(updateHashes[rootIndex]),
     elementCount,
   };
 };
@@ -222,7 +225,7 @@ const getNewRootBooleans = ({ leafs, newLeafs, elementCount, flags, skips, order
 // This is identical to the above getRootBits algorithm, differing only in that the
 // new root (due to the updated leafs), is computed along the way.
 // See getRootBits for relevant inline comments.
-const getNewRootBits = ({ leafs, newLeafs, compactProof }, options = {}) => {
+const getNewRootBits = ({ leafs, updateLeafs, compactProof }, options = {}) => {
   const { hashFunction = hashNode, sortedHash = true } = options;
   const elementCount = from32ByteBuffer(compactProof[0]);
   const flags = compactProof[1];
@@ -231,7 +234,7 @@ const getNewRootBits = ({ leafs, newLeafs, compactProof }, options = {}) => {
   const decommitments = compactProof.slice(sortedHash ? 3 : 4);
   const leafCount = leafs.length;
   const hashes = leafs.map((leaf) => leaf).reverse();
-  const newHashes = newLeafs.map((leaf) => leaf).reverse();
+  const updateHashes = updateLeafs.map((leaf) => leaf).reverse();
 
   let readIndex = 0;
   let writeIndex = 0;
@@ -247,13 +250,13 @@ const getNewRootBits = ({ leafs, newLeafs, compactProof }, options = {}) => {
 
         return {
           root: Buffer.from(hashes[rootIndex]),
-          newRoot: Buffer.from(newHashes[rootIndex]),
+          newRoot: Buffer.from(updateHashes[rootIndex]),
           elementCount,
         };
       }
 
       hashes[writeIndex] = hashes[readIndex];
-      newHashes[writeIndex++] = newHashes[readIndex++];
+      updateHashes[writeIndex++] = updateHashes[readIndex++];
 
       readIndex %= leafCount;
       writeIndex %= leafCount;
@@ -262,15 +265,15 @@ const getNewRootBits = ({ leafs, newLeafs, compactProof }, options = {}) => {
     }
 
     const right = flag ? hashes[readIndex] : decommitments[decommitmentIndex];
-    const newRight = flag ? newHashes[readIndex++] : decommitments[decommitmentIndex++];
+    const newRight = flag ? updateHashes[readIndex++] : decommitments[decommitmentIndex++];
     readIndex %= leafCount;
 
     const left = hashes[readIndex];
-    const newLeft = newHashes[readIndex++];
+    const newLeft = updateHashes[readIndex++];
 
     const order = orders && and(orders, bitCheck).equals(bitCheck);
     hashes[writeIndex] = order ? hashFunction(left, right) : hashFunction(right, left);
-    newHashes[writeIndex++] = order ? hashFunction(newLeft, newRight) : hashFunction(newRight, newLeft);
+    updateHashes[writeIndex++] = order ? hashFunction(newLeft, newRight) : hashFunction(newRight, newLeft);
 
     readIndex %= leafCount;
     writeIndex %= leafCount;

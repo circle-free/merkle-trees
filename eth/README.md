@@ -18,7 +18,7 @@ Merkle-storage library works and is tested, with an example, but could be optimi
 - More work can still be done to make these contracts more readable
 
 
-## Various TODOs (mostly dependent on `merkle-trees/js`) ##
+## Various TODOs (In Order of Priority) ##
 
 - [ ] Anything done in the JS lib
 - [ ] some optimizations and more assembly wouldn't hurt
@@ -34,8 +34,8 @@ Merkle-storage library works and is tested, with an example, but could be optimi
 ## Tests ##
 
 ```console
-foo@bar:~$ nvm use 14.8.0
-Now using node v14.8.0 (npm v6.14.7)
+foo@bar:~$ nvm use 14
+Now using node v14.12.0 (npm v6.14.8)
 foo@bar:~$ yarn install
 ...
 Done in 0.16s.
@@ -43,5 +43,5 @@ foo@bar:~$ ganache-cli
 ...
 foo@bar:~$ yarn test
 ...
-142 passing (1m)
+82 passing (29s)
 ```
