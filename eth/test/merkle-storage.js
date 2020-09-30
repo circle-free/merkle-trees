@@ -336,10 +336,21 @@ describe("Merkle Storage Using Merkle Library", async accounts => {
   describe("Starting with 200 elements (Unsorted Hash)", async accounts => {
     beforeEach(async () => {
       contractInstance = await Merkle_Storage_Using_Lib.new();
-      const elements = generateElements(200, { seed: 'ff' });
+      const seed = 'ff';
+      const elements = [];
       merkleTree = new MerkleTree(elements, unsortedOptions);
-      await contractInstance._debug_set_root('0x' + merkleTree.root.toString('hex'));
+
+      const appendElements = generateElements(200, { seed });
+      const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+      const { newMerkleTree, proof } = merkleTree.appendMulti(appendElements, unsortedOptions);
+      const { compactProof } = proof;
+      const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+      const { receipt } = await contractInstance.append_many(hexAppendElements, hexProof);
+      merkleTree = newMerkleTree;
       elementCount = 200;
+
+      const gasFixtureString = `constructAppendMany_${elementCount}_${seed}_u`;
+      gasCosts[gasFixtureString] = receipt.gasUsed;
     });
   
     it("should use 1 element.", () => {
@@ -534,10 +545,22 @@ describe("Merkle Storage Using Merkle Library", async accounts => {
   describe("Starting with 200 elements (Sorted Hash)", async accounts => {
     beforeEach(async () => {
       contractInstance = await Merkle_Storage_Using_Sorted_Hash_Lib.new();
-      const elements = generateElements(200, { seed: 'ff' });
+      const seed = 'ff';
+      const elements = [];
       merkleTree = new MerkleTree(elements, sortedOptions);
-      await contractInstance._debug_set_root('0x' + merkleTree.root.toString('hex'));
+
+      const appendElements = generateElements(200, { seed });
+      const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+      const { newMerkleTree, proof } = merkleTree.appendMulti(appendElements, sortedOptions);
+      const { compactProof } = proof;
+      const hexProof = compactProof.map(p => '0x' + p.toString('hex'));
+      const { receipt } = await contractInstance.append_many(hexAppendElements, hexProof);
+      merkleTree = newMerkleTree;
       elementCount = 200;
+
+      const gasFixtureString = `constructAppendMany_${elementCount}_${seed}_s`;
+      gasCosts[gasFixtureString] = receipt.gasUsed;
+
     });
   
     it("should use 1 element.", () => {

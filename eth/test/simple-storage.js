@@ -205,10 +205,14 @@ describe.skip("Simple Storage", async accounts => {
   describe("Starting with 200 elements", async accounts => {
     beforeEach(async () => {
       contractInstance = await Simple_Storage.new();
-      const elements = generateElements(200, { seed: 'ff' });
+      const seed = 'ff';
+      const elements = generateElements(200, { seed });
       const hexElements = elements.map(e => '0x' + e.toString('hex'));
-      await contractInstance.append_many(hexElements);
+      const { receipt } = await contractInstance.append_many(hexElements);
       elementCount = 200;
+
+      const gasFixtureString = `constructAppendMany_${elementCount}_${seed}`;
+      gasCosts[gasFixtureString] = receipt.gasUsed;
     });
   
     it("should use 1 element.", () => {
