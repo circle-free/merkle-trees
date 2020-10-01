@@ -63,4 +63,4 @@ const retrievedRoot2 = await merkleStorageInstance.root();
 console.log(merkleTree.root.toString('hex') === retrievedRoot2.slice(2));       // true
 ```
 
-For more, see tests.
+For more, see `js` directory, `eth` directory, and `tests`.

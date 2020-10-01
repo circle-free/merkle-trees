@@ -10,7 +10,7 @@ const CombinedProofs = require('./combined-proofs');
 
 class MerkleTree {
   constructor(elements, options = {}) {
-    const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
+    const { sortedHash = false, unbalanced = true, elementPrefix = '00' } = options;
 
     this._elementPrefix = Buffer.from(elementPrefix, 'hex');
     this._sortedHash = sortedHash;
@@ -311,12 +311,12 @@ class MerkleTree {
     return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot);
   }
 
-  get elementRoot() {
-    return this._elements.length ? Buffer.from(this._tree[1]) : to32ByteBuffer(0);
-  }
-
   get root() {
     return this._elements.length ? Buffer.from(this._tree[0]) : to32ByteBuffer(0);
+  }
+
+  get elementRoot() {
+    return this._elements.length ? Buffer.from(this._tree[1]) : to32ByteBuffer(0);
   }
 
   get depth() {
