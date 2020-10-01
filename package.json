@@ -1,6 +1,6 @@
 {
   "name": "merkle-trees",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "js and solidity suite for compact multi-proof appendable Merkle trees.",
   "main": "/js/src/index.js",
   "repository": {
