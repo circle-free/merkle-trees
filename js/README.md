@@ -29,17 +29,19 @@ The tree's effective root is the hash of the element count and the element root.
 const MerkleTree = require('merkle-trees/js');
 
 const treeOptions = {
-  unbalanced: true,             // H(i, j) = i, when j = unset/null (default = true)
-  sortedHash: false,             // H(i, j) = H(j, i), since i and j are sorted at hash-time (default = false)
-  elementPrefix: '00'           // Hash prefix for hashing elements into nodes (prevents second pre-image attack) (default = 0x00)
+  unbalanced: true,     // H(i, j) = i, when j = unset/null (default = true)
+  sortedHash: false,    // H(i, j) = H(j, i), i and j are sorted at hash-time (default = false)
+  elementPrefix: '00'   // Leaf prefix for to prevent second pre-image attack (default = 0x00)
 };
 
-const myTree = new MerkleTree(elements, treeOptions);   // elements is an array of 32-byte Buffers
-console.log(myTree.root);                               // hash of elements.length with element merkle root (Buffer)
-console.log(myTree.elementRoot);                        // element merkle root (Buffer)
-console.log(myTree.depth);                              // effective depth of the Merkle tree
-console.log(myTree.elements);                           // copies of items in elements (array of Buffers)
-console.log(myTree.minimumCombinedProofIndex);          // minimum index needed for a "Combined-Proof" (see below)
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
+
+console.log(myTree.root);                         // appendable tree root (Buffer)
+console.log(myTree.elementRoot);                  // element merkle root (Buffer)
+console.log(myTree.depth);                        // depth of the Merkle tree
+console.log(myTree.elements);                     // copies of elements (array of Buffers)
+console.log(myTree.minimumCombinedProofIndex);    // minimum index needed for a Combined-Proof
 ```
 <br>
 
@@ -52,37 +54,40 @@ A Merkle proof can be generated to prove the existence of a single element at a 
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                       // say elements is an array of 20 32-byte Buffer
+
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 
 const proofOptions = {
-  compact: false,               // reduces proof elements (other than what is being proven) to a single array of 32-byte Buffers
+  compact: false,   // reduces ancillary proof elements to a single array of 32-byte Buffers
 };
 
 const compactProofOptions = { compact: true };
 
-const proof1 = myTree.generateSingleProof(14, proofOptions});               // going to generate proof of element at index 14
+// Generate normal and compact proofs of element at index 14
+const proof1 = myTree.generateSingleProof(14, proofOptions});
 const proof2 = myTree.generateSingleProof(14, compactProofOptions});
 
 const {
-  root,                         // the root of the Merkle tree (32-byte Buffer)
-  index,                        // the index of the element being proven (same as passed in)
-  element,                      // the element being proven (32-byte Buffer)
-  elementCount,                 // the number of elements in the tree
-  decommitments,                // the node values (witnesses) needed recompute the root (array of 32-byte Buffers)
+  root,             // the root of the Merkle tree (32-byte Buffer)
+  index,            // the index of the element being proven (same as passed in)
+  element,          // clone of the element being proven (32-byte Buffer)
+  elementCount,     // the number of elements in the tree
+  decommitments,    // witness data needed recompute the root (array of 32-byte Buffers)
 } = proof1;
 
 const {
   root,
   index,
   element,
-  compactProof,                 // everything needed for the proof (other than what is being proven) (array of 32-byte Buffers)
+  compactProof,     // ancillary proof elements (array of 32-byte Buffers)
 } = proof2;
 
-const proof1IsValid = MerkleTree.verifySingleProof(proof1, treeOptions);    // properties of the tree passed in via options
-const proof2IsValid = MerkleTree.verifySingleProof(proof2, treeOptions);    // compact proof automatically detected
+// Properties of the tree need to be passed as options to the static method
+console.log(MerkleTree.verifySingleProof(proof1, treeOptions));     // true
 
-console.log(proof1IsValid);     // true
-console.log(proof2IsValid);     // true
+// Compact proof automatically detected
+console.log(MerkleTree.verifySingleProof(proof2, treeOptions));     // true
 ```
 <br>
 
@@ -93,30 +98,35 @@ The same Merkle proof can be generated to prove and update an element, thereby c
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                               // say elements is an array of 20 32-byte Buffer
+
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 
 const proofOptions = { compact: true };
-const proof = myTree.generateSingleUpdateProof(14, updateElement, proofOptions});   // updateElement is a 32-byte Buffer
+
+// UpdateElement is a 32-byte Buffer, to replace element at index 14
+const proof = myTree.generateSingleUpdateProof(14, updateElement, proofOptions});
 
 const {
   root,
   index,
   element,
-  updateElement,                                // the element being updated (32-byte Buffer)
+  updateElement,    // the element being updated (32-byte Buffer)
   compactProof,
 } = proof;
 
-const proofIsValid = MerkleTree.verifySingleProof(proof, treeOptions);
-console.log(proofIsValid);                      // true
+console.log(MerkleTree.verifySingleProof(proof, treeOptions));    // true
 
-const { root: newRoot } = myTree.updateWithSingleProof(proof, treeOptions);         // this will throw if the proof is invalid
-console.log(newRoot);                           // the updated merkle tree's root
+// Returns the updated merkle tree's root. This will throw if the proof is invalid.
+const { root: newRoot } = myTree.updateWithSingleProof(proof, treeOptions);
 
+// Create a new and updated set of elements
 const newElements = elements.map(Buffer.from);
 newElements[14] = updateElement;
 
+// Build a new tree with the update set of elements
 const myTreeTree = new MerkleTree(newElements, treeOptions);
-console.log(newRoot.equals(myTreeTree.root));   // true, since the root of a tree constructed with new set of elements matches
+console.log(newRoot.equals(myTreeTree.root));   // true
 ```
 <br>
 
@@ -127,11 +137,15 @@ A clean(er) way to update a single element in a Merkle tree.
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                                     // say elements is an array of 20 32-byte Buffer
+
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 const proofOptions = { compact: true };
-const { newMerkleTree, proof } = myTree.updateSingle(14, updateElement, proofOptions});   // returns the updated Merkle tree and the proof
+
+// Returns the updated Merkle tree and the proof.
+const { newMerkleTree, proof } = myTree.updateSingle(14, updateElement, proofOptions});
 const { root } = myTree.updateWithSingleProof(proof, treeOptions);
-console.log(root.equals(newMerkleTree.root));                                             // true
+console.log(root.equals(newMerkleTree.root));   // true
 ```
 <br>
 <br>
@@ -147,39 +161,39 @@ A Merkle proof can be generated to prove the existence of several elements.
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                       // say elements is an array of 20 32-byte Buffer
+
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 
 const proofOptions1 = {
   compact: false,
-  indexed: false,                                                           // request proof that does not contain indices
+  indexed: false,   // request proof that does not contain indices
 };
 
 const proofOptions2 = { compact: true, indexed: false };
 
-const proof1 = myTree.generateMultiProof([3, 14, 18], proofOptions1});      // going to generate proof of element at indices 3, 14, and 18
+// Generate normal and compact proof of elements at indices 3, 14, and 18
+const proof1 = myTree.generateMultiProof([3, 14, 18], proofOptions1});
 const proof2 = myTree.generateMultiProof([3, 14, 18], proofOptions2});
 
 const {
-  root,                         // the root of the Merkle tree (32-byte Buffer)
-  elements,                     // the elements being proven (array of 32-byte Buffers)
-  elementCount,                 // the number of elements in the tree
-  flags,                        // hash flags required for the proof (array fo Booleans)
-  skips,                        // skip flags required for the proof (array fo Booleans)
-  orders,                       // order flags required for the proof (array fo Booleans)
-  decommitments,                // the node values (witnesses) needed recompute the root (array of 32-byte Buffers)
+  root,             // the root of the Merkle tree (32-byte Buffer)
+  elements,         // the elements being proven (array of 32-byte Buffers)
+  elementCount,     // the number of elements in the tree
+  flags,            // hash flags required for the proof (array fo Booleans)
+  skips,            // skip flags required for the proof (array fo Booleans)
+  orders,           // order flags required for the proof (array fo Booleans)
+  decommitments,    // witness data needed recompute the root (array of 32-byte Buffers)
 } = proof1;
 
 const {
   root,
   elements,
-  compactProof                  // everything needed for the proof (other than what is being proven) (array of 32-byte Buffers)
+  compactProof      // ancillary proof elements (array of 32-byte Buffers)
 } = proof2;
 
-const proof1IsValid = MerkleTree.verifyMultiProof(proof1, treeOptions);
-const proof2IsValid = MerkleTree.verifyMultiProof(proof2, treeOptions);
-
-console.log(proof1IsValid);     // true
-console.log(proof2IsValid);     // true
+console.log(MerkleTree.verifyMultiProof(proof1, treeOptions));    // true
+console.log(MerkleTree.verifyMultiProof(proof2, treeOptions));     // true
 ```
 <br>
 
@@ -190,30 +204,37 @@ The same Merkle proof can be generated to prove and update several elements, the
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                                         // say elements is an array of 20 32-byte Buffer
+
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 
 const proofOptions = { compact: true, indexed: false };
-const proof = myTree.generateMultiUpdateProof([3, 14, 18], updateElements, proofOptions});    // updateElements is an array of 32-byte Buffers
+
+// Generate compact multi proof to replace elements at indices 3, 14, and 18 with
+// updateElements (an array of 32-byte Buffers)
+const proof = myTree.generateMultiUpdateProof([3, 14, 18], updateElements, proofOptions});
 
 const {
+  root,
   elements,
-  updateElements,                             // the elements to be updated (32-byte Buffer)
+  updateElements,   // the elements to be updated (32-byte Buffer)
   compactProof,
 } = proof;
 
-const proofIsValid = MerkleTree.verifyMultiProof(proof, treeOptions);
-console.log(proofIsValid);                    // true
+console.log(MerkleTree.verifyMultiProof(proof, treeOptions));   // true
 
-const { root } = myTree.updateWithMultiProof(proof, treeOptions);                             // this will throw if the proof is invalid
-console.log(root);                            // the updated merkle tree's root
+// Get the root of the updated Merkle tree. This will throw if the proof is invalid.
+const { root } = myTree.updateWithMultiProof(proof, treeOptions);
 
+// Create a new and updated set of elements
 const newElements = elements.map(Buffer.from);
 newElements[3] = updateElement[0];
 newElements[14] = updateElement[1];
 newElements[18] = updateElement[2];
 
+// Build a new tree with the update set of elements
 const myTreeTree = new MerkleTree(newElements, treeOptions);
-console.log(root.equals(myTreeTree.root));    // true, since the root of a tree constructed with new set of elements matches
+console.log(root.equals(myTreeTree.root));    // true
 ```
 <br>
 
@@ -224,11 +245,15 @@ A clean(er) way to update several elements in a Merkle tree.
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                                             // say elements is an array of 20 32-byte Buffer
+
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 const proofOptions = { compact: true, indexed: false };
-const { newMerkleTree, proof } = myTree.updateMulti([3, 14, 18], updateElement, proofOptions});   // returns the updated Merkle tree and the proof
+
+// Returns the updated Merkle tree and the proof.
+const { newMerkleTree, proof } = myTree.updateMulti([3, 14, 18], updateElement, proofOptions});
 const { root } = myTree.updateWithMultiProof(proof, treeOptions);
-console.log(root.equals(newMerkleTree.root));                                                     // true
+console.log(root.equals(newMerkleTree.root));   // true
 ```
 <br>
 <br>
@@ -243,30 +268,30 @@ A Merkle proof can be generated to enable appending an arbitrary number of eleme
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                       // say elements is an array of 20 32-byte Buffer
+
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 
 const proofOptions = { compact: false };
 const compactProofOptions = { compact: true };
 
+// Generate a normal and compact append proof
 const proof1 = myTree.generateAppendProof(proofOptions});
 const proof2 = myTree.generateAppendProof(compactProofOptions});
 
 const {
-  root,                         // the root of the Merkle tree (32-byte Buffer)
-  elementCount,                 // the number of elements in the tree
-  decommitments,                // the node values (witnesses) needed recompute the root (array of 32-byte Buffers)
+  root,             // the root of the Merkle tree (32-byte Buffer)
+  elementCount,     // the number of elements in the tree
+  decommitments,    // witness data needed recompute the root (array of 32-byte Buffers)
 } = proof1;
 
 const {
   root,
-  compactProof,                 // everything needed for the proof (other than what is being proven) (array of 32-byte Buffers)
+  compactProof,     // ancillary proof elements (array of 32-byte Buffers)
 } = proof2;
 
-const proof1IsValid = MerkleTree.verifyAppendProof(proof1, treeOptions);
-const proof2IsValid = MerkleTree.verifyAppendProof(proof2, treeOptions);
-
-console.log(proof1IsValid);     // true
-console.log(proof2IsValid);     // true
+console.log(MerkleTree.verifyAppendProof(proof1, treeOptions));   // true
+console.log(MerkleTree.verifyAppendProof(proof2, treeOptions));   // true
 ```
 <br>
 
@@ -277,44 +302,49 @@ The same Merkle proof can be generated to prove and update an element, thereby c
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                               // say elements is an array of 20 32-byte Buffer
 
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 const proofOptions = { compact: true };
-const proof1 = myTree.generateSingleAppendProof(appendElement, proofOptions});      // appendElement is a 32-byte Buffer
-const proof2 = myTree.generateSingleAppendProof(appendElements, proofOptions});     // appendElements is an array of 32-byte Buffer2
+
+// Generate a compact append proof to append appendElement (a 32-byte Buffer)
+const proof1 = myTree.generateSingleAppendProof(appendElement, proofOptions});
+
+// Generate a compact append proof to append appendElements (an array of 32-byte Buffers)
+const proof2 = myTree.generateSingleAppendProof(appendElements, proofOptions});
 
 const {
   root,
-  appendElement,                                // the element being appended (32-byte Buffer)
+  appendElement,    // the element being appended (32-byte Buffer)
   compactProof,
 } = proof1;
 
 const {
   root,
-  appendElements,                               // the elements being appended (array of 32-byte Buffers)
+  appendElements,   // the elements being appended (array of 32-byte Buffers)
   compactProof,
 } = proof2;
 
-const proof1IsValid = MerkleTree.verifyAppendProof(proof1, treeOptions);
-console.log(proof1IsValid);                     // true
+console.log(MerkleTree.verifyAppendProof(proof1, treeOptions));   // true
+console.log(MerkleTree.verifyAppendProof(proof2, treeOptions));   // true
 
-const proof2IsValid = MerkleTree.verifyAppendProof(proof2, treeOptions);
-console.log(proof2IsValid);                     // true
+// Get the root of the updated Merkle tree. This will throw if the proof is invalid.
+const { root: newRoot1 } = myTree.appendWithAppendProof(proof1, treeOptions);
 
-const { root: newRoot1 } = myTree.appendWithAppendProof(proof1, treeOptions);       // this will throw if the proof is invalid
-console.log(newRoot1);                          // the updated merkle tree's root (with the appended element)
-
+// Get the root of the updated Merkle tree. This will throw if the proof is invalid.
 const { root: newRoot2 } = myTree.appendWithAppendProof(proof2, treeOptions);
-console.log(newRoot2);                          // the updated merkle tree's root (with the appended elements)
 
+// Create new and updated sets of elements, with one and several appended elements, respectively
 const newElements1 = elements.concat(appendElement);
 const newElements2 = elements.concat(appendElements);
 
+// Build a new tree with the new elements (with the appended element)
 const myTreeTree1 = new MerkleTree(newElements1, treeOptions);
-console.log(newRoot1.equals(myTreeTree1.root)); // true, since the root of a tree constructed with new set of elements matches
+console.log(newRoot1.equals(myTreeTree1.root));   // true
 
+// Build a new tree with the new elements (with the appended elements)
 const myTreeTree2 = new MerkleTree(newElements2, treeOptions);
-console.log(newRoot2.equals(myTreeTree2.root)); // true, since the root of a tree constructed with new set of elements matches
+console.log(newRoot2.equals(myTreeTree2.root));   // true
 ```
 <br>
 
@@ -325,23 +355,31 @@ A clean(er) way to append a single or many elements to a Merkle tree.
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                                     // say elements is an array of 20 32-byte Buffer
+
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 const proofOptions = { compact: true };
-const { newMerkleTree, proof } = myTree.appendSingle(appendElement, proofOptions});       // returns the updated Merkle tree and the proof
+
+// Returns the updated Merkle tree and the proof.
+const { newMerkleTree, proof } = myTree.appendSingle(appendElement, proofOptions});
 const { root, elementCount } = myTree.appendWithAppendProof(proof, treeOptions);
-console.log(root.equals(newMerkleTree.root));                                             // true
-console.log(elementCount === newMerkleTree.elements.length);                              // true
+console.log(root.equals(newMerkleTree.root));                   // true
+console.log(elementCount === newMerkleTree.elements.length);    // true
 ```
 
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                                     // say elements is an array of 20 32-byte Buffer
+
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 const proofOptions = { compact: true };
-const { newMerkleTree, proof } = myTree.appendMulti(appendElements, proofOptions});       // returns the updated Merkle tree and the proof
+
+// Returns the updated Merkle tree and the proof.
+const { newMerkleTree, proof } = myTree.appendMulti(appendElements, proofOptions});
 const { root, elementCount } = myTree.appendWithAppendProof(proof, treeOptions);
-console.log(root.equals(newMerkleTree.root));                                             // true
-console.log(elementCount === newMerkleTree.elements.length);                              // true
+console.log(root.equals(newMerkleTree.root));                   // true
+console.log(elementCount === newMerkleTree.elements.length);    // true
 ```
 <br>
 <br>
@@ -369,19 +407,21 @@ _Note: Currently, the functions can take arrays or single elements as arguments,
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                                               // say elements is an array of 20 32-byte Buffer
 
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 const proofOptions = { compact: true };
 
-// use (prove) element at index 15 and append an array of elements
-const { newMerkleTree, proof } = myTree.useAndAppend(15, appendElements, proofOptions);             // returns updated tree and proof
+// Use (prove) element at index 15 and append an array of elements.
+// Returns the updated Merkle tree and the proof.
+// Will throw if the index is less than myTree.minimumCombinedProofIndex
+const { newMerkleTree, proof } = myTree.useAndAppend(15, appendElements, proofOptions);
 
-// proof contains an index and an element, since the underlying proof is a Single Proof
+// Proof contains an index and an element, since the underlying proof is a Single Proof
 const { root, index, element, appendElements, compactProof } = proof;
+console.log(MerkleTree.verifyCombinedProof(proof, treeOptions));    // true
 
-const proofIsValid = MerkleTree.verifyCombinedProof(proof, treeOptions);
-console.log(proofIsValid);                                      // true
-
+// Get the root and size of the updated Merkle tree. This will throw if the proof is invalid.
 const { root, elementCount } = myTree.appendWithCombinedProof(proof, treeOptions);
 console.log(root.equals(newMerkleTree.root));                   // true
 console.log(elementCount === newMerkleTree.elements.length);    // true
@@ -390,19 +430,26 @@ console.log(elementCount === newMerkleTree.elements.length);    // true
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                                               // say elements is an array of 20 32-byte Buffer
 
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 const proofOptions = { compact: true };
 
-// update elements at indices 3, 14, and 18 and append one element
-const { newMerkleTree, proof } = myTree.updateAndAppend([3, 14, 18], updateElements, appendElement, proofOptions);  // returns updated tree and proof
+// Update elements at indices 3, 14, and 18 and append one element.
+// Returns the updated Merkle tree and the proof.
+// Will throw if last index is less than myTree.minimumCombinedProofIndex
+const { newMerkleTree, proof } = myTree.updateAndAppend(
+  [3, 14, 18],
+  updateElements,
+  appendElement,
+  proofOptions
+);
 
 // proof contains elements, since the underlying proof is a Multi Proof
 const { root, elements, appendElement, compactProof } = proof;
+console.log(MerkleTree.verifyCombinedProof(proof, treeOptions));    // true
 
-const proofIsValid = MerkleTree.verifyCombinedProof(proof, treeOptions);
-console.log(proofIsValid);                                      // true
-
+// Get the root and size of the updated Merkle tree. This will throw if the proof is invalid.
 const { root, elementCount } = myTree.appendWithCombinedProof(proof, treeOptions);
 console.log(root.equals(newMerkleTree.root));                   // true
 console.log(elementCount === newMerkleTree.elements.length);    // true
@@ -417,15 +464,20 @@ Infer element indices from a Multi proof that does not explicitly prove the indi
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);                   // say elements is an array of 20 32-byte Buffer
 
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
 const proofOptions = { compact: true, indexed: false };
-const proof = myTree.generateMultiProof([3, 14, 18], proofOptions);     // prove elements at indices 3, 14, 18
-const { root, elements, compactProof } = proof;                         // indices are not part of the proof
 
+// Generate a compact multi proof that does not explicitly contain indices
+const proof = myTree.generateMultiProof([3, 14, 18], proofOptions);
+
+// As expected,. indices are not part of the proof.
+const { root, elements, compactProof } = proof;
+
+// Infer the indices of the elements being proven, using the proof itself.
 // This can be done with MerkleTree.getCombinedProofIndices as well
-const indices = MerkleTree.getMultiProofIndices(proof, treeOptions);
-console.log(indices);                                                   // [3, 14, 18]
+console.log(MerkleTree.getMultiProofIndices(proof, treeOptions));   // [3, 14, 18]
 ```
 <br>
 <br>
@@ -437,28 +489,32 @@ Generate a proof of the Merkle tree's size. The simple way relies on the fact th
 ```js
 const MerkleTree = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
-const myTree = new MerkleTree(elements, treeOptions);       // say elements is an array of 20 32-byte Buffer
 
-const proofOptions = { compact: true, simple: false };
+// In this case, elements is an array of 32-byte Buffers (not shown)
+const myTree = new MerkleTree(elements, treeOptions);
+
 const simpleProofOptions = { compact: true, simple: true };
+const proofOptions = { compact: true, simple: false };
 
-const proof1 = myTree.generateSizeProof(proofOptions);
-const proof2 = myTree.generateSizeProof(simpleProofOptions);
+// Generate simple and "non-simple" size proof.
+const proof1 = myTree.generateSizeProof(simpleProofOptions);
+const proof2 = myTree.generateSizeProof(proofOptions);
 
-const { root, elementCount, compactProof } = proof1;
+// Simple size proof only needs size and element root.
 const { root, elementCount, elementRoot } = proof2;
 
-const proof1IsValid = MerkleTree.verifySizeProof(proof1, treeOptions);
-console.log(proof1IsValid);                                 // true
+// Non-simple size proof needs size and proof of last element.
+const { root, elementCount, compactProof } = proof1;
 
-const proof2IsValid = MerkleTree.verifySizeProof(proof1, treeOptions);
-console.log(proof2IsValid);                                 // true
+console.log(MerkleTree.verifySizeProof(proof1, treeOptions));   // true
+console.log(MerkleTree.verifySizeProof(proof1, treeOptions));   // true
 ```
 <br>
 <br>
 
 ## Various TODOs and Notes (In Order of Priority) ##
 
+- [ ] Build an "incomplete", yet "useful", merkle tree from a proof
 - [ ] Consolidate single/multi update function (or de-consolidate everything... hmm...)
 - [ ] option to output all data as eth-compatible prefixed hex strings
 - [ ] deleting elements (from the end)
@@ -508,8 +564,34 @@ foo@bar:~$ yarn test
 630 passing (14s)
 ```
 
-## FAQ ##
+## FAQ (Or things I suspect people will ask, but haven't yet) ##
 
-Q. What can Merkle trees with the `sortedHash` option not do?
+__Q. What is really novel here?__
+A. With respect to Merkle Trees, Single Proofs are not novel, and neither are Multi Proofs (both the indexed and non-indexed/flag-based variants). Merkle Mountain Ranges already support the concept of an unbalanced number of elements, and the ability to append elements. What I believe is novel here is:
+* A consistent/elegant algorithm that does not need to "bag the peaks" of balanced sub-tress, as a final step (like MMRs)
+* A method to prove the size of an unbalanced tree
+* A algorithm to append an arbitrary number of elements in one go, with one simple proof
+* A algorithm to infer the proof needed to append elements, from a single or multi proof
+* A way to easily determine the minimum index to be proven to generate a single or multi proof in which an append proof can be inferred
+* An algorithm to infer the indices from a non-indexed/flag-based multi proof, reducing proof size, yet maintaining the benefits of indexed multi proofs
+<br>
 
-A. They can't be used to generate Multi-Poofs where proving or inferring indices is possible and they can't be used to generate "non-simple" Size proofs.
+__Q. What can Merkle trees with the `sortedHash` option _not_ do?__
+A. They can't be used to generate Multi-Poofs where proving or inferring indices is possible and they can't be used to generate "non-simple" size proofs.
+<br>
+
+__Q. Can I use elements that are longer or shorter than 32 bytes?__
+A. Technically, yes, although I have not tested it at all. I will, eventually, though. Also, the compatible smart contracts assume all elements are `bytes32`, so the smart contracts will no longer be compatible without fire hashing the elements yourself, down to 32-bytes.
+<br>
+
+__Q. Where's all your math and technical documentation?__
+A. I'd like to know the same! If you are up to it, feel free to reach out and I can explain it all in depth, and perhaps you can help me write it? It's not really my strong suit.
+<br>
+
+__Q. Is this library stable, robust, or "guaranteed" to work?__
+A. "Yes", but No. I'm always adding to the test cases, and brute forcing consecutive uses, and so far have not seen it fail when it should have succeeded. However, I have not yet implemented tests to check that it fails when it should fail. Feel free put it through the paces and open an issue if you notice something odd or broken.
+<br>
+
+__Q. Why doesn't this Merkle Tree construct or library have a fancy or fun name?__
+A. I couldn't think of one. Please suggest. I beg of you.
+<br>
