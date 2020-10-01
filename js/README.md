@@ -4,6 +4,7 @@
 
 A robust and well tested class to be used as the basis for dynamic lists (an eventually nested objects) to roll up to one Merkle root.
 <br>
+<br>
 
 ## Installing and Using ##
 
@@ -550,6 +551,7 @@ console.log(MerkleTree.verifySizeProof(proof1, treeOptions));   // true
 - [X] ~~Size Proofs using just element root (simple)~~
 - [X] ~~Handle empty tree (no elements to start)~~
 <br>
+<br>
 
 ## Tests ##
 
@@ -564,6 +566,7 @@ foo@bar:~$ yarn test
 630 passing (14s)
 ```
 <br>
+<br>
 
 ## FAQ (Or things I suspect people will ask, but haven't yet) ##
 
@@ -576,28 +579,34 @@ A. With respect to Merkle Trees, Single Proofs are not novel, and neither are Mu
 * A way to easily determine the minimum index to be proven to generate a single or multi proof in which an append proof can be inferred
 * An algorithm to infer the indices from a non-indexed/flag-based multi proof, reducing proof size, yet maintaining the benefits of indexed multi proofs
 <br>
+<br>
 
 __Q. What can Merkle trees with the `sortedHash` option _not_ do?__
 
 A. They can't be used to generate Multi-Poofs where proving or inferring indices is possible and they can't be used to generate "non-simple" size proofs.
+<br>
 <br>
 
 __Q. Can I use elements that are longer or shorter than 32 bytes?__
 
 A. Technically, yes, although I have not tested it at all. I will, eventually, though. Also, the compatible smart contracts assume all elements are `bytes32`, so the smart contracts will no longer be compatible without fire hashing the elements yourself, down to 32-bytes.
 <br>
+<br>
 
 __Q. Where's all your math and technical documentation?__
 
 A. I'd like to know the same! If you are up to it, feel free to reach out and I can explain it all in depth, and perhaps you can help me write it? It's not really my strong suit.
+<br>
 <br>
 
 __Q. Is this library stable, robust, or "guaranteed" to work?__
 
 A. "Yes", but No. I'm always adding to the test cases, and brute forcing consecutive uses, and so far have not seen it fail when it should have succeeded. However, I have not yet implemented tests to check that it fails when it should fail. Feel free put it through the paces and open an issue if you notice something odd or broken.
 <br>
+<br>
 
 __Q. Why doesn't this Merkle Tree construct or library have a fancy or fun name?__
 
 A. I couldn't think of one. Please suggest. I beg of you.
+<br>
 <br>
