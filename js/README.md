@@ -217,7 +217,7 @@ const proof = myTree.generateMultiUpdateProof([3, 14, 18], updateElements, proof
 const {
   root,
   elements,
-  updateElements,   // the elements to be updated (32-byte Buffer)
+  updateElements,   // the elements to be updated (array of 32-byte Buffers)
   compactProof,
 } = proof;
 
