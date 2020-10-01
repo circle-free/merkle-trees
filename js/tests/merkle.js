@@ -680,7 +680,7 @@ const testSizeProofVerification = (elementCount, options) => {
   expect(proofValid).to.be.true;
 };
 
-describe.only('Merkle-Tree', () => {
+describe('Merkle-Tree', () => {
   describe('Merkle Tree Construction', () => {
     describe('Balanced', () => {
       it('should build a 8-element Merkle Tree.', () => {
