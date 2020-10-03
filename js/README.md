@@ -523,7 +523,6 @@ console.log(MerkleTree.verifySizeProof(proof1, treeOptions));   // true
 - [ ] TypeScript (possibly with a Proof class)
 - [ ] index-less (existence-only) single-proofs
 - [ ] support index-less (compact existence-only) single-proofs
-- [ ] unbalanced proofs for indexed multi-proofs (with tests)
 - [ ] enable compact proofs for "large" trees (proof hash count > 255) with multiple 32-byte flags, given stop bits
 - [ ] bitCount256
 - [ ] deleting elements at any point
@@ -541,6 +540,7 @@ console.log(MerkleTree.verifySizeProof(proof1, treeOptions));   // true
 - [ ] explore efficiency of separate boolean-array, in the multi-proof, to inform when to take a hash as an append-decommitment
 - [ ] Bring Your Own Hash Function
 - [ ] serialize method (likely just elements, possibly redundant)
+- [X] ~~unbalanced proofs for indexed multi-proofs (with tests)~~
 - [X] ~~API documentation (you tell me, did I do a good job?)~~
 - [X] ~~append one/many with a single or multi proof~~
 - [X] ~~update one/many and append one/many~~

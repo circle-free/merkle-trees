@@ -18,44 +18,23 @@ class MerkleTree {
     this._elements = elements.map(Buffer.from);
 
     if (elements.length === 0) {
-      assert(unbalanced, 'Cannot initialize an empty balanced tree.');
-
-      this._leafCount = 0;
       this._depth = 0;
       this._tree = [];
 
       return;
     }
 
-    this._leafCount = MerkleTree.getLeafCountFromElements(this._elements);
+    const balancedLeafCount = Common.getBalancedLeafCount(this._elements.length);
+    assert(unbalanced || elements.length === balancedLeafCount, 'Incorrect element count for balanced tree.');
 
-    assert(unbalanced || elements.length === this._leafCount, 'Incorrect element count for balanced tree.');
-
-    this._depth = MerkleTree.getDepthFromElements(this._elements);
-    const leafs = Array(this._leafCount).fill(null);
-    this._elements.forEach((element, index) => (leafs[index] = hashNode(this._elementPrefix, element)));
+    const leafs = this._elements.map((element) => hashNode(this._elementPrefix, element));
 
     const hashFunction = getHashFunction(this._unbalanced, this._sortedHash);
-    const { tree } = Common.buildTree({ leafs }, { hashFunction });
+    const { tree, depth } = Common.buildTree({ leafs }, { hashFunction });
 
     this._tree = tree;
+    this._depth = depth;
     this._tree[0] = MerkleTree.computeMixedRoot(this._elements.length, this._tree[1]);
-  }
-
-  static getDepthFromElementCount(elementCount) {
-    return Common.getDepthFromElementCount(elementCount);
-  }
-
-  static getDepthFromElements(elements) {
-    return MerkleTree.getDepthFromElementCount(elements.length);
-  }
-
-  static getLeafCountFromElementCount(elementCount) {
-    return Common.getLeafCountFromElementCount(elementCount);
-  }
-
-  static getLeafCountFromElements(elements) {
-    return MerkleTree.getLeafCountFromElementCount(elements.length);
   }
 
   static verifySingleProof(parameters, options = {}) {
@@ -91,9 +70,6 @@ class MerkleTree {
 
   static verifyMultiProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
-
-    assert(!unbalanced || !parameters.indices, 'Indexed Multi-Proofs for unbalanced trees not yet supported.');
-
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashFunction = getHashFunction(unbalanced, sortedHash);
     const leafs = parameters.elements.map((element) => hashNode(prefixBuffer, element));
@@ -112,9 +88,6 @@ class MerkleTree {
 
   static updateWithMultiProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
-
-    assert(!unbalanced || !parameters.indices, 'Indexed Multi-Proofs for unbalanced trees not yet supported.');
-
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashFunction = getHashFunction(unbalanced, sortedHash);
     const leafs = parameters.elements.map((element) => hashNode(prefixBuffer, element));
@@ -180,7 +153,7 @@ class MerkleTree {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
     const { root, element, elements, appendElement, appendElements } = parameters;
 
-    assert(unbalanced, 'Combined-Proofs not supported for unbalanced trees.');
+    assert(unbalanced, 'Combined-Proofs not supported for balanced trees.');
 
     if (root.equals(to32ByteBuffer(0))) {
       const treeOptions = { sortedHash, unbalanced, elementPrefix };
@@ -219,7 +192,7 @@ class MerkleTree {
   static verifyCombinedProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
 
-    assert(unbalanced, 'Combined-Proofs not supported for unbalanced trees.');
+    assert(unbalanced, 'Combined-Proofs not supported for balanced trees.');
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashFunction = getHashFunction(true, sortedHash);
@@ -245,7 +218,7 @@ class MerkleTree {
   static updateAndAppendWithCombinedProof(parameters, options = {}) {
     const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
 
-    assert(unbalanced, 'Combined-Proofs not supported for unbalanced trees.');
+    assert(unbalanced, 'Combined-Proofs not supported for balanced trees.');
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
     const hashFunction = getHashFunction(true, sortedHash);
@@ -333,7 +306,7 @@ class MerkleTree {
 
   generateSingleProof(index, options = {}) {
     assert(this._elements.length > 0, 'Tree is empty.');
-    assert(index < this._elements.length, 'Index out of range.');
+    assert(index >= 0 && index < this._elements.length, 'Index out of range.');
 
     const params = { tree: this._tree, elementCount: this._elements.length, index };
     const proof = SingleProofs.generate(params, options);
@@ -368,10 +341,8 @@ class MerkleTree {
 
     const { indexed = false, compact = false } = options;
 
-    assert(!indexed || !this._unbalanced, 'Indexed Multi-Proofs for unbalanced trees not yet supported.');
-
     indices.forEach((index, i) => {
-      assert(index < this._elements.length, 'Index out of range.');
+      assert(index >= 0 && index < this._elements.length, 'Index out of range.');
       assert(indices.indexOf(index) === i, 'Duplicate in indices.');
     });
 

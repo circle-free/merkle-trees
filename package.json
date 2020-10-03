@@ -2,7 +2,7 @@
   "name": "merkle-trees",
   "version": "0.1.14",
   "description": "js and solidity suite for compact multi-proof appendable Merkle trees.",
-  "main": "/js/src/index.js",
+  "main": "js/index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/circle-free/merkle-trees.git"

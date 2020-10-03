@@ -4,7 +4,7 @@
 
 const assert = require('assert');
 
-const { hashNode, to32ByteBuffer, from32ByteBuffer } = require('./utils');
+const { hashNode, to32ByteBuffer, from32ByteBuffer, roundUpToPowerOf2 } = require('./utils');
 
 // Generates a set of decommitments to prove the existence of leaves at a given indices.
 // Accomplishes this by tracking the indices of the leafs in the serialized tree, and
@@ -33,7 +33,7 @@ const generate = ({ tree, elementCount, indices }, options = {}) => {
     known[i] = left || right;
   }
 
-  const clonedDecommitments = decommitments.map(Buffer.from);
+  const clonedDecommitments = decommitments.filter((d) => d).map(Buffer.from);
 
   return compact
     ? {
@@ -58,42 +58,58 @@ const getRoot = ({ indices, leafs, compactProof, elementCount, decommitments }, 
     decommitments = compactProof.slice(1);
   }
 
+  const balancedLeafCount = roundUpToPowerOf2(elementCount);
+
   // Keep verification minimal by using circular hashes queue with separate read and write heads
-  // TODO: Consider an empty hashes array and referencing leafs parameter directly, while
-  // treeIndices[nextReadIndex] > elementCount, rather than copying all leafs to memory.
   const hashes = leafs.map((leaf) => leaf).reverse();
-  const treeIndices = indices.map((index) => elementCount + index).reverse();
+  const treeIndices = indices.map((index) => balancedLeafCount + index).reverse();
   const indexCount = indices.length;
 
   let readIndex = 0;
   let writeIndex = 0;
   let decommitmentIndex = 0;
+  let upperBound = balancedLeafCount + elementCount - 1;
+  let lowestTreeIndex = treeIndices[indices.length - 1];
+  let nodeIndex;
+  let nextNodeIndex;
 
   while (true) {
-    const index = treeIndices[readIndex];
+    nodeIndex = treeIndices[readIndex];
 
-    if (index === 1) {
+    if (nodeIndex === 1) {
       // Given the circular nature of writeIndex, get the last writeIndex.
       const rootIndex = (writeIndex === 0 ? indexCount : writeIndex) - 1;
 
       return { root: hashes[rootIndex], elementCount };
     }
 
-    const nextReadIndex = (readIndex + 1) % indexCount;
-    const indexIsOdd = index & 1;
+    const indexIsOdd = nodeIndex & 1;
 
-    // The next node is a sibling of the current one
-    const nextIsPair = treeIndices[nextReadIndex] === index - 1;
+    if (nodeIndex === upperBound && !indexIsOdd) {
+      treeIndices[writeIndex] = nodeIndex >>> 1;
+      hashes[writeIndex++] = hashes[readIndex++];
+    } else {
+      const nextReadIndex = (readIndex + 1) % indexCount;
+      nextNodeIndex = treeIndices[nextReadIndex];
 
-    const right = indexIsOdd ? hashes[readIndex++] : decommitments[decommitmentIndex++];
-    readIndex %= indexCount;
-    const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : hashes[readIndex++];
+      // The next node is a sibling of the current one
+      const nextIsPair = nextNodeIndex === nodeIndex - 1;
 
-    treeIndices[writeIndex] = index >>> 1;
-    hashes[writeIndex++] = hashFunction(left, right);
+      const right = indexIsOdd ? hashes[readIndex++] : decommitments[decommitmentIndex++];
+      readIndex %= indexCount;
+      const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : hashes[readIndex++];
+
+      treeIndices[writeIndex] = nodeIndex >>> 1;
+      hashes[writeIndex++] = hashFunction(left, right);
+    }
 
     readIndex %= indexCount;
     writeIndex %= indexCount;
+
+    if (nodeIndex === lowestTreeIndex || nextNodeIndex === lowestTreeIndex) {
+      lowestTreeIndex >>>= 1;
+      upperBound >>>= 1;
+    }
   }
 };
 
@@ -108,41 +124,134 @@ const getNewRoot = ({ indices, leafs, updateLeafs, compactProof, elementCount, d
     decommitments = compactProof.slice(1);
   }
 
+  const balancedLeafCount = roundUpToPowerOf2(elementCount);
   const hashes = leafs.map((leaf) => leaf).reverse();
   const updateHashes = updateLeafs.map((leaf) => leaf).reverse();
-  const treeIndices = indices.map((index) => elementCount + index).reverse();
+  const treeIndices = indices.map((index) => balancedLeafCount + index).reverse();
   const indexCount = indices.length;
 
   let readIndex = 0;
   let writeIndex = 0;
   let decommitmentIndex = 0;
+  let upperBound = balancedLeafCount + elementCount - 1;
+  let lowestTreeIndex = treeIndices[indices.length - 1];
+  let nodeIndex;
+  let nextNodeIndex;
 
   while (true) {
-    const index = treeIndices[readIndex];
+    nodeIndex = treeIndices[readIndex];
 
-    if (index === 1) {
+    if (nodeIndex === 1) {
       const rootIndex = (writeIndex === 0 ? indexCount : writeIndex) - 1;
 
       return { root: hashes[rootIndex], newRoot: updateHashes[rootIndex], elementCount };
     }
 
-    const nextReadIndex = (readIndex + 1) % indexCount;
-    const indexIsOdd = index & 1;
-    const nextIsPair = treeIndices[nextReadIndex] === index - 1;
+    const indexIsOdd = nodeIndex & 1;
 
-    const right = indexIsOdd ? hashes[readIndex] : decommitments[decommitmentIndex];
-    const newRight = indexIsOdd ? updateHashes[readIndex++] : decommitments[decommitmentIndex++];
-    readIndex %= indexCount;
-    const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex] : hashes[readIndex];
-    const newLeft = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : updateHashes[readIndex++];
+    if (nodeIndex === upperBound && !indexIsOdd) {
+      treeIndices[writeIndex] = nodeIndex >>> 1;
+      hashes[writeIndex] = hashes[readIndex];
+      updateHashes[writeIndex++] = updateHashes[readIndex++];
+    } else {
+      const nextReadIndex = (readIndex + 1) % indexCount;
+      nextNodeIndex = treeIndices[nextReadIndex];
+      const nextIsPair = nextNodeIndex === nodeIndex - 1;
 
-    treeIndices[writeIndex] = index >>> 1;
-    hashes[writeIndex] = hashFunction(left, right);
-    updateHashes[writeIndex++] = hashFunction(newLeft, newRight);
+      const right = indexIsOdd ? hashes[readIndex] : decommitments[decommitmentIndex];
+      const newRight = indexIsOdd ? updateHashes[readIndex++] : decommitments[decommitmentIndex++];
+      readIndex %= indexCount;
+      const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex] : hashes[readIndex];
+      const newLeft = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : updateHashes[readIndex++];
+
+      treeIndices[writeIndex] = nodeIndex >>> 1;
+      hashes[writeIndex] = hashFunction(left, right);
+      updateHashes[writeIndex++] = hashFunction(newLeft, newRight);
+    }
 
     readIndex %= indexCount;
     writeIndex %= indexCount;
+
+    if (nodeIndex === lowestTreeIndex || nextNodeIndex === lowestTreeIndex) {
+      lowestTreeIndex >>>= 1;
+      upperBound >>>= 1;
+    }
   }
 };
 
-module.exports = { generate, getRoot, getNewRoot };
+// This is identical to the above getRoot, except it builds a tree, similar to Common.buildTree
+// See above getRoot for relevant inline comments
+const getPartialTree = ({ indices, leafs, compactProof, elementCount, decommitments }, options = {}) => {
+  const { hashFunction = hashNode } = options;
+
+  if (compactProof) {
+    elementCount = from32ByteBuffer(compactProof[0]);
+    decommitments = compactProof.slice(1);
+  }
+
+  const balancedLeafCount = roundUpToPowerOf2(elementCount);
+  const tree = Array(balancedLeafCount << 1).fill(null);
+
+  // Keep verification minimal by using circular hashes queue with separate read and write heads
+  const hashes = leafs.map((leaf) => leaf).reverse();
+  const treeIndices = indices.map((index) => balancedLeafCount + index).reverse();
+  const indexCount = indices.length;
+
+  let readIndex = 0;
+  let writeIndex = 0;
+  let decommitmentIndex = 0;
+  let upperBound = balancedLeafCount + elementCount - 1;
+  let lowestTreeIndex = treeIndices[indices.length - 1];
+  let nodeIndex;
+  let nextNodeIndex;
+
+  while (true) {
+    nodeIndex = treeIndices[readIndex];
+
+    if (nodeIndex === 1) {
+      const rootIndex = (writeIndex === 0 ? indexCount : writeIndex) - 1;
+      tree[1] = hashes[rootIndex];
+
+      return { tree, elementCount };
+    }
+
+    const indexIsOdd = nodeIndex & 1;
+
+    if (nodeIndex === upperBound && !indexIsOdd) {
+      treeIndices[writeIndex] = nodeIndex >>> 1;
+      tree[nodeIndex] = hashes[readIndex];
+      hashes[writeIndex++] = hashes[readIndex++];
+    } else {
+      const nextReadIndex = (readIndex + 1) % indexCount;
+      nextNodeIndex = treeIndices[nextReadIndex];
+
+      // The next node is a sibling of the current one
+      const nextIsPair = nextNodeIndex === nodeIndex - 1;
+
+      const right = indexIsOdd ? hashes[readIndex++] : decommitments[decommitmentIndex++];
+      readIndex %= indexCount;
+      const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : hashes[readIndex++];
+
+      treeIndices[writeIndex] = nodeIndex >>> 1;
+      hashes[writeIndex++] = hashFunction(left, right);
+
+      if (indexIsOdd) {
+        tree[nodeIndex] = right;
+        tree[nodeIndex - 1] = left;
+      } else {
+        tree[nodeIndex] = left;
+        tree[nodeIndex + 1] = right;
+      }
+    }
+
+    readIndex %= indexCount;
+    writeIndex %= indexCount;
+
+    if (nodeIndex === lowestTreeIndex || nextNodeIndex === lowestTreeIndex) {
+      lowestTreeIndex >>>= 1;
+      upperBound >>>= 1;
+    }
+  }
+};
+
+module.exports = { generate, getRoot, getNewRoot, getPartialTree };
