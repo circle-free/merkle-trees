@@ -35,35 +35,6 @@ const testTreeFromSingleUpdateProof = (elementCount, seed, index, expected, opti
   expect(partialTree._tree.map((n) => n && n.toString('hex'))).to.deep.equal(expected.tree);
 };
 
-const testGenerateSingleProofFromPartial = (elementCount, index, options) => {
-  const elements = generateElements(elementCount, { seed: 'ff' });
-  const merkleTree = new MerkleTree(elements, options);
-  const proof = merkleTree.generateSingleProof(index, options);
-  const partialTree = PartialMerkleTree.fromSingleProof(proof, options);
-
-  const proofFromPartial = partialTree.generateSingleProof(index, options);
-  const proofIsValid = MerkleTree.verifySingleProof(proofFromPartial, options);
-
-  expect(proofIsValid).to.be.true;
-  expect(proofFromPartial.root.equals(proof.root)).to.be.true;
-};
-
-const testGenerateSingleUpdateProofFromSinglePartial = (elementCount, index, options) => {
-  const elements = generateElements(elementCount, { seed: 'ff' });
-  const updateElement = generateElements(1, { seed: '11' })[0];
-
-  const merkleTree = new MerkleTree(elements, options);
-  const { proof: proofFromTree, newMerkleTree } = merkleTree.updateSingle(index, updateElement, options);
-
-  const partialTree = PartialMerkleTree.fromSingleProof(proofFromTree, options);
-  const { proof: proofFromPartialTree, newPartialTree } = partialTree.updateSingle(index, updateElement, options);
-
-  const proofFromPartialTreeIsValid = MerkleTree.verifySingleProof(proofFromPartialTree, options);
-
-  expect(proofFromPartialTreeIsValid).to.be.true;
-  expect(newPartialTree.root.equals(newMerkleTree.root)).to.be.true;
-};
-
 const testTreeFromMultiProof = (elementCount, seed, indices, expected, options) => {
   const elements = generateElements(elementCount, { seed });
   const merkleTree = new MerkleTree(elements, options);
@@ -91,6 +62,65 @@ const testTreeFromMultiUpdateProof = (elementCount, seed, indices, expected, opt
   expect(partialTree._depth).to.equal(newMerkleTree._depth);
   expect(partialTree._elements.map((e) => e && e.toString('hex'))).to.deep.equal(expected.elements);
   expect(partialTree._tree.map((n) => n && n.toString('hex'))).to.deep.equal(expected.tree);
+};
+
+const testTreeFromSingleAppendProof = (elementCount, seed, expected, options) => {
+  const elements = generateElements(elementCount, { seed });
+  const merkleTree = new MerkleTree(elements, options);
+  const appendElement = generateElements(1, { seed: '22' })[0];
+  const { proof, newMerkleTree } = merkleTree.appendSingle(appendElement, options);
+  const partialTree = PartialMerkleTree.fromAppendProof(proof, options);
+
+  expect(partialTree._sortedHash).to.equal(newMerkleTree._sortedHash);
+  expect(partialTree._unbalanced).to.equal(newMerkleTree._unbalanced);
+  expect(partialTree._elementPrefix.equals(newMerkleTree._elementPrefix)).to.be.true;
+  expect(partialTree._depth).to.equal(newMerkleTree._depth);
+  expect(partialTree._elements.map((e) => e && e.toString('hex'))).to.deep.equal(expected.elements);
+  expect(partialTree._tree.map((n) => n && n.toString('hex'))).to.deep.equal(expected.tree);
+};
+
+const testTreeFromMultiAppendProof = (elementCount, seed, appendCount, expected, options) => {
+  const elements = generateElements(elementCount, { seed });
+  const merkleTree = new MerkleTree(elements, options);
+  const appendElements = generateElements(appendCount, { seed: '22' });
+  const { proof, newMerkleTree } = merkleTree.appendMulti(appendElements, options);
+  const partialTree = PartialMerkleTree.fromAppendProof(proof, options);
+
+  expect(partialTree._sortedHash).to.equal(newMerkleTree._sortedHash);
+  expect(partialTree._unbalanced).to.equal(newMerkleTree._unbalanced);
+  expect(partialTree._elementPrefix.equals(newMerkleTree._elementPrefix)).to.be.true;
+  expect(partialTree._depth).to.equal(newMerkleTree._depth);
+  expect(partialTree._elements.map((e) => e && e.toString('hex'))).to.deep.equal(expected.elements);
+  expect(partialTree._tree.map((n) => n && n.toString('hex'))).to.deep.equal(expected.tree);
+};
+
+const testGenerateSingleProofFromPartial = (elementCount, index, options) => {
+  const elements = generateElements(elementCount, { seed: 'ff' });
+  const merkleTree = new MerkleTree(elements, options);
+  const proof = merkleTree.generateSingleProof(index, options);
+  const partialTree = PartialMerkleTree.fromSingleProof(proof, options);
+
+  const proofFromPartial = partialTree.generateSingleProof(index, options);
+  const proofIsValid = MerkleTree.verifySingleProof(proofFromPartial, options);
+
+  expect(proofIsValid).to.be.true;
+  expect(proofFromPartial.root.equals(proof.root)).to.be.true;
+};
+
+const testGenerateSingleUpdateProofFromSinglePartial = (elementCount, index, options) => {
+  const elements = generateElements(elementCount, { seed: 'ff' });
+  const updateElement = generateElements(1, { seed: '11' })[0];
+
+  const merkleTree = new MerkleTree(elements, options);
+  const { proof: proofFromTree, newMerkleTree } = merkleTree.updateSingle(index, updateElement, options);
+
+  const partialTree = PartialMerkleTree.fromSingleProof(proofFromTree, options);
+  const { proof: proofFromPartialTree, newPartialTree } = partialTree.updateSingle(index, updateElement, options);
+
+  const proofFromPartialTreeIsValid = MerkleTree.verifySingleProof(proofFromPartialTree, options);
+
+  expect(proofFromPartialTreeIsValid).to.be.true;
+  expect(newPartialTree.root.equals(newMerkleTree.root)).to.be.true;
 };
 
 const testGenerateMultiUpdateProofFromMultiPartial = (elementCount, indices, options) => {
@@ -184,7 +214,7 @@ const testAppendElements = (elementCount, appendElementCount, options) => {
   expect(newPartialTree.root.equals(newMerkleTree.root)).to.be.true;
 };
 
-describe.only('Partial Merkle Trees', () => {
+describe('Partial Merkle Trees', () => {
   describe('Build Partial Trees From Single Proofs', () => {
     describe('Balanced', () => {
       it('should build an 8-element Partial Tree from a Single Proof.', () => {
@@ -367,7 +397,7 @@ describe.only('Partial Merkle Trees', () => {
         testTreeFromSingleProof(100, 'ff', 97, expected, options);
       });
 
-      it('should build a sorted-hash 9-element from a Partial Tree Single Proof.', () => {
+      it('should build a sorted-hash 9-element Partial Tree from a Single Proof.', () => {
         const options = { unbalanced: true, sortedHash: true, compact: false };
 
         const elements = Array(9).fill(null);
@@ -387,7 +417,7 @@ describe.only('Partial Merkle Trees', () => {
         testTreeFromSingleProof(9, 'ff', 8, expected, options);
       });
 
-      it('should build a sorted-hash 27-element from a Partial Tree Single Proof', () => {
+      it('should build a sorted-hash 27-element Partial Tree from a Single Proof', () => {
         const options = { unbalanced: true, sortedHash: true, compact: false };
 
         const elements = Array(27).fill(null);
@@ -411,7 +441,7 @@ describe.only('Partial Merkle Trees', () => {
         testTreeFromSingleProof(27, 'ff', 25, expected, options);
       });
 
-      it('should build a sorted-hash 100-element from a Partial Tree Single Proof', () => {
+      it('should build a sorted-hash 100-element Partial Tree from a Single Proof', () => {
         const options = { unbalanced: true, sortedHash: true, compact: false };
 
         const elements = Array(100).fill(null);
@@ -647,7 +677,7 @@ describe.only('Partial Merkle Trees', () => {
         testTreeFromSingleUpdateProof(100, 'ff', 97, expected, options);
       });
 
-      it('should build a sorted-hash 9-element from a Partial Tree Single Update Proof.', () => {
+      it('should build a sorted-hash 9-element Partial Tree from a Single Update Proof.', () => {
         const options = { unbalanced: true, sortedHash: true, compact: false };
 
         const elements = Array(9).fill(null);
@@ -667,7 +697,7 @@ describe.only('Partial Merkle Trees', () => {
         testTreeFromSingleUpdateProof(9, 'ff', 8, expected, options);
       });
 
-      it('should build a sorted-hash 27-element from a Partial Tree Single Update Proof', () => {
+      it('should build a sorted-hash 27-element Partial Tree from a Single Update Proof', () => {
         const options = { unbalanced: true, sortedHash: true, compact: false };
 
         const elements = Array(27).fill(null);
@@ -691,7 +721,7 @@ describe.only('Partial Merkle Trees', () => {
         testTreeFromSingleUpdateProof(27, 'ff', 25, expected, options);
       });
 
-      it('should build a sorted-hash 100-element from a Partial Tree Single Update Proof', () => {
+      it('should build a sorted-hash 100-element Partial Tree from a Single Update Proof', () => {
         const options = { unbalanced: true, sortedHash: true, compact: false };
 
         const elements = Array(100).fill(null);
@@ -717,7 +747,7 @@ describe.only('Partial Merkle Trees', () => {
         testTreeFromSingleUpdateProof(100, 'ff', 97, expected, options);
       });
 
-      it('should build a 100-element Partial Tree rom a compact Single Update Proof', () => {
+      it('should build a 100-element Partial Tree from a compact Single Update Proof', () => {
         const options = { unbalanced: true, sortedHash: false, compact: true };
 
         const elements = Array(100).fill(null);
@@ -2009,6 +2039,292 @@ describe.only('Partial Merkle Trees', () => {
     });
   });
 
+  describe('Build Partial Trees From Single Append Proofs', () => {
+    it('should build a 1-element Partial Tree from a Single Append Proof', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+
+      const elements = Array(1).fill(null);
+      elements[0] = '2392a80f8a87b8cfde0aa5c84e199f163aae4c2a4c512d37598362ace687ad0c';
+
+      const tree = Array(2).fill(null);
+      tree[1] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[0] = '9a98370dc2f17b2d0cd30197183a876bf73ab761360b8f2d053f9371aa897198';
+
+      const expected = { elements, tree };
+
+      testTreeFromSingleAppendProof(0, 'ff', expected, options);
+    });
+
+    it('should build a 9-element Partial Tree from a Single Append Proof', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+
+      const elements = Array(9).fill(null);
+      elements[8] = '2392a80f8a87b8cfde0aa5c84e199f163aae4c2a4c512d37598362ace687ad0c';
+
+      const tree = Array(32).fill(null);
+      tree[24] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[12] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[6] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[3] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[2] = '0c67c6340449c320fb4966988f319713e0610c40237a05fdef8e5da8c66db8a4';
+      tree[1] = 'd6108bc543a9fe3153c9f38a81cf65129438a37b041d6471f87de9ddffd2294d';
+      tree[0] = '644d289b64508601322e13302b9f7ee12152a5d96cd2b4a685980be591fa5518';
+
+      const expected = { elements, tree };
+
+      testTreeFromSingleAppendProof(8, 'ff', expected, options);
+    });
+
+    it('should build a 28-element Partial Tree from a Single Append Proof', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+
+      const elements = Array(27).fill(null);
+      elements[27] = '2392a80f8a87b8cfde0aa5c84e199f163aae4c2a4c512d37598362ace687ad0c';
+
+      const tree = Array(64).fill(null);
+      tree[59] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[58] = '289b3d65643b54739112fa7df258736b511ed1b5611e4f9ce681ae39fbd5fd8b';
+      tree[29] = '18f318057d7e5b343f2e2f47236b8bedd81dae9d328ccd167a835ed9ffbea309';
+      tree[28] = 'dd1c66ff9c67d05f1aeb7ec6196210db830b83ac973345b2908d31677d52c311';
+      tree[14] = '055671cd93095cfe5dd1e988b49163267248a47989e227ce86433a18d9d033ac';
+      tree[7] = '055671cd93095cfe5dd1e988b49163267248a47989e227ce86433a18d9d033ac';
+      tree[6] = '88d2a11c3b0935fc6a30e3b0a69fa58a84de08ea333248f23e5d747613fc04f9';
+      tree[3] = 'de97a499abd824d28794ccfe20d7636f76ec6608a02723da6c9ddf9cf97081e8';
+      tree[2] = 'c7ec3e428ae2869b12c1b8e12a84e56f0d7f3cbe752cd1c3775158cf846412be';
+      tree[1] = '9374f999ee0d756bc27b2fe08e8738016a384788611491c6f3462a04bd291654';
+      tree[0] = '555b456b2b77e2c8c1c6de55867f61d361616648a386cc27cb8066b10b697bb0';
+
+      const expected = { elements, tree };
+
+      testTreeFromSingleAppendProof(27, 'ff', expected, options);
+    });
+
+    it('should build a 100-element Partial Tree from a Single Append Proof', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+
+      const elements = Array(100).fill(null);
+      elements[99] = '2392a80f8a87b8cfde0aa5c84e199f163aae4c2a4c512d37598362ace687ad0c';
+
+      const tree = Array(256).fill(null);
+      tree[227] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[226] = '1989275de5f46e101747e3ebdd4f3440f26ddf1ede904e8bce47483cd22a3964';
+      tree[113] = '7cb2f6389e732511ec26d3dc26d1baefb1517033b0a09e207562b9a28972f5bf';
+      tree[112] = 'd902920fde7efe9ec00bd50e4195851294dcb7178a0aa8c5ebc913d5659586f9';
+      tree[56] = '2e317cad6cc387718cdd86a4c94bd61f13959d63d9ec83d6ce75f795c1cdbdf5';
+      tree[28] = '2e317cad6cc387718cdd86a4c94bd61f13959d63d9ec83d6ce75f795c1cdbdf5';
+      tree[14] = '2e317cad6cc387718cdd86a4c94bd61f13959d63d9ec83d6ce75f795c1cdbdf5';
+      tree[7] = '2e317cad6cc387718cdd86a4c94bd61f13959d63d9ec83d6ce75f795c1cdbdf5';
+      tree[6] = '06f8f83483a72750b8ba34cbe8fd54cc1243479b12f7b659075311dc54800203';
+      tree[3] = 'a5bd6391af59382143f8ddfe96aab7c0f263b8365312feb5c89e3f4098a7ef80';
+      tree[2] = 'eb98df4415ff9a93976bb26b84f3819662fe31939e022cfa52d9061de351f6d5';
+      tree[1] = 'f81322b778ada525c93c316f0e61d643cf42d924d9bc4c767c31c8c8fac25e6c';
+      tree[0] = '642bfc0c90349fe1439ef299a7d0d6bbf2251423690e0eef7c50bd8cdd3c1f5b';
+
+      const expected = { elements, tree };
+
+      testTreeFromSingleAppendProof(99, 'ff', expected, options);
+    });
+
+    it('should build a sorted-hash 100-element Partial Tree from a Single Append Proof', () => {
+      const options = { unbalanced: true, sortedHash: true, compact: false };
+
+      const elements = Array(100).fill(null);
+      elements[99] = '2392a80f8a87b8cfde0aa5c84e199f163aae4c2a4c512d37598362ace687ad0c';
+
+      const tree = Array(256).fill(null);
+      tree[227] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[226] = '1989275de5f46e101747e3ebdd4f3440f26ddf1ede904e8bce47483cd22a3964';
+      tree[113] = '7cb2f6389e732511ec26d3dc26d1baefb1517033b0a09e207562b9a28972f5bf';
+      tree[112] = 'd902920fde7efe9ec00bd50e4195851294dcb7178a0aa8c5ebc913d5659586f9';
+      tree[56] = 'fcc80b7a7ac922f505b7921e706e9953e4a00fd95694699101f7fe59958c87f6';
+      tree[28] = 'fcc80b7a7ac922f505b7921e706e9953e4a00fd95694699101f7fe59958c87f6';
+      tree[14] = 'fcc80b7a7ac922f505b7921e706e9953e4a00fd95694699101f7fe59958c87f6';
+      tree[7] = 'fcc80b7a7ac922f505b7921e706e9953e4a00fd95694699101f7fe59958c87f6';
+      tree[6] = '904afce76e0f7ccead463e22aec76018c1450afd3deb4f387e0617ef39721685';
+      tree[3] = '3d5036f4c1b91632e1cd835e67fc36be94bebadd0b9b4d8e70584b1afa6ff516';
+      tree[2] = 'bb9a6e5787ae741c6a0e75a360aefe75ee06284ece1edddc1573ac9462945e7f';
+      tree[1] = '5627182766e36a68230bfbe5ab8e384c79a6b476e408880adb04ca2623979443';
+      tree[0] = '51505aa103ba1261b0d3fbd820e7b3c86e914725fc1fc6785f1a19c62550cc02';
+
+      const expected = { elements, tree };
+
+      testTreeFromSingleAppendProof(99, 'ff', expected, options);
+    });
+
+    it('should build a 100-element Partial Tree from a Single Compact Append Proof', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: true };
+
+      const elements = Array(100).fill(null);
+      elements[99] = '2392a80f8a87b8cfde0aa5c84e199f163aae4c2a4c512d37598362ace687ad0c';
+
+      const tree = Array(256).fill(null);
+      tree[227] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[226] = '1989275de5f46e101747e3ebdd4f3440f26ddf1ede904e8bce47483cd22a3964';
+      tree[113] = '7cb2f6389e732511ec26d3dc26d1baefb1517033b0a09e207562b9a28972f5bf';
+      tree[112] = 'd902920fde7efe9ec00bd50e4195851294dcb7178a0aa8c5ebc913d5659586f9';
+      tree[56] = '2e317cad6cc387718cdd86a4c94bd61f13959d63d9ec83d6ce75f795c1cdbdf5';
+      tree[28] = '2e317cad6cc387718cdd86a4c94bd61f13959d63d9ec83d6ce75f795c1cdbdf5';
+      tree[14] = '2e317cad6cc387718cdd86a4c94bd61f13959d63d9ec83d6ce75f795c1cdbdf5';
+      tree[7] = '2e317cad6cc387718cdd86a4c94bd61f13959d63d9ec83d6ce75f795c1cdbdf5';
+      tree[6] = '06f8f83483a72750b8ba34cbe8fd54cc1243479b12f7b659075311dc54800203';
+      tree[3] = 'a5bd6391af59382143f8ddfe96aab7c0f263b8365312feb5c89e3f4098a7ef80';
+      tree[2] = 'eb98df4415ff9a93976bb26b84f3819662fe31939e022cfa52d9061de351f6d5';
+      tree[1] = 'f81322b778ada525c93c316f0e61d643cf42d924d9bc4c767c31c8c8fac25e6c';
+      tree[0] = '642bfc0c90349fe1439ef299a7d0d6bbf2251423690e0eef7c50bd8cdd3c1f5b';
+
+      const expected = { elements, tree };
+
+      testTreeFromSingleAppendProof(99, 'ff', expected, options);
+    });
+  });
+
+  describe('Build Partial Trees From Multi Append Proofs', () => {
+    it('should build a 5-element Partial Tree from a Multi Append Proof', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+
+      const elements = Array(5).fill(null);
+      elements[0] = '2392a80f8a87b8cfde0aa5c84e199f163aae4c2a4c512d37598362ace687ad0c';
+      elements[1] = 'f092ffc50adec70f320c33704d9a635c09529fc5b277deeb50068790f953f21d';
+      elements[2] = '136fc3f650545532c02974f1a68e700ef3b050b825ba02622c2aea300757cb7a';
+      elements[3] = '4a1a64e888466fdf89e30fddd3644715a620680373ed29a0856a24de11ab31b6';
+      elements[4] = 'cc099046f9453d6a1f75c54e5f0af530c46ab8af18752a50bddc7d1414d83233';
+
+      const tree = Array(16).fill(null);
+      tree[8] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[9] = 'f00703443cdb74322917b11b412841d069e09846b5a9eddff1c47d6154d67bf1';
+      tree[10] = '0bdc458cd85cb58a583bca5e2cb8f10c6774ab4b5970f8fd7e49fb75149b3084';
+      tree[11] = 'bfc3b72b4829c12396a700234ff8fe6ad0a85091a4a0a6e2f5054f55933c2971';
+      tree[12] = 'ed8385437e7424a4d0dcdeefc91d3387facf4132df77ed4d19d5785511a451ba';
+      tree[4] = '21efd0fe292c1c3bf3ca9d0fcb6db213568fd2aa3ab676b407b3c3d9c3ca762b';
+      tree[5] = '31ee92d1cd117bf78d1eb0e8e347cf9d94fcee761e9f4094d7f35ab0641e3569';
+      tree[6] = 'ed8385437e7424a4d0dcdeefc91d3387facf4132df77ed4d19d5785511a451ba';
+      tree[2] = '257da86e84b3f26f04bbb59b200765ab720918d1379dc7a39be4da07de51fd34';
+      tree[3] = 'ed8385437e7424a4d0dcdeefc91d3387facf4132df77ed4d19d5785511a451ba';
+      tree[1] = '7e34c0358800ea0942afde971a7734ad73bca330dc253708e7b31834860b2e60';
+      tree[0] = '5506559aa2662c0729c3908e7dda087cd35df8271ecd066bc3e1ccf4c224bc24';
+
+      const expected = { elements, tree };
+
+      testTreeFromMultiAppendProof(0, 'ff', 5, expected, options);
+    });
+
+    it('should build a 19-element Partial Tree from a Multi Append Proof', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+
+      const elements = Array(19).fill(null);
+      elements[15] = '2392a80f8a87b8cfde0aa5c84e199f163aae4c2a4c512d37598362ace687ad0c';
+      elements[16] = 'f092ffc50adec70f320c33704d9a635c09529fc5b277deeb50068790f953f21d';
+      elements[17] = '136fc3f650545532c02974f1a68e700ef3b050b825ba02622c2aea300757cb7a';
+      elements[18] = '4a1a64e888466fdf89e30fddd3644715a620680373ed29a0856a24de11ab31b6';
+
+      const tree = Array(64).fill(null);
+      tree[47] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[46] = 'e481ff292c1b323f27dd2e7b0da511947e0d349a0616a739ea628a3a5888c529';
+      tree[48] = 'f00703443cdb74322917b11b412841d069e09846b5a9eddff1c47d6154d67bf1';
+      tree[49] = '0bdc458cd85cb58a583bca5e2cb8f10c6774ab4b5970f8fd7e49fb75149b3084';
+      tree[50] = 'bfc3b72b4829c12396a700234ff8fe6ad0a85091a4a0a6e2f5054f55933c2971';
+      tree[23] = '3730bf1994595bc03d335a15990afc3012d14959861661f72f9d6b73b3b0a104';
+      tree[22] = '712ed55abe1946b941876a6230b3135edadc400a18897e029ffdbff6900503e6';
+      tree[24] = '4d017b73ca099fe09575ea52c23db2b92f5feaa49eae575902292db5be07fae9';
+      tree[25] = 'bfc3b72b4829c12396a700234ff8fe6ad0a85091a4a0a6e2f5054f55933c2971';
+      tree[11] = '416152b456c9bd10dde787f8d5f628de547c3bd3b48d540ec9962e2d614f6d84';
+      tree[10] = 'd9df67e21f45396a2739193be4bb49cefb1ebac44dd283c07519b6de6f154f5b';
+      tree[12] = '8fa587374b458e8501d59f29466f3c04a5aaa589704efad5e9ca99d2ba7bef9c';
+      tree[5] = '8e13dcdaa050cc9e2972df4ecc208c788668979f0051c712f44cc339009ddc32';
+      tree[4] = '0c67c6340449c320fb4966988f319713e0610c40237a05fdef8e5da8c66db8a4';
+      tree[6] = '8fa587374b458e8501d59f29466f3c04a5aaa589704efad5e9ca99d2ba7bef9c';
+      tree[2] = '030b03ae56a1599ce857670375af01dd561e9653eb2206269f87cc7f00df9444';
+      tree[3] = '8fa587374b458e8501d59f29466f3c04a5aaa589704efad5e9ca99d2ba7bef9c';
+      tree[1] = 'e30366e6f5be486cb931dd35ff2bcc9cb8736adbbf530aac306b534c7275609b';
+      tree[0] = '0a328b9a33c61b836826e3b5e95cb3d75731a88848140f9ab8dcef38da71b8f1';
+
+      const expected = { elements, tree };
+
+      testTreeFromMultiAppendProof(15, 'ff', 4, expected, options);
+    });
+
+    it('should build a 100-element Partial Tree from a Multi Append Proof', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+
+      const elements = Array(100).fill(null);
+      elements[98] = '2392a80f8a87b8cfde0aa5c84e199f163aae4c2a4c512d37598362ace687ad0c';
+      elements[99] = 'f092ffc50adec70f320c33704d9a635c09529fc5b277deeb50068790f953f21d';
+
+      const tree = Array(256).fill(null);
+      tree[226] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[227] = 'f00703443cdb74322917b11b412841d069e09846b5a9eddff1c47d6154d67bf1';
+      tree[113] = '21efd0fe292c1c3bf3ca9d0fcb6db213568fd2aa3ab676b407b3c3d9c3ca762b';
+      tree[112] = 'd902920fde7efe9ec00bd50e4195851294dcb7178a0aa8c5ebc913d5659586f9';
+      tree[56] = 'a76508346a711aad11c7efa5eb14073f3bf5ea7ce4cc807f2546b5c3d8725913';
+      tree[28] = 'a76508346a711aad11c7efa5eb14073f3bf5ea7ce4cc807f2546b5c3d8725913';
+      tree[14] = 'a76508346a711aad11c7efa5eb14073f3bf5ea7ce4cc807f2546b5c3d8725913';
+      tree[7] = 'a76508346a711aad11c7efa5eb14073f3bf5ea7ce4cc807f2546b5c3d8725913';
+      tree[6] = '06f8f83483a72750b8ba34cbe8fd54cc1243479b12f7b659075311dc54800203';
+      tree[3] = '2baef9bd920a3e6e55d0a376c4c0598c723896f8422cc9f112314ed52f97fc95';
+      tree[2] = 'eb98df4415ff9a93976bb26b84f3819662fe31939e022cfa52d9061de351f6d5';
+      tree[1] = '2686a1bae53b5f4486536a06364fe51a9039a34b832907d043b23b4a5ec101bd';
+      tree[0] = '19b3427b04a2bc1988448d50754fe428f481e5a718f80b1ebc21c63d33c9ab19';
+
+      const expected = { elements, tree };
+
+      testTreeFromMultiAppendProof(98, 'ff', 2, expected, options);
+    });
+
+    it('should build a sorted-hash 100-element Partial Tree from a Multi Append Proof', () => {
+      const options = { unbalanced: true, sortedHash: true, compact: false };
+
+      const elements = Array(100).fill(null);
+      elements[98] = '2392a80f8a87b8cfde0aa5c84e199f163aae4c2a4c512d37598362ace687ad0c';
+      elements[99] = 'f092ffc50adec70f320c33704d9a635c09529fc5b277deeb50068790f953f21d';
+
+      const tree = Array(256).fill(null);
+      tree[226] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[227] = 'f00703443cdb74322917b11b412841d069e09846b5a9eddff1c47d6154d67bf1';
+      tree[113] = '21efd0fe292c1c3bf3ca9d0fcb6db213568fd2aa3ab676b407b3c3d9c3ca762b';
+      tree[112] = 'd902920fde7efe9ec00bd50e4195851294dcb7178a0aa8c5ebc913d5659586f9';
+      tree[56] = 'f9b6ac5ffcf84b497de6ae6906999e142f4a549df473b8c658366d9e6715394d';
+      tree[28] = 'f9b6ac5ffcf84b497de6ae6906999e142f4a549df473b8c658366d9e6715394d';
+      tree[14] = 'f9b6ac5ffcf84b497de6ae6906999e142f4a549df473b8c658366d9e6715394d';
+      tree[7] = 'f9b6ac5ffcf84b497de6ae6906999e142f4a549df473b8c658366d9e6715394d';
+      tree[6] = '904afce76e0f7ccead463e22aec76018c1450afd3deb4f387e0617ef39721685';
+      tree[3] = 'cd57129b7e48770f2bb207f4af549dc665f0f13462923741d702f93976eab525';
+      tree[2] = 'bb9a6e5787ae741c6a0e75a360aefe75ee06284ece1edddc1573ac9462945e7f';
+      tree[1] = 'f98e17df060961a9c4f1df54a070e11d9c5d346503cf795ddad3154cd4b92f3d';
+      tree[0] = '49e8bf2f73f5ffa15f9c97f0d113ad72851781460bcc163486d1fa01bc80762f';
+
+      const expected = { elements, tree };
+
+      testTreeFromMultiAppendProof(98, 'ff', 2, expected, options);
+    });
+
+    it('should build a 100-element Partial Tree from a Multi Compact Append Proof', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: true };
+
+      const elements = Array(100).fill(null);
+      elements[98] = '2392a80f8a87b8cfde0aa5c84e199f163aae4c2a4c512d37598362ace687ad0c';
+      elements[99] = 'f092ffc50adec70f320c33704d9a635c09529fc5b277deeb50068790f953f21d';
+
+      const tree = Array(256).fill(null);
+      tree[226] = 'cc7539397f3b3dc92978e04e2d170afa35354687ac3b56079cf760f0eed009d0';
+      tree[227] = 'f00703443cdb74322917b11b412841d069e09846b5a9eddff1c47d6154d67bf1';
+      tree[113] = '21efd0fe292c1c3bf3ca9d0fcb6db213568fd2aa3ab676b407b3c3d9c3ca762b';
+      tree[112] = 'd902920fde7efe9ec00bd50e4195851294dcb7178a0aa8c5ebc913d5659586f9';
+      tree[56] = 'a76508346a711aad11c7efa5eb14073f3bf5ea7ce4cc807f2546b5c3d8725913';
+      tree[28] = 'a76508346a711aad11c7efa5eb14073f3bf5ea7ce4cc807f2546b5c3d8725913';
+      tree[14] = 'a76508346a711aad11c7efa5eb14073f3bf5ea7ce4cc807f2546b5c3d8725913';
+      tree[7] = 'a76508346a711aad11c7efa5eb14073f3bf5ea7ce4cc807f2546b5c3d8725913';
+      tree[6] = '06f8f83483a72750b8ba34cbe8fd54cc1243479b12f7b659075311dc54800203';
+      tree[3] = '2baef9bd920a3e6e55d0a376c4c0598c723896f8422cc9f112314ed52f97fc95';
+      tree[2] = 'eb98df4415ff9a93976bb26b84f3819662fe31939e022cfa52d9061de351f6d5';
+      tree[1] = '2686a1bae53b5f4486536a06364fe51a9039a34b832907d043b23b4a5ec101bd';
+      tree[0] = '19b3427b04a2bc1988448d50754fe428f481e5a718f80b1ebc21c63d33c9ab19';
+
+      const expected = { elements, tree };
+
+      testTreeFromMultiAppendProof(98, 'ff', 2, expected, options);
+    });
+  });
+
   describe('Generate Single Proofs From Partial Trees', () => {
     describe('Balanced', () => {
       it('should generate a Single Proof for a 8-element Partial Merkle Tree.', () => {
@@ -2151,91 +2467,93 @@ describe.only('Partial Merkle Trees', () => {
     });
   });
 
-  describe('Generate Multi Proofs From Partial Trees', () => {
+  describe.skip('Generate Multi Proofs From Partial Trees (Redundant)', () => {});
+
+  describe('Generate Multi Update Proofs From Partial Trees', () => {
     describe('Balanced', () => {
-      it('should generate an Indexed Multi Proof for a 8-element Partial Merkle Tree.', () => {
+      it('should generate an Indexed Multi Proof for a 8-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
         testGenerateMultiUpdateProofFromMultiPartial(8, [1, 4, 5], options);
       });
 
-      it('should generate an Indexed Multi Proof for a 1-element Partial Merkle Tree.', () => {
+      it('should generate an Indexed Multi Proof for a 1-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
         testGenerateMultiUpdateProofFromMultiPartial(1, [0], options);
       });
 
-      it('should generate an Indexed Multi Proof for a sorted-hash 8-element Partial Merkle Tree.', () => {
+      it('should generate an Indexed Multi Proof for a sorted-hash 8-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
         testGenerateMultiUpdateProofFromMultiPartial(8, [1, 4, 5], options);
       });
 
-      it('should generate an Indexed Multi Proof for a sorted-hash 1-element Partial Merkle Tree.', () => {
+      it('should generate an Indexed Multi Proof for a sorted-hash 1-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
         testGenerateMultiUpdateProofFromMultiPartial(1, [0], options);
       });
 
-      it('should generate a Existence-Only Multi Proof for a 8-element Partial Merkle Tree.', () => {
+      it('should generate a Existence-Only Multi Proof for a 8-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
         testGenerateMultiUpdateProofFromMultiPartial(8, [1, 4, 5], options);
       });
 
-      it('should generate a Existence-Only Multi Proof for a 1-element Partial Merkle Tree.', () => {
+      it('should generate a Existence-Only Multi Proof for a 1-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
         testGenerateMultiUpdateProofFromMultiPartial(1, [0], options);
       });
 
-      it('should generate a Compact Existence-Only Multi Proof for a 8-element Partial Merkle Tree.', () => {
+      it('should generate a Compact Existence-Only Multi Proof for a 8-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
         testGenerateMultiUpdateProofFromMultiPartial(8, [1, 4, 5], options);
       });
 
-      it('should generate a Compact Existence-Only Multi Proof for a 1-element Partial Merkle Tree.', () => {
+      it('should generate a Compact Existence-Only Multi Proof for a 1-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
         testGenerateMultiUpdateProofFromMultiPartial(1, [0], options);
       });
     });
 
     describe('Unbalanced', () => {
-      it('should generate an Indexed Multi Proof for a 9-element Partial Merkle Tree.', () => {
+      it('should generate an Indexed Multi Proof for a 9-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
         testGenerateMultiUpdateProofFromMultiPartial(9, [1, 8], options);
       });
 
-      it('should generate an Indexed Multi Proof for a 27-element Partial Merkle Tree.', () => {
+      it('should generate an Indexed Multi Proof for a 27-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
         testGenerateMultiUpdateProofFromMultiPartial(27, [5, 12, 20, 25], options);
       });
 
-      it('should generate an Indexed Multi Proof for a 100-element Partial Merkle Tree.', () => {
+      it('should generate an Indexed Multi Proof for a 100-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
         testGenerateMultiUpdateProofFromMultiPartial(100, [7, 24, 25, 68, 97], options);
       });
 
-      it('should generate a Compact Indexed Multi Proof for a sorted-hash 9-element Partial Merkle Tree.', () => {
+      it('should generate a Compact Indexed Multi Proof for a sorted-hash 9-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: true, sortedHash: true, indexed: true, compact: true };
         testGenerateMultiUpdateProofFromMultiPartial(9, [1, 8], options);
       });
 
-      it('should generate a Compact Indexed Multi Proof for a sorted-hash 27-element Partial Merkle Tree.', () => {
+      it('should generate a Compact Indexed Multi Proof for a sorted-hash 27-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: true, sortedHash: true, indexed: true, compact: true };
         testGenerateMultiUpdateProofFromMultiPartial(27, [5, 12, 20, 25], options);
       });
 
-      it('should generate a Compact Indexed Multi Proof for a sorted-hash 100-element Partial Merkle Tree.', () => {
+      it('should generate a Compact Indexed Multi Proof for a sorted-hash 100-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: true, sortedHash: true, indexed: true, compact: true };
         testGenerateMultiUpdateProofFromMultiPartial(100, [7, 24, 25, 68, 97], options);
       });
 
-      it('should generate Compact Existence-Only Multi Proof for a 9-element Partial Merkle Tree.', () => {
+      it('should generate Compact Existence-Only Multi Proof for a 9-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
         testGenerateMultiUpdateProofFromMultiPartial(9, [1, 8], options);
       });
 
-      it('should generate Compact Existence-Only Multi Proof for a 27-element Partial Merkle Tree.', () => {
+      it('should generate Compact Existence-Only Multi Proof for a 27-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
         testGenerateMultiUpdateProofFromMultiPartial(27, [5, 12, 20, 25], options);
       });
 
-      it('should generate Compact Existence-Only Multi Proof for a 100-element Partial Merkle Tree.', () => {
+      it('should generate Compact Existence-Only Multi Proof for a 100-element Partial Merkle Tree to update elements.', () => {
         const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
         testGenerateMultiUpdateProofFromMultiPartial(100, [7, 24, 25, 68, 97], options);
       });
@@ -2260,6 +2578,11 @@ describe.only('Partial Merkle Trees', () => {
       testSetElement(8, 2, 3, options);
     });
 
+    it('sets an element in an 66-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testSetElement(66, 41, 40, options);
+    });
+
     it('sets an element in an 89-element Partial Tree built from a Single Proof.', () => {
       const options = { unbalanced: true, sortedHash: false, compact: false };
       testSetElement(89, 41, 40, options);
@@ -2270,13 +2593,18 @@ describe.only('Partial Merkle Trees', () => {
       testSetElements(8, 2, [0, 1, 3], options);
     });
 
+    it('sets elements in an 66-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testSetElements(66, 41, [40, 42, 43], options);
+    });
+
     it('sets elements in an 89-element Partial Tree built from a Single Proof.', () => {
       const options = { unbalanced: true, sortedHash: false, compact: false };
       testSetElements(89, 41, [40, 42, 43], options);
     });
   });
 
-  describe.only('Appends Elements to a Partial Tree', () => {
+  describe('Appends Elements to a Partial Tree', () => {
     it('appends an element to an 1-element Partial Tree built from a Single Proof.', () => {
       const options = { unbalanced: true, sortedHash: false, compact: false };
       testAppendElement(1, options);

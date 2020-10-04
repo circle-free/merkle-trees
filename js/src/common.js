@@ -81,7 +81,10 @@ const getUpdatedTree = ({ tree, leafs }, options = {}) => {
     }
 
     if (index === upperBound) {
-      newTree[i] = newTree[index];
+      if (newTree[index]) {
+        newTree[i] = newTree[index];
+      }
+
       continue;
     }
 
@@ -111,9 +114,7 @@ const getGrownTree = ({ tree, leafs }, options = {}) => {
   }
 
   for (let i = 1; i <= oldDepth; i++) {
-    const nodeCount = leafs.length >> i;
-
-    for (let j = 0; j < nodeCount; j++) {
+    for (let j = 0; j < leafs.length >> i; j++) {
       newTree[(balancedLeafCount >> i) + j] = tree[(oldBalancedLeafCount >> i) + j];
     }
   }

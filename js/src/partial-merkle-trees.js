@@ -1,13 +1,10 @@
 const assert = require('assert');
 
-const { hashNode, getHashFunction, to32ByteBuffer } = require('./utils');
+const { hashNode, getHashFunction, to32ByteBuffer, from32ByteBuffer } = require('./utils');
 const MerkleTree = require('./merkle-trees');
 const Common = require('./common');
 const SingleProofs = require('./single-proofs');
 const MultiIndexedProofs = require('./index-multi-proofs');
-const MultiFlagProofs = require('./flag-multi-proofs');
-const AppendProofs = require('./append-proofs');
-const CombinedProofs = require('./combined-proofs');
 
 class PartialMerkleTree extends MerkleTree {
   constructor(elements, tree, options) {
@@ -77,6 +74,36 @@ class PartialMerkleTree extends MerkleTree {
     const params = Object.assign({}, parameters, { elements: updateElements });
 
     return PartialMerkleTree.fromMultiProof(params, options);
+  }
+
+  static fromAppendProof(parameters, options = {}) {
+    const { sortedHash = true, elementPrefix = '00' } = options;
+    const { compactProof, appendElement, appendElements } = parameters;
+
+    assert(appendElement || appendElements, 'Append elements required.');
+
+    const index = parameters.elementCount ?? from32ByteBuffer(compactProof[0]);
+    const element = appendElement ?? appendElements[0];
+
+    const prefixBuffer = Buffer.from(elementPrefix, 'hex');
+    const hashFunction = getHashFunction(sortedHash);
+    const leaf = hashNode(prefixBuffer, element);
+
+    if (compactProof) {
+      compactProof[0] = to32ByteBuffer(index + 1);
+    }
+
+    const params = Object.assign({ index, leaf }, parameters, { compactProof, elementCount: index + 1 });
+    const opts = { hashFunction, sortedHash };
+    const { tree } = SingleProofs.getPartialTree(params, opts);
+
+    const partialElements = Array(index)
+      .fill(null)
+      .concat(appendElement ?? appendElements);
+    const leafs = partialElements.map((element) => element && hashNode(prefixBuffer, element));
+    const newTree = Common.getGrownTree({ tree, leafs }, { hashFunction });
+
+    return new PartialMerkleTree(partialElements, newTree, options);
   }
 
   get elements() {
