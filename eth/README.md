@@ -35,7 +35,8 @@ See `merkle-storage-using-lib.sol` contract for better idea of how to use this i
 
 ## Various TODOs (In Order of Priority) ##
 
-- [ ] Anything done in the JS lib
+- [ ] unbalanced proofs for indexed multi-proofs in library (with tests)
+- [ ] anything done in the JS lib
 - [ ] some optimizations and more assembly wouldn't hurt
 - [ ] security review
 - [ ] test gas cost of view functions (i.e. index inferring, size proofs)
@@ -59,5 +60,5 @@ foo@bar:~$ ganache-cli
 ...
 foo@bar:~$ yarn test
 ...
-82 passing (29s)
+90 passing (34s)
 ```

@@ -285,6 +285,8 @@ const getNewRoot = (parameters, options = {}) => {
   return parameters.compactProof ? getNewRootBits(parameters, options) : getNewRootBooleans(parameters, options);
 };
 
+// Infers the indices of a multi proof by back-calculating the the bits of each element's
+// index, based on it's relative position in each hash operation during a proof.
 const getIndicesWithBooleans = ({ leafCount, flags, skips, orders }) => {
   assert(orders, 'Cannot infer indices without orders in proof.');
 
@@ -347,6 +349,9 @@ const getIndicesWithBooleans = ({ leafCount, flags, skips, orders }) => {
   return { indices };
 };
 
+// This is identical to the above getIndicesWithBooleans, but with bit sets rather than
+// boolean arrays.
+// See getIndicesWithBooleans for relevant inline comments
 const getIndicesWithBits = ({
   leafCount,
   compactProof,

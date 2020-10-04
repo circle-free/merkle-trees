@@ -1,5 +1,5 @@
 {
- "constructAppendMany_200_ff_u": 245694,
+ "constructAppendMany_200_ff_u": 244425,
  "testUseOne_200_0_u": 31734,
  "testUseMany_200_0-1_u": 35619,
  "testUseMany_200_0-1-2-3-4_u": 40156,
@@ -42,7 +42,7 @@
  "testUpdateManyAndAppendMany_200_25-47-95-130-199_11_5_22_u": 88367,
  "testUpdateManyAndAppendMany_200_0-1-2-3-4-195-196-197-198-199_11_10_22_u": 84884,
  "testUpdateManyAndAppendMany_200_0-1-2-3-4-5-6-7-8-9-190-191-192-193-194-195-196-197-198-199_11_20_22_u": 122496,
- "constructAppendMany_200_ff_s": 254856,
+ "constructAppendMany_200_ff_s": 253455,
  "testUseOne_200_0_s": 31818,
  "testUseMany_200_0-1_s": 35544,
  "testUseMany_200_0-1-2-3-4_s": 40139,
@@ -83,5 +83,13 @@
  "testUpdateManyAndAppendMany_200_58-199_11_2_22_s": 58669,
  "testUpdateManyAndAppendMany_200_25-47-95-130-199_11_5_22_s": 88423,
  "testUpdateManyAndAppendMany_200_0-1-2-3-4-195-196-197-198-199_11_10_22_s": 85317,
- "testUpdateManyAndAppendMany_200_0-1-2-3-4-5-6-7-8-9-190-191-192-193-194-195-196-197-198-199_11_20_22_s": 123513
+ "testUpdateManyAndAppendMany_200_0-1-2-3-4-5-6-7-8-9-190-191-192-193-194-195-196-197-198-199_11_20_22_s": 123513,
+ "testAppendOne_0_22_u": 43764,
+ "testAppendMany_0_20_22_u": 64454,
+ "testAppendMany_0_13_22_u": 57410,
+ "testAppendMany_0_14_22_u": 58232,
+ "testAppendMany_0_15_22_u": 59326,
+ "testAppendMany_0_16_22_u": 60137,
+ "testAppendMany_0_18_22_u": 62550,
+ "testAppendMany_0_19_22_u": 63644
 }

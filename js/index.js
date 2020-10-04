@@ -1,3 +1,4 @@
-const MerkleTree = require('./src/merkle-tree');
+const MerkleTree = require('./src/merkle-trees');
+const PartialMerkleTree = require('./src/partial-merkle-trees');
 
-module.exports = MerkleTree;
+module.exports = { MerkleTree, PartialMerkleTree };
