@@ -111,7 +111,7 @@ class PartialMerkleTree extends MerkleTree {
   }
 
   generateSingleProof(index, options = {}) {
-    assert(this._elements.length > 0, 'Tree is empty.');
+    assert(this._elements.length > 0, 'Tree has no known elements.');
     assert(index >= 0 && index < this._elements.length, 'Index out of range.');
     assert(this._elements[index], 'Partial tree does not have element.');
 
@@ -119,7 +119,7 @@ class PartialMerkleTree extends MerkleTree {
   }
 
   generateSingleUpdateProof(index, updateElement, options = {}) {
-    assert(this._elements.length > 0, 'Tree is empty.');
+    assert(this._elements.length > 0, 'Tree has no known elements.');
     assert(index >= 0 && index < this._elements.length, 'Index out of range.');
     assert(this._elements[index], 'Partial tree does not have element.');
 
@@ -127,14 +127,14 @@ class PartialMerkleTree extends MerkleTree {
   }
 
   updateSingle(index, updateElement, options = {}) {
-    const proof = this.generateSingleUpdateProof(index, updateElement, options);
-    const newPartialTree = PartialMerkleTree.fromSingleUpdateProof(proof, options);
-
-    return { proof, newPartialTree };
+    return {
+      proof: this.generateSingleUpdateProof(index, updateElement, options),
+      newPartialTree: this.set(index, updateElement),
+    };
   }
 
   generateMultiProof(indices, options = {}) {
-    assert(this._elements.length > 0, 'Tree is empty.');
+    assert(this._elements.length > 0, 'Tree has no known elements.');
 
     indices.forEach((index) => {
       assert(index >= 0 && index < this._elements.length, 'Index out of range.');
@@ -145,7 +145,7 @@ class PartialMerkleTree extends MerkleTree {
   }
 
   generateMultiUpdateProof(indices, updateElements, options = {}) {
-    assert(this._elements.length > 0, 'Tree is empty.');
+    assert(this._elements.length > 0, 'Tree has no known elements.');
 
     indices.forEach((index) => {
       assert(index >= 0 && index < this._elements.length, 'Index out of range.');
@@ -156,14 +156,109 @@ class PartialMerkleTree extends MerkleTree {
   }
 
   updateMulti(indices, updateElements, options = {}) {
-    const proof = this.generateMultiUpdateProof(indices, updateElements, options);
-    const newPartialTree = PartialMerkleTree.fromMultiUpdateProof(proof, options);
+    return {
+      proof: this.generateMultiUpdateProof(indices, updateElements, options),
+      newPartialTree: this.set(indices, updateElements),
+    };
+  }
 
-    return { proof, newPartialTree };
+  generateAppendProof(options = {}) {
+    return super.generateAppendProof(options);
+  }
+
+  generateSingleAppendProof(appendElement, options) {
+    return super.generateSingleAppendProof(appendElement, options);
+  }
+
+  generateMultiAppendProof(appendElements, options = {}) {
+    return super.generateMultiAppendProof(appendElements, options);
+  }
+
+  appendSingle(appendElement, options = {}) {
+    return {
+      proof: this.generateSingleAppendProof(appendElement, options),
+      newPartialTree: this.append(appendElement),
+    };
+  }
+
+  appendMulti(appendElements, options = {}) {
+    return {
+      proof: this.generateMultiAppendProof(appendElements, options),
+      newPartialTree: this.append(appendElements),
+    };
+  }
+
+  generateCombinedProof(indices, options = {}) {
+    assert(this._elements.length > 0, 'Tree has no known elements.');
+
+    if (!Array.isArray(indices)) {
+      assert(indices >= 0 && indices < this._elements.length, 'Index out of range.');
+      assert(this._elements[indices], 'Partial tree does not have element.');
+    } else {
+      indices.forEach((index) => {
+        assert(index >= 0 && index < this._elements.length, 'Index out of range.');
+        assert(this._elements[index], 'Partial tree does not have element.');
+      });
+    }
+
+    return super.generateCombinedProof(indices, options);
+  }
+
+  generateUpdateAppendProof(indices, updateElements, appendElements, options = {}) {
+    assert(this._elements.length > 0, 'Tree has no known elements.');
+
+    if (!Array.isArray(indices)) {
+      assert(indices >= 0 && indices < this._elements.length, 'Index out of range.');
+      assert(this._elements[indices], 'Partial tree does not have element.');
+    } else {
+      indices.forEach((index) => {
+        assert(index >= 0 && index < this._elements.length, 'Index out of range.');
+        assert(this._elements[index], 'Partial tree does not have element.');
+      });
+    }
+
+    return super.generateUpdateAppendProof(indices, updateElements, appendElements, options);
+  }
+
+  generateUseAppendProof(indices, appendElements, options = {}) {
+    assert(this._elements.length > 0, 'Tree has no known elements.');
+
+    if (!Array.isArray(indices)) {
+      assert(indices >= 0 && indices < this._elements.length, 'Index out of range.');
+      assert(this._elements[indices], 'Partial tree does not have element.');
+    } else {
+      indices.forEach((index) => {
+        assert(index >= 0 && index < this._elements.length, 'Index out of range.');
+        assert(this._elements[index], 'Partial tree does not have element.');
+      });
+    }
+
+    return super.generateUseAppendProof(indices, appendElements, options);
+  }
+
+  updateAndAppend(indices, updateElements, appendElements, options = {}) {
+    return {
+      proof: this.generateUpdateAppendProof(indices, updateElements, appendElements, options),
+      newPartialTree: this.set(indices, updateElements).append(appendElements),
+    };
+  }
+
+  useAndAppend(indices, appendElements, options = {}) {
+    return {
+      proof: this.generateUseAppendProof(indices, appendElements, options),
+      newPartialTree: this.append(appendElements),
+    };
+  }
+
+  generateSizeProof(options = {}) {
+    const { simple = true } = options;
+    assert(simple || this._elements.length > 0, 'Tree has no known elements.');
+
+    return super.generateSizeProof(options);
   }
 
   has(indices) {
-    assert(this._elements.length > 0, 'Tree is empty.');
+    assert(this._elements.length > 0, 'Tree has no known elements.');
 
     if (!Array.isArray(indices)) return this.has([indices]);
 
@@ -175,7 +270,7 @@ class PartialMerkleTree extends MerkleTree {
   }
 
   check(indices, elements) {
-    assert(this._elements.length > 0, 'Tree is empty.');
+    assert(this._elements.length > 0, 'Tree has no known elements.');
 
     if (!Array.isArray(indices)) return this.check([indices], [elements])[0];
 
@@ -189,7 +284,7 @@ class PartialMerkleTree extends MerkleTree {
   }
 
   set(indices, elements) {
-    assert(this._elements.length > 0, 'Tree is empty.');
+    assert(this._elements.length > 0, 'Tree has no known elements.');
 
     if (!Array.isArray(indices)) return this.set([indices], [elements]);
 
@@ -231,8 +326,6 @@ class PartialMerkleTree extends MerkleTree {
 
     return new PartialMerkleTree(newElements, newTree, options);
   }
-
-  // TODO: override non-functional methods
 }
 
 module.exports = PartialMerkleTree;

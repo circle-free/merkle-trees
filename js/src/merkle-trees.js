@@ -321,7 +321,7 @@ class MerkleTree {
     return Object.assign(base, this.generateSingleProof(index, options));
   }
 
-  updateSingle(index, updateElement, proofOptions = {}) {
+  updateSingle(index, updateElement, options = {}) {
     const newElements = this._elements.map((e, i) => (i === index ? updateElement : e));
 
     const treeOptions = {
@@ -331,7 +331,7 @@ class MerkleTree {
     };
 
     return {
-      proof: this.generateSingleUpdateProof(index, updateElement, proofOptions),
+      proof: this.generateSingleUpdateProof(index, updateElement, options),
       newMerkleTree: new MerkleTree(newElements, treeOptions),
     };
   }
@@ -363,7 +363,7 @@ class MerkleTree {
     return Object.assign(base, this.generateMultiProof(indices, options));
   }
 
-  updateMulti(indices, updateElements, proofOptions = {}) {
+  updateMulti(indices, updateElements, options = {}) {
     const newElements = this.elements.map((e, i) => {
       const index = indices.indexOf(i);
 
@@ -377,7 +377,7 @@ class MerkleTree {
     };
 
     return {
-      proof: this.generateMultiUpdateProof(indices, updateElements, proofOptions),
+      proof: this.generateMultiUpdateProof(indices, updateElements, options),
       newMerkleTree: new MerkleTree(newElements, treeOptions),
     };
   }
@@ -412,7 +412,7 @@ class MerkleTree {
     return Object.assign(base, this.generateAppendProof(options));
   }
 
-  appendSingle(appendElement, proofOptions = {}) {
+  appendSingle(appendElement, options = {}) {
     const newElements = this.elements.map((e) => e);
     newElements.push(appendElement);
 
@@ -423,12 +423,12 @@ class MerkleTree {
     };
 
     return {
-      proof: this.generateSingleAppendProof(appendElement, proofOptions),
+      proof: this.generateSingleAppendProof(appendElement, options),
       newMerkleTree: new MerkleTree(newElements, treeOptions),
     };
   }
 
-  appendMulti(appendElements, proofOptions = {}) {
+  appendMulti(appendElements, options = {}) {
     const newElements = this.elements.concat(appendElements);
 
     const treeOptions = {
@@ -438,7 +438,7 @@ class MerkleTree {
     };
 
     return {
-      proof: this.generateMultiAppendProof(appendElements, proofOptions),
+      proof: this.generateMultiAppendProof(appendElements, options),
       newMerkleTree: new MerkleTree(newElements, treeOptions),
     };
   }
@@ -519,28 +519,28 @@ class MerkleTree {
     return Object.assign(base, this.generateCombinedProof(indices, options));
   }
 
-  updateAndAppend(indices, updateElements, appendElements, proofOptions = {}) {
+  updateAndAppend(indices, updateElements, appendElements, options = {}) {
     const { newMerkleTree: updatedTree } = Array.isArray(updateElements)
-      ? this.updateMulti(indices, updateElements, proofOptions)
-      : this.updateSingle(indices, updateElements, proofOptions);
+      ? this.updateMulti(indices, updateElements, options)
+      : this.updateSingle(indices, updateElements, options);
 
     const { newMerkleTree } = Array.isArray(appendElements)
-      ? updatedTree.appendMulti(appendElements, proofOptions)
-      : updatedTree.appendSingle(appendElements, proofOptions);
+      ? updatedTree.appendMulti(appendElements, options)
+      : updatedTree.appendSingle(appendElements, options);
 
     return {
-      proof: this.generateUpdateAppendProof(indices, updateElements, appendElements, proofOptions),
+      proof: this.generateUpdateAppendProof(indices, updateElements, appendElements, options),
       newMerkleTree,
     };
   }
 
-  useAndAppend(indices, appendElements, proofOptions = {}) {
+  useAndAppend(indices, appendElements, options = {}) {
     const { newMerkleTree } = Array.isArray(appendElements)
-      ? this.appendMulti(appendElements, proofOptions)
-      : this.appendSingle(appendElements, proofOptions);
+      ? this.appendMulti(appendElements, options)
+      : this.appendSingle(appendElements, options);
 
     return {
-      proof: this.generateUseAppendProof(indices, appendElements, proofOptions),
+      proof: this.generateUseAppendProof(indices, appendElements, options),
       newMerkleTree,
     };
   }

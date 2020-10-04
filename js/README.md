@@ -11,7 +11,7 @@ A robust and well tested class to be used as the basis for dynamic lists (an eve
 `npm install merkle-trees` or `yarn add merkle-trees`
 
 ```js
-const MerkleTrees = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 ```
 <br>
 
@@ -27,7 +27,7 @@ Will construct a Merkle Tree object from a set of elements, with tree options.
 The tree's effective root is the hash of the element count and the element root.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 
 const treeOptions = {
   unbalanced: true,     // H(i, j) = i, when j = unset/null (default = true)
@@ -53,7 +53,7 @@ console.log(myTree.minimumCombinedProofIndex);    // minimum index needed for a 
 A Merkle proof can be generated to prove the existence of a single element at a specific index.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -97,7 +97,7 @@ console.log(MerkleTree.verifySingleProof(proof2, treeOptions));     // true
 The same Merkle proof can be generated to prove and update an element, thereby computing a new root.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -136,7 +136,7 @@ console.log(newRoot.equals(myTreeTree.root));   // true
 A clean(er) way to update a single element in a Merkle tree.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -160,7 +160,7 @@ _Note: There are 2 types of Multi-Proofs. The one being demonstrated here does n
 A Merkle proof can be generated to prove the existence of several elements.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -203,7 +203,7 @@ console.log(MerkleTree.verifyMultiProof(proof2, treeOptions));     // true
 The same Merkle proof can be generated to prove and update several elements, thereby computing a new root.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -244,7 +244,7 @@ console.log(root.equals(myTreeTree.root));    // true
 A clean(er) way to update several elements in a Merkle tree.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -267,7 +267,7 @@ console.log(root.equals(newMerkleTree.root));   // true
 A Merkle proof can be generated to enable appending an arbitrary number of elements to a Merkle tree.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -301,7 +301,7 @@ console.log(MerkleTree.verifyAppendProof(proof2, treeOptions));   // true
 The same Merkle proof can be generated to prove and update an element, thereby computing a new root.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -354,7 +354,7 @@ console.log(newRoot2.equals(myTreeTree2.root));   // true
 A clean(er) way to append a single or many elements to a Merkle tree.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -369,7 +369,7 @@ console.log(elementCount === newMerkleTree.elements.length);    // true
 ```
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -406,7 +406,7 @@ Below are just 2 examples of possible permutations.
 _Note: Currently, the functions can take arrays or single elements as arguments, and return the appropriate proof and types. I am still debating if the whole library should behave this way (which reducing the API and its verbosity, but increases complexity and possible return types), or if everything should be explicit (which increases the API and its verbosity, but decreases complexity and possible return types)._
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -429,7 +429,7 @@ console.log(elementCount === newMerkleTree.elements.length);    // true
 ```
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -463,7 +463,7 @@ console.log(elementCount === newMerkleTree.elements.length);    // true
 Infer element indices from a Multi proof that does not explicitly prove the indices of the elements.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -488,7 +488,7 @@ console.log(MerkleTree.getMultiProofIndices(proof, treeOptions));   // [3, 14, 1
 Generate a proof of the Merkle tree's size. The simple way relies on the fact that the tree's size is already hashed into the root, and thus only the element root and tree size is needed. The non-simple way generates a Single proof for the tree's last element as well.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 const treeOptions = { unbalanced: true, sortedHash: false, elementPrefix: '00' };
 
 // In this case, elements is an array of 32-byte Buffers (not shown)
@@ -515,11 +515,12 @@ console.log(MerkleTree.verifySizeProof(proof1, treeOptions));   // true
 
 ## Various TODOs and Notes (In Order of Priority) ##
 
-- [ ] Build an "incomplete", yet "useful", merkle tree from a proof
+- [ ] Partial Tree documentation and more testing
 - [ ] Consolidate single/multi update function (or de-consolidate everything... hmm...)
 - [ ] option to output all data as eth-compatible prefixed hex strings
 - [ ] deleting elements (from the end)
 - [ ] support for arbitrary size elements
+- [ ] test how null/undefined elements before the append index affect trees/proofs
 - [ ] TypeScript (possibly with a Proof class)
 - [ ] index-less (existence-only) single-proofs
 - [ ] support index-less (compact existence-only) single-proofs
@@ -536,10 +537,10 @@ console.log(MerkleTree.verifySizeProof(proof1, treeOptions));   // true
 - [ ] benchmarking
 - [ ] giving options better names (i.e. flag > existence-proof vs. indexed > index-proof)
 - [ ] visual documentation of how individual proofs work
-- [ ] test how null/undefined elements before the append index affect trees/proofs
 - [ ] explore efficiency of separate boolean-array, in the multi-proof, to inform when to take a hash as an append-decommitment
-- [ ] Bring Your Own Hash Function
+- [ ] "Bring Your Own Hash Function" support
 - [ ] serialize method (likely just elements, possibly redundant)
+- [X] ~~Build an "incomplete", yet "useful", merkle tree from a proof (partial tree)~~
 - [X] ~~unbalanced proofs for indexed multi-proofs (with tests)~~
 - [X] ~~API documentation (you tell me, did I do a good job?)~~
 - [X] ~~append one/many with a single or multi proof~~
@@ -563,7 +564,7 @@ foo@bar:~$ yarn install
 Done in 0.16s.
 foo@bar:~$ yarn test
 ...
-630 passing (14s)
+793 passing (16s)
 ```
 <br>
 <br>

@@ -10,7 +10,7 @@
 Quick example of gas savings of using appendable merkle tree library and smart contracts, over storing elements normally.
 
 ```js
-const MerkleTree = require('merkle-trees/js');
+const { MerkleTree } = require('merkle-trees/js');
 
 const elementCount = 200;
 

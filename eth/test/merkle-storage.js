@@ -4,7 +4,7 @@ const { expect } = chai;
 
 const gasCosts = require('./fixtures/merkle-gas-costs.json');
 const { generateElements } = require('./helpers');
-const MerkleTree = require('../../js');
+const { MerkleTree } = require('../../js');
 
 const Merkle_Storage_Using_Lib = artifacts.require("Merkle_Storage_Using_Lib");
 const Merkle_Storage_Using_Sorted_Hash_Lib = artifacts.require("Merkle_Storage_Using_Sorted_Hash_Lib");
@@ -328,12 +328,52 @@ const testUpdateManyAndAppendMany = async (indices, updateSeed, appendSize, appe
 };
 
 
-describe("Merkle Storage Using Merkle Library", async accounts => {
+describe("Merkle Storage Using Merkle Library", async () => {
   after(() => {
     fs.writeFileSync('./test/fixtures/merkle-gas-costs.json', JSON.stringify(gasCosts, null, ' '));
   });
 
-  describe("Starting with 200 elements (Unsorted Hash)", async accounts => {
+  describe("Starting with 0 elements (Unsorted Hash)", async () => {
+    beforeEach(async () => {
+      contractInstance = await Merkle_Storage_Using_Lib.new();
+      merkleTree = new MerkleTree([], unsortedOptions);
+      elementCount = 0;
+    });
+
+    it("should append 1 new element.", async () => {
+      return testAppendOne('22', unsortedOptions);
+    });
+
+    it(`should append 13 new elements.`, async () => {
+      return testAppendMany(13, '22', unsortedOptions);
+    });
+
+    it(`should append 14 new elements.`, async () => {
+      return testAppendMany(14, '22', unsortedOptions);
+    });
+
+    it(`should append 15 new elements.`, async () => {
+      return testAppendMany(15, '22', unsortedOptions);
+    });
+
+    it(`should append 16 new elements.`, async () => {
+      return testAppendMany(16, '22', unsortedOptions);
+    });
+
+    it(`should append 18 new elements.`, async () => {
+      return testAppendMany(18, '22', unsortedOptions);
+    });
+
+    it(`should append 19 new elements.`, async () => {
+      return testAppendMany(19, '22', unsortedOptions);
+    });
+
+    it(`should append 20 new elements.`, async () => {
+      return testAppendMany(20, '22', unsortedOptions);
+    });
+  });
+
+  describe("Starting with 200 elements (Unsorted Hash)", async () => {
     beforeEach(async () => {
       contractInstance = await Merkle_Storage_Using_Lib.new();
       const seed = 'ff';
