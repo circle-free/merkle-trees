@@ -11,6 +11,9 @@ const CombinedProofs = require('./combined-proofs');
 
 class PartialMerkleTree extends MerkleTree {
   constructor(elements, tree, options) {
+    assert(tree.length > 1, 'Cannot create empty Partial Tree.');
+    assert(tree.length >> 1 === Common.getBalancedLeafCount(elements.length), 'Element and tree mismatch.');
+
     super([], options);
 
     this._elements = elements.map((e) => e && Buffer.from(e));
@@ -20,11 +23,11 @@ class PartialMerkleTree extends MerkleTree {
   }
 
   static fromSingleProof(parameters, options = {}) {
-    const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
+    const { sortedHash = true, elementPrefix = '00' } = options;
     const { index, element } = parameters;
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
-    const hashFunction = getHashFunction(unbalanced, sortedHash);
+    const hashFunction = getHashFunction(sortedHash);
     const leaf = hashNode(prefixBuffer, element);
     const params = Object.assign({ leaf }, parameters);
     const opts = { hashFunction, sortedHash };
@@ -44,7 +47,7 @@ class PartialMerkleTree extends MerkleTree {
   }
 
   static fromMultiProof(parameters, options = {}) {
-    const { sortedHash = true, unbalanced = true, elementPrefix = '00' } = options;
+    const { sortedHash = true, elementPrefix = '00' } = options;
 
     assert(parameters.indices || !sortedHash, 'Cannot build sorted-hash Partial Tree from existence-only multi-proof.');
 
@@ -57,7 +60,7 @@ class PartialMerkleTree extends MerkleTree {
         : parameters.compactProof;
 
     const prefixBuffer = Buffer.from(elementPrefix, 'hex');
-    const hashFunction = getHashFunction(unbalanced, sortedHash);
+    const hashFunction = getHashFunction(sortedHash);
     const leafs = elements.map((element) => hashNode(prefixBuffer, element));
     const params = Object.assign({ leafs }, parameters, { indices, compactProof });
     const opts = { hashFunction, sortedHash };
@@ -81,12 +84,16 @@ class PartialMerkleTree extends MerkleTree {
   }
 
   generateSingleProof(index, options = {}) {
+    assert(this._elements.length > 0, 'Tree is empty.');
+    assert(index >= 0 && index < this._elements.length, 'Index out of range.');
     assert(this._elements[index], 'Partial tree does not have element.');
 
     return super.generateSingleProof(index, options);
   }
 
   generateSingleUpdateProof(index, updateElement, options = {}) {
+    assert(this._elements.length > 0, 'Tree is empty.');
+    assert(index >= 0 && index < this._elements.length, 'Index out of range.');
     assert(this._elements[index], 'Partial tree does not have element.');
 
     return super.generateSingleUpdateProof(index, updateElement, options);
@@ -100,7 +107,10 @@ class PartialMerkleTree extends MerkleTree {
   }
 
   generateMultiProof(indices, options = {}) {
+    assert(this._elements.length > 0, 'Tree is empty.');
+
     indices.forEach((index) => {
+      assert(index >= 0 && index < this._elements.length, 'Index out of range.');
       assert(this._elements[index], 'Partial tree does not have element.');
     });
 
@@ -108,7 +118,10 @@ class PartialMerkleTree extends MerkleTree {
   }
 
   generateMultiUpdateProof(indices, updateElements, options = {}) {
+    assert(this._elements.length > 0, 'Tree is empty.');
+
     indices.forEach((index) => {
+      assert(index >= 0 && index < this._elements.length, 'Index out of range.');
       assert(this._elements[index], 'Partial tree does not have element.');
     });
 
@@ -120,6 +133,76 @@ class PartialMerkleTree extends MerkleTree {
     const newPartialTree = PartialMerkleTree.fromMultiUpdateProof(proof, options);
 
     return { proof, newPartialTree };
+  }
+
+  has(indices) {
+    assert(this._elements.length > 0, 'Tree is empty.');
+
+    if (!Array.isArray(indices)) return this.has([indices]);
+
+    return indices.reduce((haveAll, index) => {
+      assert(index >= 0 && index < this._elements.length, 'Index out of range.');
+
+      return haveAll && this._elements[index] !== null;
+    }, true);
+  }
+
+  check(indices, elements) {
+    assert(this._elements.length > 0, 'Tree is empty.');
+
+    if (!Array.isArray(indices)) return this.check([indices], [elements])[0];
+
+    indices.forEach((index) => {
+      assert(index >= 0 && index < this._elements.length, 'Index out of range.');
+    });
+
+    const leafs = elements.map((element) => hashNode(this._elementPrefix, element));
+
+    return Common.checkElements({ tree: this._tree, indices, leafs });
+  }
+
+  set(indices, elements) {
+    assert(this._elements.length > 0, 'Tree is empty.');
+
+    if (!Array.isArray(indices)) return this.set([indices], [elements]);
+
+    indices.forEach((index) => {
+      assert(index >= 0 && index < this._elements.length, 'Index out of range.');
+    });
+
+    const newElements = this.elements;
+    indices.forEach((index, i) => {
+      newElements[index] = elements[i];
+    });
+
+    const leafs = newElements.map((element) => element && hashNode(this._elementPrefix, element));
+    const hashFunction = getHashFunction(this._sortedHash);
+    const newTree = Common.getUpdatedTree({ tree: this._tree, leafs }, { hashFunction });
+
+    const options = {
+      sortedHash: this._sortedHash,
+      unbalanced: this._unbalanced,
+      elementPrefix: this._elementPrefix,
+    };
+
+    return new PartialMerkleTree(newElements, newTree, options);
+  }
+
+  append(elements) {
+    if (!Array.isArray(elements)) return this.append([elements]);
+
+    const options = {
+      sortedHash: this._sortedHash,
+      unbalanced: this._unbalanced,
+      elementPrefix: this._elementPrefix,
+    };
+
+    const newElements = this.elements.concat(elements);
+    const leafs = newElements.map((element) => element && hashNode(this._elementPrefix, element));
+    const hashFunction = getHashFunction(this._sortedHash);
+    const newTree = Common.getGrownTree({ tree: this._tree, leafs }, { hashFunction });
+
+    return new PartialMerkleTree(newElements, newTree, options);
   }
 
   // TODO: override non-functional methods

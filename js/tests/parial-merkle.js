@@ -109,6 +109,81 @@ const testGenerateMultiUpdateProofFromMultiPartial = (elementCount, indices, opt
   expect(newPartialTree.root.equals(newMerkleTree.root)).to.be.true;
 };
 
+const testCheckElements = (elementCount, index, checkIndices, expectations, options) => {
+  const elements = generateElements(elementCount, { seed: 'ff' });
+  const merkleTree = new MerkleTree(elements, options);
+  const proof = merkleTree.generateSingleProof(index, options);
+  const partialTree = PartialMerkleTree.fromSingleProof(proof, options);
+  const elementChecks = partialTree.check(
+    checkIndices,
+    checkIndices.map((i) => elements[i])
+  );
+
+  expect(elementChecks).to.deep.equal(expectations);
+  checkIndices.forEach((index, i) => expect(partialTree.check(index, elements[index])).to.equal(expectations[i]));
+};
+
+const testSetElement = (elementCount, index, setIndex, options) => {
+  const elements = generateElements(elementCount, { seed: 'ff' });
+  const merkleTree = new MerkleTree(elements, options);
+  const proof = merkleTree.generateSingleProof(index, options);
+  const partialTree = PartialMerkleTree.fromSingleProof(proof, options);
+  const newPartialTree = partialTree.set(setIndex, elements[setIndex]);
+
+  [index, setIndex].forEach((i) => expect(newPartialTree._elements[i].equals(elements[i])).to.be.true);
+  const expectedTreeNodes = partialTree._tree.map((n) => n && n.toString('hex'));
+  const newLeafIndex = (newPartialTree._tree.length >> 1) + setIndex;
+  expectedTreeNodes[newLeafIndex] = merkleTree._tree[newLeafIndex].toString('hex');
+  expect(newPartialTree._tree.map((n) => n && n.toString('hex'))).to.deep.equal(expectedTreeNodes);
+};
+
+const testSetElements = (elementCount, index, setIndices, options) => {
+  const elements = generateElements(elementCount, { seed: 'ff' });
+  const merkleTree = new MerkleTree(elements, options);
+  const proof = merkleTree.generateSingleProof(index, options);
+  const partialTree = PartialMerkleTree.fromSingleProof(proof, options);
+  const newPartialTree = partialTree.set(
+    setIndices,
+    setIndices.map((i) => elements[i])
+  );
+
+  setIndices.concat(index).forEach((i) => expect(newPartialTree._elements[i].equals(elements[i])).to.be.true);
+  const expectedTreeNodes = partialTree._tree.map((n) => n && n.toString('hex'));
+
+  setIndices.forEach((setIndex) => {
+    const newLeafIndex = (newPartialTree._tree.length >> 1) + setIndex;
+    expectedTreeNodes[newLeafIndex] = merkleTree._tree[newLeafIndex].toString('hex');
+  });
+
+  expect(newPartialTree._tree.map((n) => n && n.toString('hex'))).to.deep.equal(expectedTreeNodes);
+};
+
+const testAppendElement = (elementCount, options) => {
+  const elements = generateElements(elementCount, { seed: 'ff' });
+  const merkleTree = new MerkleTree(elements, options);
+  const index = elementCount - 1;
+  const proof = merkleTree.generateSingleProof(index, options);
+  const partialTree = PartialMerkleTree.fromSingleProof(proof, options);
+  const appendElement = generateElements(1, { seed: '22' })[0];
+  const newPartialTree = partialTree.append(appendElement);
+  const newMerkleTree = new MerkleTree(elements.concat(appendElement), options);
+
+  expect(newPartialTree.root.equals(newMerkleTree.root)).to.be.true;
+};
+
+const testAppendElements = (elementCount, appendElementCount, options) => {
+  const elements = generateElements(elementCount, { seed: 'ff' });
+  const merkleTree = new MerkleTree(elements, options);
+  const index = elementCount - 1;
+  const proof = merkleTree.generateSingleProof(index, options);
+  const partialTree = PartialMerkleTree.fromSingleProof(proof, options);
+  const appendElements = generateElements(appendElementCount, { seed: '22' });
+  const newPartialTree = partialTree.append(appendElements);
+  const newMerkleTree = new MerkleTree(elements.concat(appendElements), options);
+
+  expect(newPartialTree.root.equals(newMerkleTree.root)).to.be.true;
+};
+
 describe.only('Partial Merkle Trees', () => {
   describe('Build Partial Trees From Single Proofs', () => {
     describe('Balanced', () => {
@@ -2164,6 +2239,77 @@ describe.only('Partial Merkle Trees', () => {
         const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
         testGenerateMultiUpdateProofFromMultiPartial(100, [7, 24, 25, 68, 97], options);
       });
+    });
+  });
+
+  describe('Check Elements in a Partial Tree', () => {
+    it('check elements in an 8-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testCheckElements(8, 2, [0, 2, 3, 7], [false, true, true, false], options);
+    });
+
+    it('check elements in an 89-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testCheckElements(89, 42, [0, 9, 42, 43, 87], [false, false, true, true, false], options);
+    });
+  });
+
+  describe('Set Elements in a Partial Tree', () => {
+    it('sets an element in an 8-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testSetElement(8, 2, 3, options);
+    });
+
+    it('sets an element in an 89-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testSetElement(89, 41, 40, options);
+    });
+
+    it('sets elements in an 8-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testSetElements(8, 2, [0, 1, 3], options);
+    });
+
+    it('sets elements in an 89-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testSetElements(89, 41, [40, 42, 43], options);
+    });
+  });
+
+  describe.only('Appends Elements to a Partial Tree', () => {
+    it('appends an element to an 1-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testAppendElement(1, options);
+    });
+
+    it('appends an element to an 8-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testAppendElement(8, options);
+    });
+
+    it('appends an element to an 89-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testAppendElement(89, options);
+    });
+
+    it('appends 12 elements to an 1-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testAppendElements(1, 12, options);
+    });
+
+    it('appends 5 elements to an 8-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testAppendElements(8, 5, options);
+    });
+
+    it('appends 41 elements to an 89-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testAppendElements(89, 41, options);
+    });
+
+    it('appends 160 elements to an 24-element Partial Tree built from a Single Proof.', () => {
+      const options = { unbalanced: true, sortedHash: false, compact: false };
+      testAppendElements(89, 160, options);
     });
   });
 });

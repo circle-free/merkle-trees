@@ -1,6 +1,7 @@
 'use strict';
 const { Keccak } = require('sha3');
 const { leftShift, or } = require('bitwise-buffer');
+const assert = require('assert');
 
 const leftPad = (num, size, char = '0') => {
   let s = num + '';
@@ -10,13 +11,9 @@ const leftPad = (num, size, char = '0') => {
   return s;
 };
 
-const to32ByteBuffer = (number) => {
-  return Buffer.from(leftPad(number.toString(16), 64), 'hex');
-};
+const to32ByteBuffer = (number) => Buffer.from(leftPad(number.toString(16), 64), 'hex');
 
-const from32ByteBuffer = (buffer) => {
-  return buffer.readUInt32BE(28);
-};
+const from32ByteBuffer = (buffer) => buffer.readUInt32BE(28);
 
 const bitCount32 = (n) => {
   let m = n - ((n >>> 1) & 0x55555555);
@@ -26,34 +23,20 @@ const bitCount32 = (n) => {
 };
 
 // NOTE: arguments must already be buffer, preferably 32 bytes
-const hash = (buffer) => {
-  return new Keccak(256).update(buffer).digest();
-};
+const hash = (buffer) => new Keccak(256).update(buffer).digest();
 
 // NOTE: arguments must already be buffers, preferably 32 bytes
-const hashNode = (leftHash, rightHash) => {
-  return hash(Buffer.concat([leftHash, rightHash]));
-};
+const hashNode = (left, right) => hash(Buffer.concat([left, right]));
 
 // NOTE: arguments must already be buffers, preferably 32 bytes
-const sortHashNode = (leftHash, rightHash) => {
-  if (!leftHash) return rightHash;
+const sortHashNode = (left, right) => {
+  assert(left && right, 'Both buffers must exist to be sorted and hashed.');
 
-  if (!rightHash) return leftHash;
-
-  return hash(Buffer.concat([leftHash, rightHash].sort(Buffer.compare)));
+  return hash(Buffer.concat([left, right].sort(Buffer.compare)));
 };
 
-const getHashFunction = (unbalanced, sortedHash) => (left, right) => {
-  if (unbalanced && !left && !right) return null;
-
-  // TODO: Test if we can allow this.
-  if (unbalanced && !left) return right;
-
-  if (unbalanced && !right) return left;
-
-  return sortedHash ? sortHashNode(left, right) : hashNode(left, right);
-};
+const getHashFunction = (sortedHash) => (left, right) =>
+  sortedHash ? sortHashNode(left, right) : hashNode(left, right);
 
 const findLastIndex = (array, predicate) => {
   let i = array.length;
@@ -65,14 +48,13 @@ const findLastIndex = (array, predicate) => {
   return -1;
 };
 
-const to32ByteBoolBuffer = (booleans) => {
-  return booleans.length < 257
+const to32ByteBoolBuffer = (booleans) =>
+  booleans.length < 257
     ? booleans.reduce(
         (booleanBuffer, bool, i) => or(booleanBuffer, leftShift(to32ByteBuffer(bool ? '1' : '0'), i)),
         Buffer.alloc(32)
       )
     : null;
-};
 
 const roundUpToPowerOf2 = (number) => {
   if (bitCount32(number) === 1) return number;

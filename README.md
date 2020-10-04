@@ -56,7 +56,11 @@ console.log(result2.receipt.gasUsed);   // 577,727 gas used
 const merkleStorageInstance = await Merkle_Storage_Using_Library.new();
 
 // Create empty Merkle Tree object
-const merkleOptions = { unbalance: true, compact: true };
+const merkleOptions = {
+  compact: true,
+  elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+};
+
 let merkleTree = new MerkleTree([], merkleOptions);
 
 // Append the first 200 elements to the Merkle Tree

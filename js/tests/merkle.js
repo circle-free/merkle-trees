@@ -744,6 +744,26 @@ describe('Merkle Trees', () => {
 
         testBuildTree(9, 'ff', expected, { unbalanced: true, sortedHash: true });
       });
+
+      it('should build an 28-element Merkle Tree.', () => {
+        const expected = {
+          root: 'c50d9f940bf3e7267d2c4645ef2b99d774a91582253af1d086377fb219b59e45',
+          elementRoot: '99d034409decb2fd31237dac23d2e037faf7d4dd896940ebb0ea580c9ffeb0af',
+          depth: 5,
+        };
+
+        testBuildTree(28, 'ff', expected, { unbalanced: true, sortedHash: false });
+      });
+
+      it('should build an sorted-hash 28-element Merkle Tree.', () => {
+        const expected = {
+          root: 'a5920c89398aa2837b8ad511c217dba2379e4e8b1a360de7ec00b9017fcc5f78',
+          elementRoot: 'cad3ecd38ce3a9ea9dd091b06889fac4b2bde73270406064582d54ed84c31087',
+          depth: 5,
+        };
+
+        testBuildTree(28, 'ff', expected, { unbalanced: true, sortedHash: true });
+      });
     });
 
     describe('Balanced/Unbalanced Overlapping Cases', () => {

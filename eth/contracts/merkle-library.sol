@@ -63,7 +63,10 @@ library Merkle_Library {
       left_index = write_index << 1;
 
       if (left_index == hashes_size - 1) {
-        hashes[write_index++] = hashes[left_index];
+        hashes[write_index] = hashes[left_index];
+        write_index = 0;
+        hashes_size = (hashes_size >> 1) + (hashes_size & 1);
+        continue;
       }
 
       if (left_index >= hashes_size) {
