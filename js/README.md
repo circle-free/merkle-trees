@@ -519,7 +519,6 @@ console.log(MerkleTree.verifySizeProof(proof1, treeOptions));   // true
 - [ ] Consolidate single/multi update function (or de-consolidate everything... hmm...)
 - [ ] option to output all data as eth-compatible prefixed hex strings
 - [ ] deleting elements (from the end)
-- [ ] support for arbitrary size elements
 - [ ] test how null/undefined elements before the append index affect trees/proofs
 - [ ] TypeScript (possibly with a Proof class)
 - [ ] index-less (existence-only) single-proofs
@@ -540,6 +539,7 @@ console.log(MerkleTree.verifySizeProof(proof1, treeOptions));   // true
 - [ ] explore efficiency of separate boolean-array, in the multi-proof, to inform when to take a hash as an append-decommitment
 - [ ] "Bring Your Own Hash Function" support
 - [ ] serialize method (likely just elements, possibly redundant)
+- [X] ~~support for arbitrary size elements (it already did, but tested now)~~
 - [X] ~~Build an "incomplete", yet "useful", merkle tree from a proof (partial tree)~~
 - [X] ~~unbalanced proofs for indexed multi-proofs (with tests)~~
 - [X] ~~API documentation (you tell me, did I do a good job?)~~

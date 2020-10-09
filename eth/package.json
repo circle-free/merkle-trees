@@ -9,7 +9,8 @@
     "test": "truffle test",
     "ganache": "ganache-cli",
     "lint": "solhint 'contracts/**/*.sol'",
-    "prettier": "prettier --write 'contracts/**/*.sol'"
+    "prettier": "prettier --write 'contracts/**/*.sol'",
+    "compile": "yarn truffle compile"
   },
   "author": "Circle-Free",
   "license": "MIT",

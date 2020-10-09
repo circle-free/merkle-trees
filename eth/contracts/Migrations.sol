@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.5.0 <0.8.0;
+pragma experimental ABIEncoderV2;
 
 contract Migrations {
   address public owner;
-  // solhint-disable-next-line var-name-mixedcase
   uint256 public last_completed_migration;
 
   constructor() public {
