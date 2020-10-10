@@ -100,11 +100,14 @@ class PartialMerkleTree extends MerkleTree {
     const partialElements = Array(index)
       .fill(null)
       .concat(appendElement ?? appendElements);
+    
     const leafs = partialElements.map((element) => element && hashNode(prefixBuffer, element));
     const newTree = Common.getGrownTree({ tree, leafs }, { hashFunction });
 
     return new PartialMerkleTree(partialElements, newTree, options);
   }
+
+  // TODO: from combined proofs
 
   get elements() {
     return this._elements.map((e) => e && Buffer.from(e));

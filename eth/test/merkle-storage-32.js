@@ -2,17 +2,17 @@ const fs = require('fs');
 const chai = require('chai');
 const { expect } = chai;
 
-const gasCosts = require('./fixtures/merkle-gas-costs.json');
+const gasCosts = require('./fixtures/merkle-gas-costs-32.json');
 const { generateElements } = require('./helpers');
 const { MerkleTree } = require('../../js');
 
-const MerkleStorageUsingLib = artifacts.require("Merkle_Storage_Using_Lib");
-const MerkleStorageUsingSortedHashLib = artifacts.require("Merkle_Storage_Using_Sorted_Hash_Lib");
+const MerkleStorageUsingLib32 = artifacts.require("Merkle_Storage_Using_Lib_32");
+const MerkleStorageUsingSortedHashLib32 = artifacts.require("Merkle_Storage_Using_Sorted_Hash_Lib_32");
 
 const unsortedOptions = {
   unbalanced: true,
   sortedHash: false,
-  elementPrefix: '00',
+  elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
   indexed: false,
   compact: true,
 };
@@ -20,7 +20,7 @@ const unsortedOptions = {
 const sortedOptions = {
   unbalanced: true,
   sortedHash: true,
-  elementPrefix: '00',
+  elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
   indexed: false,
   compact: true,
 };
@@ -328,14 +328,14 @@ const testUpdateManyAndAppendMany = async (indices, updateSeed, appendSize, appe
 };
 
 
-describe("Merkle Storage Using Merkle Library", async () => {
+describe("Merkle Storage Using Merkle Library (32-Byte Elements)", async () => {
   after(() => {
-    fs.writeFileSync('./test/fixtures/merkle-gas-costs.json', JSON.stringify(gasCosts, null, ' ').concat('\n'));
+    fs.writeFileSync('./test/fixtures/merkle-gas-costs-32.json', JSON.stringify(gasCosts, null, ' ').concat('\n'));
   });
 
   describe("Starting with 0 elements (Unsorted Hash)", async () => {
     beforeEach(async () => {
-      contractInstance = await MerkleStorageUsingLib.new();
+      contractInstance = await MerkleStorageUsingLib32.new();
       merkleTree = new MerkleTree([], unsortedOptions);
       elementCount = 0;
     });
@@ -375,7 +375,7 @@ describe("Merkle Storage Using Merkle Library", async () => {
 
   describe("Starting with 200 elements (Unsorted Hash)", async () => {
     beforeEach(async () => {
-      contractInstance = await MerkleStorageUsingLib.new();
+      contractInstance = await MerkleStorageUsingLib32.new();
       const seed = 'ff';
       const elements = [];
       merkleTree = new MerkleTree(elements, unsortedOptions);
@@ -584,7 +584,7 @@ describe("Merkle Storage Using Merkle Library", async () => {
 
   describe("Starting with 200 elements (Sorted Hash)", async accounts => {
     beforeEach(async () => {
-      contractInstance = await MerkleStorageUsingSortedHashLib.new();
+      contractInstance = await MerkleStorageUsingSortedHashLib32.new();
       const seed = 'ff';
       const elements = [];
       merkleTree = new MerkleTree(elements, sortedOptions);

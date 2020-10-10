@@ -60,5 +60,5 @@ foo@bar:~$ ganache-cli
 ...
 foo@bar:~$ yarn test
 ...
-90 passing (34s)
+180 passing (1m)
 ```

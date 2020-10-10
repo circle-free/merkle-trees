@@ -2640,4 +2640,6 @@ describe('Partial Merkle Trees', () => {
       testAppendElements(89, 160, options);
     });
   });
+
+  describe.skip('Arbitrary Element Sizes (Likely Redundant Given Merkle Tree Tests)', () => {})
 });

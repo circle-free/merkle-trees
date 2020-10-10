@@ -1,3 +1,11 @@
 {
-  "extends": "solhint:recommended"
+  "extends": "solhint:recommended",
+  "rules": {
+    "not-rely-on-time": "warn",
+    "no-inline-assembly": "warn",
+    "code-complexity": ["warn", 7],
+    "function-max-lines": ["warn", 100],
+    "max-line-length": ["error", 150],
+    "no-unused-vars": "warn"
+  }
 }

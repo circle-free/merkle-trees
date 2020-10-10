@@ -5,9 +5,10 @@ const { expect } = chai;
 const { generateElements } = require('./helpers');
 const { MerkleTree } = require('../index');
 
-const testBuildTree = (elementCount, seed, expected, options) => {
-  const elements = generateElements(elementCount, { seed });
-  const merkleTree = new MerkleTree(elements, options);
+const testBuildTree = (elementCount, seed, expected, treeOptions = {}, elementOptions = {}) => {
+  const { elementSize = 32 } = elementOptions;
+  const elements = generateElements(elementCount, { seed, size: elementSize });
+  const merkleTree = new MerkleTree(elements, treeOptions);
 
   expect(merkleTree.root.toString('hex')).to.equal(expected.root);
   expect(merkleTree.elementRoot.toString('hex')).to.equal(expected.elementRoot);
@@ -16,7 +17,7 @@ const testBuildTree = (elementCount, seed, expected, options) => {
   expect(merkleTree.elements.length).to.equal(elements.length);
 };
 
-const compareTrees = (elementCount, optionsA, optionsB) => {
+const compareTrees = (elementCount, optionsA, optionsB = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const treeA = new MerkleTree(elements, optionsA);
   const treeB = new MerkleTree(elements, optionsB);
@@ -28,7 +29,7 @@ const compareTrees = (elementCount, optionsA, optionsB) => {
   expect(treeA.elements.length).to.equal(treeB.elements.length);
 };
 
-const testSingleProofGeneration = (elementCount, seed, index, expected, options) => {
+const testSingleProofGeneration = (elementCount, seed, index, expected, options = {}) => {
   const elements = generateElements(elementCount, { seed });
   const merkleTree = new MerkleTree(elements, options);
   const proof = merkleTree.generateSingleProof(index, options);
@@ -48,7 +49,7 @@ const testSingleProofGeneration = (elementCount, seed, index, expected, options)
   proof.decommitments.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.decommitments[i]));
 };
 
-const compareSingleProofs = (elementCount, index, optionsA, optionsB) => {
+const compareSingleProofs = (elementCount, index, optionsA = {}, optionsB = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const treeA = new MerkleTree(elements, optionsA);
   const proofA = treeA.generateSingleProof(index);
@@ -63,7 +64,7 @@ const compareSingleProofs = (elementCount, index, optionsA, optionsB) => {
   proofA.decommitments.forEach((d, i) => expect(d.equals(proofB.decommitments[i])).to.be.true);
 };
 
-const testSingleProofVerification = (elementCount, index, options) => {
+const testSingleProofVerification = (elementCount, index, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const proof = merkleTree.generateSingleProof(index, options);
@@ -72,7 +73,7 @@ const testSingleProofVerification = (elementCount, index, options) => {
   expect(proofValid).to.be.true;
 };
 
-const testSingleUpdate = (elementCount, index, options) => {
+const testSingleUpdate = (elementCount, index, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const updateElement = generateElements(1, { seed: '11' })[0];
@@ -85,14 +86,15 @@ const testSingleUpdate = (elementCount, index, options) => {
   expect(root.equals(freshMerkleTree.root)).to.be.true;
 };
 
-const testConsecutiveSingleUpdate = (iterations, elementCount, options) => {
-  let elements = generateElements(elementCount, { seed: 'cc' });
+const testConsecutiveSingleUpdate = (iterations, elementCount, options = {}, elementOptions = {}) => {
+  const { elementSize = 32 } = elementOptions;
+  let elements = generateElements(elementCount, { seed: 'cc', size: elementSize });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
 
   for (let i = 0; i < iterations; i++) {
     const index = Math.floor(Math.random() * elementCount);
-    const updateElement = generateElements(1, { random: true })[0];
+    const updateElement = generateElements(1, { random: true, size: elementSize })[0];
     const { newMerkleTree, proof } = merkleTree.updateSingle(index, updateElement, options);
     merkleTree = newMerkleTree;
     root = MerkleTree.updateWithSingleProof(proof, options).root;
@@ -106,7 +108,7 @@ const testConsecutiveSingleUpdate = (iterations, elementCount, options) => {
   expect(root.equals(finalMerkleTree.root)).to.be.true;
 };
 
-const testMultiProofGeneration = (elementCount, seed, indices, expected, options) => {
+const testMultiProofGeneration = (elementCount, seed, indices, expected, options = {}) => {
   const elements = generateElements(elementCount, { seed });
   const merkleTree = new MerkleTree(elements, options);
   const proof = merkleTree.generateMultiProof(indices, options);
@@ -138,7 +140,7 @@ const testMultiProofGeneration = (elementCount, seed, indices, expected, options
   proof.decommitments.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.decommitments[i]));
 };
 
-const compareMultiProofs = (elementCount, indices, optionsA, optionsB) => {
+const compareMultiProofs = (elementCount, indices, optionsA = {}, optionsB = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const treeA = new MerkleTree(elements, optionsA);
   const proofA = treeA.generateMultiProof(indices, optionsA);
@@ -167,7 +169,7 @@ const compareMultiProofs = (elementCount, indices, optionsA, optionsB) => {
   expect(proofA.skips).to.deep.equal(proofB.skips);
 };
 
-const testMultiProofVerification = (elementCount, indices, options) => {
+const testMultiProofVerification = (elementCount, indices, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const proof = merkleTree.generateMultiProof(indices, options);
@@ -176,7 +178,7 @@ const testMultiProofVerification = (elementCount, indices, options) => {
   expect(proofValid).to.be.true;
 };
 
-const testMultiProofIndicesInferring = (elementCount, indices, options) => {
+const testMultiProofIndicesInferring = (elementCount, indices, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const proof = merkleTree.generateMultiProof(indices, options);
@@ -185,7 +187,7 @@ const testMultiProofIndicesInferring = (elementCount, indices, options) => {
   expect(inferredIndices).to.deep.equal(indices);
 };
 
-const testMultiUpdate = (elementCount, indices, options) => {
+const testMultiUpdate = (elementCount, indices, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const updateElements = generateElements(indices.length, { seed: '11' });
@@ -204,13 +206,14 @@ const testMultiUpdate = (elementCount, indices, options) => {
   expect(root.equals(freshMerkleTree.root)).to.be.true;
 };
 
-const testConsecutiveMultiUpdate = (iterations, elementCount, updateSize, options) => {
-  let elements = generateElements(elementCount, { seed: 'cc' });
+const testConsecutiveMultiUpdate = (iterations, elementCount, updateSize, options = {}, elementOptions = {}) => {
+  const { elementSize = 32 } = elementOptions;
+  let elements = generateElements(elementCount, { seed: 'cc', size: elementSize });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
 
   for (let i = 0; i < iterations; i++) {
-    const rawUpdateElements = generateElements(updateSize, { random: true });
+    const rawUpdateElements = generateElements(updateSize, { random: true, size: elementSize });
     const rawIndices = rawUpdateElements.map(() => Math.floor(Math.random() * elementCount));
     const indices = rawIndices.filter((index, i) => rawIndices.indexOf(index) === i).sort((a, b) => a - b);
     const updateElements = rawUpdateElements.slice(0, indices.length);
@@ -233,7 +236,7 @@ const testConsecutiveMultiUpdate = (iterations, elementCount, updateSize, option
   expect(root.equals(finalMerkleTree.root)).to.be.true;
 };
 
-const testAppendProofGeneration = (elementCount, seed, expected, options) => {
+const testAppendProofGeneration = (elementCount, seed, expected, options = {}) => {
   const elements = generateElements(elementCount, { seed });
   const merkleTree = new MerkleTree(elements, options);
   const proof = merkleTree.generateAppendProof(options);
@@ -251,7 +254,7 @@ const testAppendProofGeneration = (elementCount, seed, expected, options) => {
   expect(proof.decommitments.length).to.equal(expected.decommitments.length);
 };
 
-const testAppendProofVerification = (elementCount, options) => {
+const testAppendProofVerification = (elementCount, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const proof = merkleTree.generateAppendProof(options);
@@ -260,7 +263,7 @@ const testAppendProofVerification = (elementCount, options) => {
   expect(proofValid).to.be.true;
 };
 
-const testSingleAppend = (elementCount, options) => {
+const testSingleAppend = (elementCount, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const appendElement = generateElements(1, { seed: '11' })[0];
@@ -275,13 +278,14 @@ const testSingleAppend = (elementCount, options) => {
   expect(newElementCount).to.equal(freshMerkleTree.elements.length);
 };
 
-const testConsecutiveSingleAppend = (iterations, elementCount, options) => {
-  let elements = generateElements(elementCount, { seed: 'cc' });
+const testConsecutiveSingleAppend = (iterations, elementCount, options = {}, elementOptions = {}) => {
+  const { elementSize = 32 } = elementOptions;
+  let elements = generateElements(elementCount, { seed: 'cc', size: elementSize });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
 
   for (let i = 0; i < iterations; i++) {
-    const appendElement = generateElements(1, { random: true })[0];
+    const appendElement = generateElements(1, { random: true, size: elementSize })[0];
     const { newMerkleTree, proof } = merkleTree.appendSingle(appendElement, options);
     merkleTree = newMerkleTree;
     const results = MerkleTree.appendWithAppendProof(proof, options);
@@ -297,7 +301,7 @@ const testConsecutiveSingleAppend = (iterations, elementCount, options) => {
   expect(root.equals(finalMerkleTree.root)).to.be.true;
 };
 
-const testMultiAppend = (elementCount, appendSize, options) => {
+const testMultiAppend = (elementCount, appendSize, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const appendElements = generateElements(appendSize, { seed: '11' });
@@ -312,13 +316,14 @@ const testMultiAppend = (elementCount, appendSize, options) => {
   expect(newElementCount).to.equal(freshMerkleTree.elements.length);
 };
 
-const testConsecutiveMultiAppend = (iterations, elementCount, appendSize, options) => {
-  let elements = generateElements(elementCount, { seed: 'cc' });
+const testConsecutiveMultiAppend = (iterations, elementCount, appendSize, options = {}, elementOptions = {}) => {
+  const { elementSize = 32 } = elementOptions;
+  let elements = generateElements(elementCount, { seed: 'cc', size: elementSize });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
 
   for (let i = 0; i < iterations; i++) {
-    const appendElements = generateElements(Math.ceil(Math.random() * appendSize));
+    const appendElements = generateElements(Math.ceil(Math.random() * appendSize), { random: true, size: elementSize });
     const { newMerkleTree, proof } = merkleTree.appendMulti(appendElements, options);
     merkleTree = newMerkleTree;
     const results = MerkleTree.appendWithAppendProof(proof, options);
@@ -334,7 +339,7 @@ const testConsecutiveMultiAppend = (iterations, elementCount, appendSize, option
   expect(root.equals(finalMerkleTree.root)).to.be.true;
 };
 
-const testCombinedProofMinimumIndex = (elementCount, expected, options) => {
+const testCombinedProofMinimumIndex = (elementCount, expected, options = {}) => {
   const elements = generateElements(elementCount);
   const merkleTree = new MerkleTree(elements, options);
   const minimumIndex = merkleTree.minimumCombinedProofIndex;
@@ -342,7 +347,7 @@ const testCombinedProofMinimumIndex = (elementCount, expected, options) => {
   expect(minimumIndex).to.equal(expected.minimumIndex);
 };
 
-const testSingleUpdateSingleAppendProofGeneration = (elementCount, seed, index, options) => {
+const testSingleUpdateSingleAppendProofGeneration = (elementCount, seed, index, options = {}) => {
   const originalElements = generateElements(elementCount, { seed });
   const merkleTree = new MerkleTree(originalElements, options);
   const uElement = generateElements(1, { seed: '11' })[0];
@@ -366,7 +371,7 @@ const testSingleUpdateSingleAppendProofGeneration = (elementCount, seed, index, 
   expect(combinedProof.decommitments.length).to.equal(singleProof.decommitments.length);
 };
 
-const testMultiUpdateMultiAppendProofGeneration = (elementCount, seed, updateIndices, appendSize, options) => {
+const testMultiUpdateMultiAppendProofGeneration = (elementCount, seed, updateIndices, appendSize, options = {}) => {
   const originalElements = generateElements(elementCount, { seed });
   const merkleTree = new MerkleTree(originalElements, options);
   const uElements = generateElements(updateIndices.length, { seed: '11' });
@@ -399,7 +404,7 @@ const testMultiUpdateMultiAppendProofGeneration = (elementCount, seed, updateInd
   expect(combinedProof.skips).to.deep.equal(multiProof.skips);
 };
 
-const testCombinedProofVerification = (elementCount, indices, options) => {
+const testCombinedProofVerification = (elementCount, indices, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const proof = merkleTree.generateCombinedProof(indices, options);
@@ -408,7 +413,7 @@ const testCombinedProofVerification = (elementCount, indices, options) => {
   expect(proofValid).to.be.true;
 };
 
-const testSingleUpdateSingleAppend = (elementCount, updateIndex, options) => {
+const testSingleUpdateSingleAppend = (elementCount, updateIndex, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const uElement = generateElements(1, { seed: '11' })[0];
@@ -425,7 +430,7 @@ const testSingleUpdateSingleAppend = (elementCount, updateIndex, options) => {
   expect(newElementCount).to.equal(freshMerkleTree.elements.length);
 };
 
-const testMultiUpdateMultiAppend = (elementCount, updateIndices, appendSize, options) => {
+const testMultiUpdateMultiAppend = (elementCount, updateIndices, appendSize, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const uElements = generateElements(updateIndices.length, { seed: '11' });
@@ -448,7 +453,7 @@ const testMultiUpdateMultiAppend = (elementCount, updateIndices, appendSize, opt
   expect(newElementCount).to.equal(freshMerkleTree.elements.length);
 };
 
-const testConsecutiveSingleUpdateSingleAppend = (iterations, elementCount, options) => {
+const testConsecutiveSingleUpdateSingleAppend = (iterations, elementCount, options = {}) => {
   let elements = generateElements(elementCount, { seed: 'cc' });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
@@ -475,7 +480,7 @@ const testConsecutiveSingleUpdateSingleAppend = (iterations, elementCount, optio
   expect(root.equals(finalMerkleTree.root)).to.be.true;
 };
 
-const testConsecutiveMultiUpdateMultiAppend = (iterations, elementCount, updateSize, appendSize, options) => {
+const testConsecutiveMultiUpdateMultiAppend = (iterations, elementCount, updateSize, appendSize, options = {}) => {
   let elements = generateElements(elementCount, { seed: 'cc' });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
@@ -511,7 +516,7 @@ const testConsecutiveMultiUpdateMultiAppend = (iterations, elementCount, updateS
   expect(root.equals(finalMerkleTree.root)).to.be.true;
 };
 
-const testSingleUseSingleAppendProofGeneration = (elementCount, seed, index, options) => {
+const testSingleUseSingleAppendProofGeneration = (elementCount, seed, index, options = {}) => {
   const originalElements = generateElements(elementCount, { seed });
   const merkleTree = new MerkleTree(originalElements, options);
   const aElement = generateElements(1, { seed: '22' })[0];
@@ -533,7 +538,7 @@ const testSingleUseSingleAppendProofGeneration = (elementCount, seed, index, opt
   expect(combinedProof.decommitments.length).to.equal(singleProof.decommitments.length);
 };
 
-const testSingleUseSingleAppend = (elementCount, index, options) => {
+const testSingleUseSingleAppend = (elementCount, index, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const aElement = generateElements(1, { seed: '22' })[0];
@@ -548,7 +553,7 @@ const testSingleUseSingleAppend = (elementCount, index, options) => {
   expect(newElementCount).to.equal(freshMerkleTree.elements.length);
 };
 
-const testConsecutiveSingleUseSingleAppend = (iterations, elementCount, options) => {
+const testConsecutiveSingleUseSingleAppend = (iterations, elementCount, options = {}) => {
   let elements = generateElements(elementCount, { seed: 'cc' });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
@@ -574,7 +579,7 @@ const testConsecutiveSingleUseSingleAppend = (iterations, elementCount, options)
   expect(root.equals(finalMerkleTree.root)).to.be.true;
 };
 
-const testMultiUseMultiAppendProofGeneration = (elementCount, seed, indices, appendSize, options) => {
+const testMultiUseMultiAppendProofGeneration = (elementCount, seed, indices, appendSize, options = {}) => {
   const originalElements = generateElements(elementCount, { seed });
   const merkleTree = new MerkleTree(originalElements, options);
   const aElements = generateElements(appendSize, { seed: '22' });
@@ -604,7 +609,7 @@ const testMultiUseMultiAppendProofGeneration = (elementCount, seed, indices, app
   expect(combinedProof.skips).to.deep.equal(multiProof.skips);
 };
 
-const testMultiUseMultiAppend = (elementCount, indices, appendSize, options) => {
+const testMultiUseMultiAppend = (elementCount, indices, appendSize, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const aElements = generateElements(appendSize, { seed: '22' });
@@ -619,7 +624,7 @@ const testMultiUseMultiAppend = (elementCount, indices, appendSize, options) => 
   expect(newElementCount).to.equal(freshMerkleTree.elements.length);
 };
 
-const testConsecutiveMultiUseMultiAppend = (iterations, elementCount, useSize, appendSize, options) => {
+const testConsecutiveMultiUseMultiAppend = (iterations, elementCount, useSize, appendSize, options = {}) => {
   let elements = generateElements(elementCount, { seed: 'cc' });
   let merkleTree = new MerkleTree(elements, options);
   let root = null;
@@ -648,7 +653,7 @@ const testConsecutiveMultiUseMultiAppend = (iterations, elementCount, useSize, a
   expect(root.equals(finalMerkleTree.root)).to.be.true;
 };
 
-const testSizeProofGeneration = (elementCount, seed, expected, options) => {
+const testSizeProofGeneration = (elementCount, seed, expected, options = {}) => {
   const elements = generateElements(elementCount, { seed });
   const merkleTree = new MerkleTree(elements, options);
   const proof = merkleTree.generateSizeProof(options);
@@ -671,7 +676,7 @@ const testSizeProofGeneration = (elementCount, seed, expected, options) => {
   expect(proof.decommitments.length).to.equal(expected.decommitments.length);
 };
 
-const testSizeProofVerification = (elementCount, options) => {
+const testSizeProofVerification = (elementCount, options = {}) => {
   const elements = generateElements(elementCount, { seed: 'ff' });
   const merkleTree = new MerkleTree(elements, options);
   const proof = merkleTree.generateSizeProof(options);
@@ -735,7 +740,7 @@ describe('Merkle Trees', () => {
         testBuildTree(9, 'ff', expected, { unbalanced: true, sortedHash: false });
       });
 
-      it('should build an sorted-hash 9-element Merkle Tree.', () => {
+      it('should build a sorted-hash 9-element Merkle Tree.', () => {
         const expected = {
           root: '4c10104ea544f26190809c1117a092b18c8d7ab892f23c30a0f0cdb2c5242c48',
           elementRoot: '86620d93d22f2d06344f81166356ed881cfdc36c8b35a7115e8b0daad4d56ee4',
@@ -745,7 +750,7 @@ describe('Merkle Trees', () => {
         testBuildTree(9, 'ff', expected, { unbalanced: true, sortedHash: true });
       });
 
-      it('should build an 28-element Merkle Tree.', () => {
+      it('should build a 28-element Merkle Tree.', () => {
         const expected = {
           root: 'c50d9f940bf3e7267d2c4645ef2b99d774a91582253af1d086377fb219b59e45',
           elementRoot: '99d034409decb2fd31237dac23d2e037faf7d4dd896940ebb0ea580c9ffeb0af',
@@ -755,7 +760,7 @@ describe('Merkle Trees', () => {
         testBuildTree(28, 'ff', expected, { unbalanced: true, sortedHash: false });
       });
 
-      it('should build an sorted-hash 28-element Merkle Tree.', () => {
+      it('should build a sorted-hash 28-element Merkle Tree.', () => {
         const expected = {
           root: 'a5920c89398aa2837b8ad511c217dba2379e4e8b1a360de7ec00b9017fcc5f78',
           elementRoot: 'cad3ecd38ce3a9ea9dd091b06889fac4b2bde73270406064582d54ed84c31087',
@@ -1162,1327 +1167,1323 @@ describe('Merkle Trees', () => {
     });
   });
 
-  describe('Multi Proofs', () => {
-    describe('Index and Existence Multi Proofs', () => {
-      describe('Index and Existence Multi Proof Generation', () => {
-        describe('Balanced', () => {
-          it('should generate a Multi Proof for a 8-element Merkle Tree.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
+  describe('Index and Existence Multi Proofs', () => {
+    describe('Index and Existence Multi Proof Generation', () => {
+      describe('Balanced', () => {
+        it('should generate a Multi Proof for a 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
 
-            const expected = {
-              decommitments: [
-                '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
-                '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
-                'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
-              ],
-            };
+          const expected = {
+            decommitments: [
+              '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
+              '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
+              'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
+            ],
+          };
 
-            testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
-          });
-
-          it('should generate a Multi Proof for a 1-element Merkle Tree.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
-
-            const expected = {
-              decommitments: [],
-            };
-
-            testMultiProofGeneration(1, 'ff', [0], expected, options);
-          });
-
-          it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
-            const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
-
-            const expected = {
-              decommitments: [
-                '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
-                'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
-                'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
-              ],
-            };
-
-            testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
-          });
-
-          it('should generate a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
-            const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
-
-            const expected = {
-              decommitments: [],
-            };
-
-            testMultiProofGeneration(1, 'ff', [0], expected, options);
-          });
-
-          it('should generate a compact Multi Proof for a 8-element Merkle Tree.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: true };
-
-            const expected = {
-              compactProof: [
-                '0000000000000000000000000000000000000000000000000000000000000008',
-                '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
-                '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
-                'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
-              ],
-            };
-
-            testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
-          });
-
-          it('should generate a compact Multi Proof for a 1-element Merkle Tree.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: true };
-
-            const expected = {
-              compactProof: ['0000000000000000000000000000000000000000000000000000000000000001'],
-            };
-
-            testMultiProofGeneration(1, 'ff', [0], expected, options);
-          });
+          testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
         });
 
-        describe('Unbalanced', () => {
-          it('should generate a Multi Proof for a 12-element Merkle Tree.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
+        it('should generate a Multi Proof for a 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
 
-            const expected = {
-              decommitments: [
-                '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
-                'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
-                'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                'babbf2a0bca3f1360d7706d6d175f3380c5973df4b2d1bb19a9496792891697d',
-              ],
-            };
+          const expected = {
+            decommitments: [],
+          };
 
-            testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
-          });
-
-          it('should generate a Multi Proof for a 19-element Merkle Tree.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
-
-            const expected = {
-              decommitments: [
-                '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
-                '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
-                'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
-                '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
-                'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
-                'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
-                'd1c7a0741902e7210c324ee399555decfb24a0281c42d0a690a84acae5a1cfd2',
-                '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
-                '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
-                'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-              ],
-            };
-
-            testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
-          });
-
-          it('should generate a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
-            const options = { unbalanced: true, sortedHash: true, indexed: true, compact: false };
-
-            const expected = {
-              decommitments: [
-                '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
-                'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
-                'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                'bc481a454a66b25fd1adf8b6b88cbcac3783d39d5ab1e4c45d114846da10274c',
-              ],
-            };
-
-            testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
-          });
-
-          it('should generate a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
-            const options = { unbalanced: true, sortedHash: true, indexed: true, compact: false };
-
-            const expected = {
-              decommitments: [
-                '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
-                '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
-                'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
-                '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
-                'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
-                'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
-                'c83c0742945e25d8ea750b433deb383bd3c68c5e415398cb3a1bf7ebd760fe85',
-                '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
-                'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
-                'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-              ],
-            };
-
-            testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
-          });
-
-          it('should generate a Compact Multi Proof for a 12-element Merkle Tree.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
-
-            const expected = {
-              compactProof: [
-                '000000000000000000000000000000000000000000000000000000000000000c',
-                '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
-                'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
-                'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                'babbf2a0bca3f1360d7706d6d175f3380c5973df4b2d1bb19a9496792891697d',
-              ],
-            };
-
-            testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
-          });
-
-          it('should generate a Compact Multi Proof for a 19-element Merkle Tree.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
-
-            const expected = {
-              compactProof: [
-                '0000000000000000000000000000000000000000000000000000000000000013',
-                '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
-                '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
-                'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
-                '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
-                'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
-                'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
-                'd1c7a0741902e7210c324ee399555decfb24a0281c42d0a690a84acae5a1cfd2',
-                '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
-                '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
-                'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-              ],
-            };
-
-            testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
-          });
+          testMultiProofGeneration(1, 'ff', [0], expected, options);
         });
 
-        describe('Balanced/Unbalanced Overlapping Cases', () => {
-          it('should generate the same Multi Proof for a 8-element Merkle Tree.', () => {
-            const balancedOptions = { unbalanced: false, sortedHash: false, indexed: true };
-            const unbalancedOptions = { unbalanced: true, sortedHash: false, indexed: true };
-            compareMultiProofs(8, [1, 4, 5], balancedOptions, unbalancedOptions);
-          });
+        it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
 
-          it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
-            const balancedOptions = { unbalanced: false, sortedHash: true, indexed: true };
-            const unbalancedOptions = { unbalanced: true, sortedHash: true, indexed: true };
-            compareMultiProofs(8, [1, 4, 5], balancedOptions, unbalancedOptions);
-          });
+          const expected = {
+            decommitments: [
+              '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
+              'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
+              'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
+            ],
+          };
+
+          testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
+        });
+
+        it('should generate a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
+
+          const expected = {
+            decommitments: [],
+          };
+
+          testMultiProofGeneration(1, 'ff', [0], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000008',
+              '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
+              '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
+              'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
+            ],
+          };
+
+          testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: true };
+
+          const expected = {
+            compactProof: ['0000000000000000000000000000000000000000000000000000000000000001'],
+          };
+
+          testMultiProofGeneration(1, 'ff', [0], expected, options);
         });
       });
 
-      describe('Index and Existence Multi Proof Verification', () => {
-        describe('Balanced', () => {
-          it('should verify a Multi Proof for a 8-element Merkle Tree.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
-            testMultiProofVerification(8, [1, 4, 5], options);
-          });
+      describe('Unbalanced', () => {
+        it('should generate a Multi Proof for a 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
 
-          it('should verify a Multi Proof for a 1-element Merkle Tree.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
-            testMultiProofVerification(1, [0], options);
-          });
+          const expected = {
+            decommitments: [
+              '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
+              'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+              'babbf2a0bca3f1360d7706d6d175f3380c5973df4b2d1bb19a9496792891697d',
+            ],
+          };
 
-          it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
-            const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
-            testMultiProofVerification(8, [1, 4, 5], options);
-          });
-
-          it('should verify a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
-            const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
-            testMultiProofVerification(1, [0], options);
-          });
-
-          it('should verify a compact Multi Proof for a 8-element Merkle Tree.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: true };
-            testMultiProofVerification(8, [1, 4, 5], options);
-          });
-
-          it('should verify a compact Multi Proof for a 1-element Merkle Tree.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: true };
-            testMultiProofVerification(1, [0], options);
-          });
+          testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
         });
 
-        describe('Unbalanced', () => {
-          it('should verify a Multi Proof for a 12-element Merkle Tree.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
-            testMultiProofVerification(12, [2, 3, 8, 11], options);
-          });
+        it('should generate a Multi Proof for a 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
 
-          it('should verify a Multi Proof for a 19-element Merkle Tree.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
-            testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
-          });
+          const expected = {
+            decommitments: [
+              '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
+              '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
+              'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
+              '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
+              'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
+              'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
+              'd1c7a0741902e7210c324ee399555decfb24a0281c42d0a690a84acae5a1cfd2',
+              '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
+              '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+            ],
+          };
 
-          it('should verify a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
-            const options = { unbalanced: true, sortedHash: true, indexed: true, compact: false };
-            testMultiProofVerification(12, [2, 3, 8, 11], options);
-          });
-
-          it('should verify a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
-            const options = { unbalanced: true, sortedHash: true, indexed: true, compact: false };
-            testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
-          });
-
-          it('should verify a Compact Multi Proof for a 12-element Merkle Tree.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
-            testMultiProofVerification(12, [2, 3, 8, 11], options);
-          });
-
-          it('should verify a Compact Multi Proof for a 19-element Merkle Tree.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
-            testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
-          });
+          testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
         });
 
-        describe('Balanced/Unbalanced Overlapping Cases', () => {
-          it('should verify a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true };
-            testMultiProofVerification(8, [1, 4, 5], options);
-          });
+        it('should generate a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: true, compact: false };
 
-          it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option.', () => {
-            const options = { unbalanced: true, sortedHash: true, indexed: true };
-            testMultiProofVerification(8, [1, 4, 5], options);
-          });
-        });
-      });
+          const expected = {
+            decommitments: [
+              '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
+              'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+              'bc481a454a66b25fd1adf8b6b88cbcac3783d39d5ab1e4c45d114846da10274c',
+            ],
+          };
 
-      describe('Index and Existence Multi Proof Update', () => {
-        describe('Balanced', () => {
-          it('should use a Multi Proof for a 8-element Merkle Tree to update elements.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
-            testMultiUpdate(8, [1, 4, 5], options);
-          });
-
-          it('should use a Multi Proof for a 1-element Merkle Tree to update elements.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
-            testMultiUpdate(1, [0], options);
-          });
-
-          it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree to update elements.', () => {
-            const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
-            testMultiUpdate(8, [1, 4, 5], options);
-          });
-
-          it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree to update elements.', () => {
-            const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
-            testMultiUpdate(1, [0], options);
-          });
-
-          it('should use a compact Multi Proof for a 8-element Merkle Tree to update elements.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: true };
-            testMultiUpdate(8, [1, 4, 5], options);
-          });
-
-          it('should use a compact Multi Proof for a 1-element Merkle Tree to update elements.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: true };
-            testMultiUpdate(1, [0], options);
-          });
+          testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
         });
 
-        describe('Unbalanced', () => {
-          it('should use a Multi Proof for a 12-element Merkle Tree, to update elements.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
-            testMultiUpdate(12, [2, 3, 8, 11], options);
-          });
+        it('should generate a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: true, compact: false };
 
-          it('should use a Multi Proof for a 19-element Merkle Tree, to update elements.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
-            testMultiUpdate(19, [2, 4, 9, 12, 17], options);
-          });
+          const expected = {
+            decommitments: [
+              '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
+              '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
+              'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
+              '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
+              'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
+              'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
+              'c83c0742945e25d8ea750b433deb383bd3c68c5e415398cb3a1bf7ebd760fe85',
+              '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
+              'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+            ],
+          };
 
-          it('should use a Multi Proof for a sorted-hash 12-element Merkle Tree, to update elements.', () => {
-            const options = { unbalanced: true, sortedHash: true, indexed: true, compact: false };
-            testMultiUpdate(12, [2, 3, 8, 11], options);
-          });
-
-          it('should use a Multi Proof for a sorted-hash 19-element Merkle Tree, to update elements.', () => {
-            const options = { unbalanced: true, sortedHash: true, indexed: true, compact: false };
-            testMultiUpdate(19, [2, 4, 9, 12, 17], options);
-          });
-
-          it('should use a Compact Multi Proof for a 12-element Merkle Tree, to update elements.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
-            testMultiUpdate(12, [2, 3, 8, 11], options);
-          });
-
-          it('should use a Compact Multi Proof for a 19-element Merkle Tree, to update elements.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
-            testMultiUpdate(19, [2, 4, 9, 12, 17], options);
-          });
+          testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
         });
 
-        describe('Balanced/Unbalanced Overlapping Cases', () => {
-          it('should use a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option, to update an element.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true };
-            testMultiUpdate(8, [1, 4, 5], options);
-          });
+        it('should generate a Compact Multi Proof for a 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
 
-          it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update an element.', () => {
-            const options = { unbalanced: true, sortedHash: true, indexed: true };
-            testMultiUpdate(8, [1, 4, 5], options);
-          });
+          const expected = {
+            compactProof: [
+              '000000000000000000000000000000000000000000000000000000000000000c',
+              '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
+              'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+              'babbf2a0bca3f1360d7706d6d175f3380c5973df4b2d1bb19a9496792891697d',
+            ],
+          };
+
+          testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
+        });
+
+        it('should generate a Compact Multi Proof for a 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000013',
+              '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
+              '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
+              'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
+              '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
+              'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
+              'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
+              'd1c7a0741902e7210c324ee399555decfb24a0281c42d0a690a84acae5a1cfd2',
+              '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
+              '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+            ],
+          };
+
+          testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
         });
       });
 
-      describe('Index and Existence Multi Proof Update Consecutive Uses', () => {
-        describe('Balanced', () => {
-          it('should use 100 Multi Proofs for a 16-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
-            const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
-            testConsecutiveMultiUpdate(100, 16, 6, options);
-          });
-
-          it('should use 100 Compact Multi Proofs for a 16-element sorted-hash Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
-            const options = { unbalanced: false, sortedHash: true, indexed: true, compact: true };
-            testConsecutiveMultiUpdate(100, 16, 6, options);
-          });
+      describe('Balanced/Unbalanced Overlapping Cases', () => {
+        it('should generate the same Multi Proof for a 8-element Merkle Tree.', () => {
+          const balancedOptions = { unbalanced: false, sortedHash: false, indexed: true };
+          const unbalancedOptions = { unbalanced: true, sortedHash: false, indexed: true };
+          compareMultiProofs(8, [1, 4, 5], balancedOptions, unbalancedOptions);
         });
 
-        describe('Unbalanced', () => {
-          it('should use 100 Multi Proofs for a 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
-            const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
-            testConsecutiveMultiUpdate(100, 19, 6, options);
-          });
-
-          it('should use 100 Compact Multi Proofs for a sorted-hash 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
-            const options = { unbalanced: true, sortedHash: true, indexed: true, compact: true };
-            testConsecutiveMultiUpdate(100, 19, 6, options);
-          });
+        it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
+          const balancedOptions = { unbalanced: false, sortedHash: true, indexed: true };
+          const unbalancedOptions = { unbalanced: true, sortedHash: true, indexed: true };
+          compareMultiProofs(8, [1, 4, 5], balancedOptions, unbalancedOptions);
         });
       });
     });
 
-    describe('Existence-Only Multi Proofs', () => {
-      describe('Existence-Only Boolean-Array Multi Proofs', () => {
-        describe('Existence-Only Boolean-Array Multi Proof Generation', () => {
-          describe('Balanced', () => {
-            it('should generate a Multi Proof for a 8-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
-
-              const expected = {
-                decommitments: [
-                  '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
-                  '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
-                  'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
-                ],
-                flags: [true, false, false, false, true],
-                skips: [false, false, false, false, false],
-                orders: [true, false, true, true, true],
-              };
-
-              testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
-            });
-
-            it('should generate a Multi Proof for a 1-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
-
-              const expected = {
-                decommitments: [],
-                flags: [],
-                skips: [],
-                orders: [],
-              };
-
-              testMultiProofGeneration(1, 'ff', [0], expected, options);
-            });
-
-            it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
-
-              const expected = {
-                decommitments: [
-                  '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
-                  'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
-                  'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
-                ],
-                flags: [true, false, false, false, true],
-                skips: [false, false, false, false, false],
-              };
-
-              testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
-            });
-
-            it('should generate a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
-
-              const expected = {
-                decommitments: [],
-                flags: [],
-                skips: [],
-              };
-
-              testMultiProofGeneration(1, 'ff', [0], expected, options);
-            });
-          });
-
-          describe('Unbalanced', () => {
-            it('should generate a Multi Proof for a 12-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-
-              const expected = {
-                decommitments: [
-                  '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
-                  'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
-                  'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                  'babbf2a0bca3f1360d7706d6d175f3380c5973df4b2d1bb19a9496792891697d',
-                ],
-                flags: [false, false, true, true, false, false, false, true],
-                skips: [false, false, false, false, false, true, false, false],
-                orders: [false, true, true, true, false, true, true, true],
-              };
-
-              testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
-            });
-
-            it('should generate a Multi Proof for a 19-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-
-              const expected = {
-                decommitments: [
-                  '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
-                  '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
-                  'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
-                  '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
-                  'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
-                  'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
-                  'd1c7a0741902e7210c324ee399555decfb24a0281c42d0a690a84acae5a1cfd2',
-                  '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
-                  '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
-                  'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                ],
-                flags: [
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  true,
-                  true,
-                  false,
-                  true,
-                  true,
-                ],
-                skips: [
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  true,
-                  false,
-                  false,
-                  true,
-                  false,
-                  false,
-                ],
-                orders: [
-                  false,
-                  true,
-                  false,
-                  true,
-                  true,
-                  true,
-                  true,
-                  true,
-                  true,
-                  false,
-                  true,
-                  true,
-                  true,
-                  true,
-                  true,
-                  true,
-                ],
-              };
-
-              testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
-            });
-
-            it('should generate a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-
-              const expected = {
-                decommitments: [
-                  '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
-                  'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
-                  'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                  'bc481a454a66b25fd1adf8b6b88cbcac3783d39d5ab1e4c45d114846da10274c',
-                ],
-                flags: [false, false, true, true, false, false, false, true],
-                skips: [false, false, false, false, false, true, false, false],
-              };
-
-              testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
-            });
-
-            it('should generate a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-
-              const expected = {
-                decommitments: [
-                  '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
-                  '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
-                  'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
-                  '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
-                  'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
-                  'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
-                  'c83c0742945e25d8ea750b433deb383bd3c68c5e415398cb3a1bf7ebd760fe85',
-                  '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
-                  'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
-                  'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                ],
-                flags: [
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  true,
-                  true,
-                  false,
-                  true,
-                  true,
-                ],
-                skips: [
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  false,
-                  true,
-                  false,
-                  false,
-                  true,
-                  false,
-                  false,
-                ],
-              };
-
-              testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
-            });
-          });
-
-          describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should generate the same Multi Proof for a 8-element Merkle Tree.', () => {
-              const balancedOptions = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
-              const unbalancedOptions = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-              compareMultiProofs(8, [1, 4, 5], balancedOptions, unbalancedOptions);
-            });
-
-            it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
-              const balancedOptions = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
-              const unbalancedOptions = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-              compareMultiProofs(8, [1, 4, 5], balancedOptions, unbalancedOptions);
-            });
-          });
+    describe('Index and Existence Multi Proof Verification', () => {
+      describe('Balanced', () => {
+        it('should verify a Multi Proof for a 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
+          testMultiProofVerification(8, [1, 4, 5], options);
         });
 
-        describe('Existence-Only Boolean-Array Multi Proof Verification', () => {
-          describe('Balanced', () => {
-            it('should verify a Multi Proof for a 8-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
-              testMultiProofVerification(8, [1, 4, 5], options);
-            });
-
-            it('should verify a Multi Proof for a 1-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
-              testMultiProofVerification(1, [0], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
-              testMultiProofVerification(8, [1, 4, 5], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
-              testMultiProofVerification(1, [0], options);
-            });
-          });
-
-          describe('Unbalanced', () => {
-            it('should verify a Multi Proof for a 12-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-              testMultiProofVerification(12, [2, 3, 8, 11], options);
-            });
-
-            it('should verify a Multi Proof for a 19-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-              testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-              testMultiProofVerification(12, [2, 3, 8, 11], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-              testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
-            });
-          });
-
-          describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should verify a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-              testMultiProofVerification(8, [1, 4, 5], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-              testMultiProofVerification(8, [1, 4, 5], options);
-            });
-          });
+        it('should verify a Multi Proof for a 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
+          testMultiProofVerification(1, [0], options);
         });
 
-        describe('Existence-Only Boolean-Array Multi Indices Inferring', () => {
-          describe('Balanced', () => {
-            it('should verify a Multi Proof for a 1-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
-              testMultiProofIndicesInferring(1, [0], options);
-            });
-
-            it('should verify a Multi Proof for a 8-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
-              testMultiProofIndicesInferring(8, [1, 4, 5], options);
-            });
-
-            it('should verify a Multi Proof for a 64-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
-              testMultiProofIndicesInferring(64, [0, 1, 7, 13, 15, 26, 34, 35, 36, 50, 62], options);
-            });
-          });
-
-          describe('Unbalanced', () => {
-            it('should verify a Multi Proof for a 12-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-              testMultiProofIndicesInferring(12, [2, 3, 8, 11], options);
-            });
-
-            it('should verify a Multi Proof for a 19-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-              testMultiProofIndicesInferring(19, [2, 4, 9, 12, 17], options);
-            });
-
-            it('should verify a Multi Proof for a 85-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-              testMultiProofIndicesInferring(85, [5, 6, 20, 36, 37, 65, 78, 83], options);
-            });
-          });
+        it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
+          testMultiProofVerification(8, [1, 4, 5], options);
         });
 
-        describe('Existence-Only Boolean-Array Multi Proof Update', () => {
-          describe('Balanced', () => {
-            it('should use a Multi Proof for a 8-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
-              testMultiUpdate(8, [1, 4, 5], options);
-            });
-
-            it('should use a Multi Proof for a 1-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
-              testMultiUpdate(1, [0], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
-              testMultiUpdate(8, [1, 4, 5], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
-              testMultiUpdate(1, [0], options);
-            });
-          });
-
-          describe('Unbalanced', () => {
-            it('should use a Multi Proof for a 12-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-              testMultiUpdate(12, [2, 3, 8, 11], options);
-            });
-
-            it('should use a Multi Proof for a 19-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-              testMultiUpdate(19, [2, 4, 9, 12, 17], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 12-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-              testMultiUpdate(12, [2, 3, 8, 11], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 19-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-              testMultiUpdate(19, [2, 4, 9, 12, 17], options);
-            });
-          });
-
-          describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should use a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-              testMultiUpdate(8, [1, 4, 5], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-              testMultiUpdate(8, [1, 4, 5], options);
-            });
-          });
+        it('should verify a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
+          testMultiProofVerification(1, [0], options);
         });
 
-        describe('Existence-Only Boolean-Array Multi Proof Update Consecutive Uses', () => {
-          describe('Balanced', () => {
-            it('should use 100 Multi Proofs for a 16-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
-              testConsecutiveMultiUpdate(100, 16, 6, options);
-            });
+        it('should verify a compact Multi Proof for a 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: true };
+          testMultiProofVerification(8, [1, 4, 5], options);
+        });
 
-            it('should use 100 Multi Proofs for a sorted-hash 16-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
-              testConsecutiveMultiUpdate(100, 16, 6, options);
-            });
-          });
-
-          describe('Unbalanced', () => {
-            it('should use 100 Multi Proofs for a 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-              testConsecutiveMultiUpdate(100, 19, 6, options);
-            });
-
-            it('should use 100 Multi Proofs for a sorted-hash 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-              testConsecutiveMultiUpdate(100, 19, 6, options);
-            });
-          });
+        it('should verify a compact Multi Proof for a 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: true };
+          testMultiProofVerification(1, [0], options);
         });
       });
 
-      describe('Existence-Only Boolean-Bit (Compact) Multi Proofs', () => {
-        describe('Existence-Only Boolean-Bit Multi Proof Generation', () => {
-          describe('Balanced', () => {
-            it('should generate a compact Multi Proof for a 8-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '0000000000000000000000000000000000000000000000000000000000000008',
-                  '0000000000000000000000000000000000000000000000000000000000000031',
-                  '0000000000000000000000000000000000000000000000000000000000000020',
-                  '000000000000000000000000000000000000000000000000000000000000001d',
-                  '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
-                  '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
-                  'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
-                ],
-              };
-
-              testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
-            });
-
-            it('should generate a compact Multi Proof for a 1-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '0000000000000000000000000000000000000000000000000000000000000001',
-                  '0000000000000000000000000000000000000000000000000000000000000001',
-                  '0000000000000000000000000000000000000000000000000000000000000001',
-                  '0000000000000000000000000000000000000000000000000000000000000000',
-                ],
-              };
-
-              testMultiProofGeneration(1, 'ff', [0], expected, options);
-            });
-
-            it('should generate a compact Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '0000000000000000000000000000000000000000000000000000000000000008',
-                  '0000000000000000000000000000000000000000000000000000000000000031',
-                  '0000000000000000000000000000000000000000000000000000000000000020',
-                  '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
-                  'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
-                  'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
-                ],
-              };
-
-              testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
-            });
-
-            it('should generate a compact Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '0000000000000000000000000000000000000000000000000000000000000001',
-                  '0000000000000000000000000000000000000000000000000000000000000001',
-                  '0000000000000000000000000000000000000000000000000000000000000001',
-                ],
-              };
-
-              testMultiProofGeneration(1, 'ff', [0], expected, options);
-            });
-          });
-
-          describe('Unbalanced', () => {
-            it('should generate a compact Multi Proof for a 3-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '0000000000000000000000000000000000000000000000000000000000000003',
-                  '000000000000000000000000000000000000000000000000000000000000000e',
-                  '0000000000000000000000000000000000000000000000000000000000000009',
-                  '0000000000000000000000000000000000000000000000000000000000000007',
-                ],
-              };
-
-              testMultiProofGeneration(3, 'ff', [0, 1, 2], expected, options);
-            });
-
-            it('should generate a compact Multi Proof for a 3-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '0000000000000000000000000000000000000000000000000000000000000003',
-                  '000000000000000000000000000000000000000000000000000000000000000c',
-                  '0000000000000000000000000000000000000000000000000000000000000009',
-                  '0000000000000000000000000000000000000000000000000000000000000005',
-                  '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
-                ],
-              };
-
-              testMultiProofGeneration(3, 'ff', [1, 2], expected, options);
-            });
-
-            it('should generate a compact Multi Proof for a 3-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '0000000000000000000000000000000000000000000000000000000000000003',
-                  '0000000000000000000000000000000000000000000000000000000000000004',
-                  '0000000000000000000000000000000000000000000000000000000000000005',
-                  '0000000000000000000000000000000000000000000000000000000000000001',
-                  'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                ],
-              };
-
-              testMultiProofGeneration(3, 'ff', [2], expected, options);
-            });
-
-            it('should generate a compact Multi Proof for a 12-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '000000000000000000000000000000000000000000000000000000000000000c',
-                  '000000000000000000000000000000000000000000000000000000000000018c',
-                  '0000000000000000000000000000000000000000000000000000000000000120',
-                  '00000000000000000000000000000000000000000000000000000000000000ee',
-                  '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
-                  'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
-                  'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                  'babbf2a0bca3f1360d7706d6d175f3380c5973df4b2d1bb19a9496792891697d',
-                ],
-              };
-
-              testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
-            });
-
-            it('should generate a compact Multi Proof for a 19-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '0000000000000000000000000000000000000000000000000000000000000013',
-                  '000000000000000000000000000000000000000000000000000000000001d800',
-                  '0000000000000000000000000000000000000000000000000000000000012400',
-                  '000000000000000000000000000000000000000000000000000000000000fdfa',
-                  '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
-                  '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
-                  'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
-                  '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
-                  'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
-                  'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
-                  'd1c7a0741902e7210c324ee399555decfb24a0281c42d0a690a84acae5a1cfd2',
-                  '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
-                  '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
-                  'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                ],
-              };
-
-              testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
-            });
-
-            it('should generate a compact Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '0000000000000000000000000000000000000000000000000000000000000003',
-                  '000000000000000000000000000000000000000000000000000000000000000e',
-                  '0000000000000000000000000000000000000000000000000000000000000009',
-                ],
-              };
-
-              testMultiProofGeneration(3, 'ff', [0, 1, 2], expected, options);
-            });
-
-            it('should generate a compact Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '0000000000000000000000000000000000000000000000000000000000000003',
-                  '000000000000000000000000000000000000000000000000000000000000000c',
-                  '0000000000000000000000000000000000000000000000000000000000000009',
-                  '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
-                ],
-              };
-
-              testMultiProofGeneration(3, 'ff', [1, 2], expected, options);
-            });
-
-            it('should generate a compact Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '0000000000000000000000000000000000000000000000000000000000000003',
-                  '0000000000000000000000000000000000000000000000000000000000000004',
-                  '0000000000000000000000000000000000000000000000000000000000000005',
-                  'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                ],
-              };
-
-              testMultiProofGeneration(3, 'ff', [2], expected, options);
-            });
-
-            it('should generate a compact Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              const expected = {
-                compactProof: [
-                  '000000000000000000000000000000000000000000000000000000000000000c',
-                  '000000000000000000000000000000000000000000000000000000000000018c',
-                  '0000000000000000000000000000000000000000000000000000000000000120',
-                  '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
-                  'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
-                  'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                  'bc481a454a66b25fd1adf8b6b88cbcac3783d39d5ab1e4c45d114846da10274c',
-                ],
-              };
-
-              testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
-            });
-
-            it('should generate a compact Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-
-              const expected = {
-                compactProof: [
-                  '0000000000000000000000000000000000000000000000000000000000000013',
-                  '000000000000000000000000000000000000000000000000000000000001d800',
-                  '0000000000000000000000000000000000000000000000000000000000012400',
-                  '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
-                  '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
-                  'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
-                  '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
-                  'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
-                  'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
-                  'c83c0742945e25d8ea750b433deb383bd3c68c5e415398cb3a1bf7ebd760fe85',
-                  '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
-                  'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
-                  'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
-                ],
-              };
-
-              testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
-            });
-          });
-
-          describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should generate the same Multi Proof for a 8-element Merkle Tree.', () => {
-              const balancedOptions = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
-              const unbalancedOptions = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              compareMultiProofs(8, [1, 4, 5], balancedOptions, unbalancedOptions);
-            });
-
-            it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
-              const balancedOptions = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
-              const unbalancedOptions = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              compareMultiProofs(8, [1, 4, 5], balancedOptions, unbalancedOptions);
-            });
-          });
+      describe('Unbalanced', () => {
+        it('should verify a Multi Proof for a 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
+          testMultiProofVerification(12, [2, 3, 8, 11], options);
         });
 
-        describe('Existence-Only Boolean-Bit Multi Proof Verification', () => {
-          describe('Balanced', () => {
-            it('should verify a Multi Proof for a 8-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
-              testMultiProofVerification(8, [1, 4, 5], options);
-            });
-
-            it('should verify a Multi Proof for a 1-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
-              testMultiProofVerification(1, [0], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
-              testMultiProofVerification(8, [1, 4, 5], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
-              testMultiProofVerification(1, [0], options);
-            });
-          });
-
-          describe('Unbalanced', () => {
-            it('should verify a Multi Proof for a 3-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiProofVerification(3, [0, 1, 2], options);
-            });
-
-            it('should verify a Multi Proof for a 3-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiProofVerification(3, [1, 2], options);
-            });
-
-            it('should verify a Multi Proof for a 3-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiProofVerification(3, [2], options);
-            });
-
-            it('should verify a Multi Proof for a 12-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiProofVerification(12, [2, 3, 8, 11], options);
-            });
-
-            it('should verify a Multi Proof for a 19-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testMultiProofVerification(3, [0, 1, 2], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testMultiProofVerification(3, [1, 2], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testMultiProofVerification(3, [2], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testMultiProofVerification(12, [2, 3, 8, 11], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
-            });
-          });
-
-          describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should verify a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiProofVerification(8, [1, 4, 5], options);
-            });
-
-            it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testMultiProofVerification(8, [1, 4, 5], options);
-            });
-          });
+        it('should verify a Multi Proof for a 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
+          testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
         });
 
-        describe('Existence-Only Boolean-Bit Multi Indices Inferring', () => {
-          describe('Balanced', () => {
-            it('should verify a Multi Proof for a 1-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
-              testMultiProofIndicesInferring(1, [0], options);
-            });
-
-            it('should verify a Multi Proof for a 8-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
-              testMultiProofIndicesInferring(8, [1, 4, 5], options);
-            });
-
-            it('should verify a Multi Proof for a 64-element Merkle Tree.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
-              testMultiProofIndicesInferring(64, [0, 1, 7, 13, 15, 26, 34, 35, 36, 50, 62], options);
-            });
-          });
-
-          describe('Unbalanced', () => {
-            it('should verify a Multi Proof for a 12-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiProofIndicesInferring(12, [2, 3, 8, 11], options);
-            });
-
-            it('should verify a Multi Proof for a 19-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiProofIndicesInferring(19, [2, 4, 9, 12, 17], options);
-            });
-
-            it('should verify a Multi Proof for a 85-element Merkle Tree.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiProofIndicesInferring(85, [5, 6, 20, 36, 37, 65, 78, 83], options);
-            });
-          });
+        it('should verify a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: true, compact: false };
+          testMultiProofVerification(12, [2, 3, 8, 11], options);
         });
 
-        describe('Existence-Only Boolean-Bit Multi Proof Update', () => {
-          describe('Balanced', () => {
-            it('should use a Multi Proof for a 8-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
-              testMultiUpdate(8, [1, 4, 5], options);
-            });
-
-            it('should use a Multi Proof for a 1-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
-              testMultiUpdate(1, [0], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
-              testMultiUpdate(8, [1, 4, 5], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
-              testMultiUpdate(1, [0], options);
-            });
-          });
-
-          describe('Unbalanced', () => {
-            it('should use a Multi Proof for a 3-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiUpdate(3, [0, 1, 2], options);
-            });
-
-            it('should use a Multi Proof for a 3-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiUpdate(3, [1, 2], options);
-            });
-
-            it('should use a Multi Proof for a 3-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiUpdate(3, [2], options);
-            });
-
-            it('should use a Multi Proof for a 12-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiUpdate(12, [2, 3, 8, 11], options);
-            });
-
-            it('should use a Multi Proof for a 19-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiUpdate(19, [2, 4, 9, 12, 17], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 3-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testMultiUpdate(3, [0, 1, 2], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 3-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testMultiUpdate(3, [1, 2], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 3-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testMultiUpdate(3, [2], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 12-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testMultiUpdate(12, [2, 3, 8, 11], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 19-element Merkle Tree, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testMultiUpdate(19, [2, 4, 9, 12, 17], options);
-            });
-          });
-
-          describe('Balanced/Unbalanced Overlapping Cases', () => {
-            it('should use a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testMultiUpdate(8, [1, 4, 5], options);
-            });
-
-            it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update elements.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testMultiUpdate(8, [1, 4, 5], options);
-            });
-          });
+        it('should verify a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: true, compact: false };
+          testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
         });
 
-        describe('Existence-Only Boolean-Bit Multi Proof Update Consecutive Uses', () => {
-          describe('Balanced', () => {
-            it('should use 100 Multi Proofs for a 16-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
-              const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
-              testConsecutiveMultiUpdate(100, 16, 6, options);
-            });
+        it('should verify a Compact Multi Proof for a 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
+          testMultiProofVerification(12, [2, 3, 8, 11], options);
+        });
 
-            it('should use 100 Multi Proofs for a sorted-hash 16-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
-              const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
-              testConsecutiveMultiUpdate(100, 16, 6, options);
-            });
-          });
+        it('should verify a Compact Multi Proof for a 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
+          testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
+        });
+      });
 
-          describe('Unbalanced', () => {
-            it('should use 100 Multi Proofs for a 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testConsecutiveMultiUpdate(100, 19, 6, options);
-            });
+      describe('Balanced/Unbalanced Overlapping Cases', () => {
+        it('should verify a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true };
+          testMultiProofVerification(8, [1, 4, 5], options);
+        });
 
-            it('should use 50 Multi Proofs for a 89-element Merkle Tree, to perform 50 updates of up to 13 random elements.', () => {
-              const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-              testConsecutiveMultiUpdate(50, 89, 13, options);
-            });
+        it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: true };
+          testMultiProofVerification(8, [1, 4, 5], options);
+        });
+      });
+    });
 
-            it('should use 100 Multi Proofs for a sorted-hash 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testConsecutiveMultiUpdate(100, 19, 6, options);
-            });
+    describe('Index and Existence Multi Proof Update', () => {
+      describe('Balanced', () => {
+        it('should use a Multi Proof for a 8-element Merkle Tree to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
 
-            it('should use 50 Multi Proofs for a sorted-hash 89-element Merkle Tree, to perform 50 updates of up to 13 random elements.', () => {
-              const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-              testConsecutiveMultiUpdate(50, 89, 13, options);
-            });
-          });
+        it('should use a Multi Proof for a 1-element Merkle Tree to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
+          testMultiUpdate(1, [0], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: true, compact: false };
+          testMultiUpdate(1, [0], options);
+        });
+
+        it('should use a compact Multi Proof for a 8-element Merkle Tree to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: true };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
+
+        it('should use a compact Multi Proof for a 1-element Merkle Tree to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: true };
+          testMultiUpdate(1, [0], options);
+        });
+      });
+
+      describe('Unbalanced', () => {
+        it('should use a Multi Proof for a 12-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
+          testMultiUpdate(12, [2, 3, 8, 11], options);
+        });
+
+        it('should use a Multi Proof for a 19-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
+          testMultiUpdate(19, [2, 4, 9, 12, 17], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 12-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: true, compact: false };
+          testMultiUpdate(12, [2, 3, 8, 11], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 19-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: true, compact: false };
+          testMultiUpdate(19, [2, 4, 9, 12, 17], options);
+        });
+
+        it('should use a Compact Multi Proof for a 12-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
+          testMultiUpdate(12, [2, 3, 8, 11], options);
+        });
+
+        it('should use a Compact Multi Proof for a 19-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
+          testMultiUpdate(19, [2, 4, 9, 12, 17], options);
+        });
+      });
+
+      describe('Balanced/Unbalanced Overlapping Cases', () => {
+        it('should use a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option, to update an element.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update an element.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: true };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
+      });
+    });
+
+    describe('Index and Existence Multi Proof Update Consecutive Uses', () => {
+      describe('Balanced', () => {
+        it('should use 100 Multi Proofs for a 16-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: true, compact: false };
+          testConsecutiveMultiUpdate(100, 16, 6, options);
+        });
+
+        it('should use 100 Compact Multi Proofs for a 16-element sorted-hash Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: true, compact: true };
+          testConsecutiveMultiUpdate(100, 16, 6, options);
+        });
+      });
+
+      describe('Unbalanced', () => {
+        it('should use 100 Multi Proofs for a 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: true, compact: false };
+          testConsecutiveMultiUpdate(100, 19, 6, options);
+        });
+
+        it('should use 100 Compact Multi Proofs for a sorted-hash 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: true, compact: true };
+          testConsecutiveMultiUpdate(100, 19, 6, options);
+        });
+      });
+    });
+  });
+
+  describe('Existence-Only Boolean-Array Multi Proofs', () => {
+    describe('Existence-Only Boolean-Array Multi Proof Generation', () => {
+      describe('Balanced', () => {
+        it('should generate a Multi Proof for a 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+
+          const expected = {
+            decommitments: [
+              '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
+              '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
+              'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
+            ],
+            flags: [true, false, false, false, true],
+            skips: [false, false, false, false, false],
+            orders: [true, false, true, true, true],
+          };
+
+          testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
+        });
+
+        it('should generate a Multi Proof for a 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+
+          const expected = {
+            decommitments: [],
+            flags: [],
+            skips: [],
+            orders: [],
+          };
+
+          testMultiProofGeneration(1, 'ff', [0], expected, options);
+        });
+
+        it('should generate a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
+
+          const expected = {
+            decommitments: [
+              '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
+              'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
+              'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
+            ],
+            flags: [true, false, false, false, true],
+            skips: [false, false, false, false, false],
+          };
+
+          testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
+        });
+
+        it('should generate a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
+
+          const expected = {
+            decommitments: [],
+            flags: [],
+            skips: [],
+          };
+
+          testMultiProofGeneration(1, 'ff', [0], expected, options);
+        });
+      });
+
+      describe('Unbalanced', () => {
+        it('should generate a Multi Proof for a 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+
+          const expected = {
+            decommitments: [
+              '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
+              'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+              'babbf2a0bca3f1360d7706d6d175f3380c5973df4b2d1bb19a9496792891697d',
+            ],
+            flags: [false, false, true, true, false, false, false, true],
+            skips: [false, false, false, false, false, true, false, false],
+            orders: [false, true, true, true, false, true, true, true],
+          };
+
+          testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
+        });
+
+        it('should generate a Multi Proof for a 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+
+          const expected = {
+            decommitments: [
+              '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
+              '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
+              'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
+              '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
+              'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
+              'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
+              'd1c7a0741902e7210c324ee399555decfb24a0281c42d0a690a84acae5a1cfd2',
+              '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
+              '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+            ],
+            flags: [
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              true,
+              true,
+              false,
+              true,
+              true,
+            ],
+            skips: [
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              true,
+              false,
+              false,
+              true,
+              false,
+              false,
+            ],
+            orders: [
+              false,
+              true,
+              false,
+              true,
+              true,
+              true,
+              true,
+              true,
+              true,
+              false,
+              true,
+              true,
+              true,
+              true,
+              true,
+              true,
+            ],
+          };
+
+          testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
+        });
+
+        it('should generate a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+
+          const expected = {
+            decommitments: [
+              '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
+              'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+              'bc481a454a66b25fd1adf8b6b88cbcac3783d39d5ab1e4c45d114846da10274c',
+            ],
+            flags: [false, false, true, true, false, false, false, true],
+            skips: [false, false, false, false, false, true, false, false],
+          };
+
+          testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
+        });
+
+        it('should generate a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+
+          const expected = {
+            decommitments: [
+              '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
+              '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
+              'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
+              '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
+              'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
+              'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
+              'c83c0742945e25d8ea750b433deb383bd3c68c5e415398cb3a1bf7ebd760fe85',
+              '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
+              'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+            ],
+            flags: [
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              true,
+              true,
+              false,
+              true,
+              true,
+            ],
+            skips: [
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              true,
+              false,
+              false,
+              true,
+              false,
+              false,
+            ],
+          };
+
+          testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
+        });
+      });
+
+      describe('Balanced/Unbalanced Overlapping Cases', () => {
+        it('should generate the same Multi Proof for a 8-element Merkle Tree.', () => {
+          const balancedOptions = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+          const unbalancedOptions = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+          compareMultiProofs(8, [1, 4, 5], balancedOptions, unbalancedOptions);
+        });
+
+        it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
+          const balancedOptions = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
+          const unbalancedOptions = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+          compareMultiProofs(8, [1, 4, 5], balancedOptions, unbalancedOptions);
+        });
+      });
+    });
+
+    describe('Existence-Only Boolean-Array Multi Proof Verification', () => {
+      describe('Balanced', () => {
+        it('should verify a Multi Proof for a 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+          testMultiProofVerification(8, [1, 4, 5], options);
+        });
+
+        it('should verify a Multi Proof for a 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+          testMultiProofVerification(1, [0], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
+          testMultiProofVerification(8, [1, 4, 5], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
+          testMultiProofVerification(1, [0], options);
+        });
+      });
+
+      describe('Unbalanced', () => {
+        it('should verify a Multi Proof for a 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+          testMultiProofVerification(12, [2, 3, 8, 11], options);
+        });
+
+        it('should verify a Multi Proof for a 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+          testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+          testMultiProofVerification(12, [2, 3, 8, 11], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+          testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
+        });
+      });
+
+      describe('Balanced/Unbalanced Overlapping Cases', () => {
+        it('should verify a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+          testMultiProofVerification(8, [1, 4, 5], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+          testMultiProofVerification(8, [1, 4, 5], options);
+        });
+      });
+    });
+
+    describe('Existence-Only Boolean-Array Multi Indices Inferring', () => {
+      describe('Balanced', () => {
+        it('should verify a Multi Proof for a 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+          testMultiProofIndicesInferring(1, [0], options);
+        });
+
+        it('should verify a Multi Proof for a 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+          testMultiProofIndicesInferring(8, [1, 4, 5], options);
+        });
+
+        it('should verify a Multi Proof for a 64-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+          testMultiProofIndicesInferring(64, [0, 1, 7, 13, 15, 26, 34, 35, 36, 50, 62], options);
+        });
+      });
+
+      describe('Unbalanced', () => {
+        it('should verify a Multi Proof for a 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+          testMultiProofIndicesInferring(12, [2, 3, 8, 11], options);
+        });
+
+        it('should verify a Multi Proof for a 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+          testMultiProofIndicesInferring(19, [2, 4, 9, 12, 17], options);
+        });
+
+        it('should verify a Multi Proof for a 85-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+          testMultiProofIndicesInferring(85, [5, 6, 20, 36, 37, 65, 78, 83], options);
+        });
+      });
+    });
+
+    describe('Existence-Only Boolean-Array Multi Proof Update', () => {
+      describe('Balanced', () => {
+        it('should use a Multi Proof for a 8-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
+
+        it('should use a Multi Proof for a 1-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+          testMultiUpdate(1, [0], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
+          testMultiUpdate(1, [0], options);
+        });
+      });
+
+      describe('Unbalanced', () => {
+        it('should use a Multi Proof for a 12-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+          testMultiUpdate(12, [2, 3, 8, 11], options);
+        });
+
+        it('should use a Multi Proof for a 19-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+          testMultiUpdate(19, [2, 4, 9, 12, 17], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 12-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+          testMultiUpdate(12, [2, 3, 8, 11], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 19-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+          testMultiUpdate(19, [2, 4, 9, 12, 17], options);
+        });
+      });
+
+      describe('Balanced/Unbalanced Overlapping Cases', () => {
+        it('should use a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
+      });
+    });
+
+    describe('Existence-Only Boolean-Array Multi Proof Update Consecutive Uses', () => {
+      describe('Balanced', () => {
+        it('should use 100 Multi Proofs for a 16-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: false };
+          testConsecutiveMultiUpdate(100, 16, 6, options);
+        });
+
+        it('should use 100 Multi Proofs for a sorted-hash 16-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: false };
+          testConsecutiveMultiUpdate(100, 16, 6, options);
+        });
+      });
+
+      describe('Unbalanced', () => {
+        it('should use 100 Multi Proofs for a 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+          testConsecutiveMultiUpdate(100, 19, 6, options);
+        });
+
+        it('should use 100 Multi Proofs for a sorted-hash 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+          testConsecutiveMultiUpdate(100, 19, 6, options);
+        });
+      });
+    });
+  });
+  
+  describe('Existence-Only Boolean-Bit (Compact) Multi Proofs', () => {
+    describe('Existence-Only Boolean-Bit Multi Proof Generation', () => {
+      describe('Balanced', () => {
+        it('should generate a compact Multi Proof for a 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000008',
+              '0000000000000000000000000000000000000000000000000000000000000031',
+              '0000000000000000000000000000000000000000000000000000000000000020',
+              '000000000000000000000000000000000000000000000000000000000000001d',
+              '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
+              '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
+              'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
+            ],
+          };
+
+          testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000001',
+              '0000000000000000000000000000000000000000000000000000000000000001',
+              '0000000000000000000000000000000000000000000000000000000000000001',
+              '0000000000000000000000000000000000000000000000000000000000000000',
+            ],
+          };
+
+          testMultiProofGeneration(1, 'ff', [0], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000008',
+              '0000000000000000000000000000000000000000000000000000000000000031',
+              '0000000000000000000000000000000000000000000000000000000000000020',
+              '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
+              'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
+              'e868cc58247970644e689c7c207cdbbe6db49bec4953c7ba28527799056f07e9',
+            ],
+          };
+
+          testMultiProofGeneration(8, 'ff', [1, 4, 5], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000001',
+              '0000000000000000000000000000000000000000000000000000000000000001',
+              '0000000000000000000000000000000000000000000000000000000000000001',
+            ],
+          };
+
+          testMultiProofGeneration(1, 'ff', [0], expected, options);
+        });
+      });
+
+      describe('Unbalanced', () => {
+        it('should generate a compact Multi Proof for a 3-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000003',
+              '000000000000000000000000000000000000000000000000000000000000000e',
+              '0000000000000000000000000000000000000000000000000000000000000009',
+              '0000000000000000000000000000000000000000000000000000000000000007',
+            ],
+          };
+
+          testMultiProofGeneration(3, 'ff', [0, 1, 2], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a 3-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000003',
+              '000000000000000000000000000000000000000000000000000000000000000c',
+              '0000000000000000000000000000000000000000000000000000000000000009',
+              '0000000000000000000000000000000000000000000000000000000000000005',
+              '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
+            ],
+          };
+
+          testMultiProofGeneration(3, 'ff', [1, 2], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a 3-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000003',
+              '0000000000000000000000000000000000000000000000000000000000000004',
+              '0000000000000000000000000000000000000000000000000000000000000005',
+              '0000000000000000000000000000000000000000000000000000000000000001',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+            ],
+          };
+
+          testMultiProofGeneration(3, 'ff', [2], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '000000000000000000000000000000000000000000000000000000000000000c',
+              '000000000000000000000000000000000000000000000000000000000000018c',
+              '0000000000000000000000000000000000000000000000000000000000000120',
+              '00000000000000000000000000000000000000000000000000000000000000ee',
+              '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
+              'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+              'babbf2a0bca3f1360d7706d6d175f3380c5973df4b2d1bb19a9496792891697d',
+            ],
+          };
+
+          testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000013',
+              '000000000000000000000000000000000000000000000000000000000001d800',
+              '0000000000000000000000000000000000000000000000000000000000012400',
+              '000000000000000000000000000000000000000000000000000000000000fdfa',
+              '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
+              '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
+              'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
+              '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
+              'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
+              'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
+              'd1c7a0741902e7210c324ee399555decfb24a0281c42d0a690a84acae5a1cfd2',
+              '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
+              '55e76a40d8624a05e93c6bbdd36ed61989ef5f0903cea080e9968b590ba30c39',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+            ],
+          };
+
+          testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000003',
+              '000000000000000000000000000000000000000000000000000000000000000e',
+              '0000000000000000000000000000000000000000000000000000000000000009',
+            ],
+          };
+
+          testMultiProofGeneration(3, 'ff', [0, 1, 2], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000003',
+              '000000000000000000000000000000000000000000000000000000000000000c',
+              '0000000000000000000000000000000000000000000000000000000000000009',
+              '0e3ba1c61ffe3e984a50346034613b3b7368e64dafd5ea3d2ac05fc5ada33a60',
+            ],
+          };
+
+          testMultiProofGeneration(3, 'ff', [1, 2], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000003',
+              '0000000000000000000000000000000000000000000000000000000000000004',
+              '0000000000000000000000000000000000000000000000000000000000000005',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+            ],
+          };
+
+          testMultiProofGeneration(3, 'ff', [2], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          const expected = {
+            compactProof: [
+              '000000000000000000000000000000000000000000000000000000000000000c',
+              '000000000000000000000000000000000000000000000000000000000000018c',
+              '0000000000000000000000000000000000000000000000000000000000000120',
+              '4847e055cdb073d232313d8bf813dd31b7a3626d8e7881304d3bc41a848bf964',
+              'f9c38f9fec674389962b1b4cb3e26191be58cf5850ee58e4fe170b94de04d3d7',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+              'bc481a454a66b25fd1adf8b6b88cbcac3783d39d5ab1e4c45d114846da10274c',
+            ],
+          };
+
+          testMultiProofGeneration(12, 'ff', [2, 3, 8, 11], expected, options);
+        });
+
+        it('should generate a compact Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+
+          const expected = {
+            compactProof: [
+              '0000000000000000000000000000000000000000000000000000000000000013',
+              '000000000000000000000000000000000000000000000000000000000001d800',
+              '0000000000000000000000000000000000000000000000000000000000012400',
+              '9a2ac3e4dd11303cc187ad6cbcfb99bcb955f3a242e14001a940a360d41abaa9',
+              '9c14306519dcde45d6985845e9af155bc2431d1ad6fde29a957eaf464f7ed1ec',
+              'c3ed5f33f97f302e5667c4cf731a7dca902aa88b1520976d37b79e2f614d839f',
+              '731017481bc7111f6621c3d3f5511e941e264077817c1939403ec0e16f24d24d',
+              'c91b0c977258a25a3803b772c6229444bdca5f73995a108cf36439fdbb30d82e',
+              'df30b2c34f6b8879381b45dcc32c84248dc5119ecc364f00939660bbf5430445',
+              'c83c0742945e25d8ea750b433deb383bd3c68c5e415398cb3a1bf7ebd760fe85',
+              '23d7e3b895db705a5867f3e2d747351226d34734b355fdbcf3a7e99e688c6cb2',
+              'df00f936e8f696ef3929c73d2176f2012336b0fd4fa5ae504bb3053a44993b94',
+              'a3ce89c3f749bfd79ce683054de83f70e40e847cef70e5389167871c4dd4af27',
+            ],
+          };
+
+          testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
+        });
+      });
+
+      describe('Balanced/Unbalanced Overlapping Cases', () => {
+        it('should generate the same Multi Proof for a 8-element Merkle Tree.', () => {
+          const balancedOptions = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+          const unbalancedOptions = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          compareMultiProofs(8, [1, 4, 5], balancedOptions, unbalancedOptions);
+        });
+
+        it('should generate the same Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
+          const balancedOptions = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
+          const unbalancedOptions = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          compareMultiProofs(8, [1, 4, 5], balancedOptions, unbalancedOptions);
+        });
+      });
+    });
+
+    describe('Existence-Only Boolean-Bit Multi Proof Verification', () => {
+      describe('Balanced', () => {
+        it('should verify a Multi Proof for a 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+          testMultiProofVerification(8, [1, 4, 5], options);
+        });
+
+        it('should verify a Multi Proof for a 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+          testMultiProofVerification(1, [0], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
+          testMultiProofVerification(8, [1, 4, 5], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
+          testMultiProofVerification(1, [0], options);
+        });
+      });
+
+      describe('Unbalanced', () => {
+        it('should verify a Multi Proof for a 3-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiProofVerification(3, [0, 1, 2], options);
+        });
+
+        it('should verify a Multi Proof for a 3-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiProofVerification(3, [1, 2], options);
+        });
+
+        it('should verify a Multi Proof for a 3-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiProofVerification(3, [2], options);
+        });
+
+        it('should verify a Multi Proof for a 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiProofVerification(12, [2, 3, 8, 11], options);
+        });
+
+        it('should verify a Multi Proof for a 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testMultiProofVerification(3, [0, 1, 2], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testMultiProofVerification(3, [1, 2], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 3-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testMultiProofVerification(3, [2], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testMultiProofVerification(12, [2, 3, 8, 11], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testMultiProofVerification(19, [2, 4, 9, 12, 17], options);
+        });
+      });
+
+      describe('Balanced/Unbalanced Overlapping Cases', () => {
+        it('should verify a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiProofVerification(8, [1, 4, 5], options);
+        });
+
+        it('should verify a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testMultiProofVerification(8, [1, 4, 5], options);
+        });
+      });
+    });
+
+    describe('Existence-Only Boolean-Bit Multi Indices Inferring', () => {
+      describe('Balanced', () => {
+        it('should verify a Multi Proof for a 1-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+          testMultiProofIndicesInferring(1, [0], options);
+        });
+
+        it('should verify a Multi Proof for a 8-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+          testMultiProofIndicesInferring(8, [1, 4, 5], options);
+        });
+
+        it('should verify a Multi Proof for a 64-element Merkle Tree.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+          testMultiProofIndicesInferring(64, [0, 1, 7, 13, 15, 26, 34, 35, 36, 50, 62], options);
+        });
+      });
+
+      describe('Unbalanced', () => {
+        it('should verify a Multi Proof for a 12-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiProofIndicesInferring(12, [2, 3, 8, 11], options);
+        });
+
+        it('should verify a Multi Proof for a 19-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiProofIndicesInferring(19, [2, 4, 9, 12, 17], options);
+        });
+
+        it('should verify a Multi Proof for a 85-element Merkle Tree.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiProofIndicesInferring(85, [5, 6, 20, 36, 37, 65, 78, 83], options);
+        });
+      });
+    });
+
+    describe('Existence-Only Boolean-Bit Multi Proof Update', () => {
+      describe('Balanced', () => {
+        it('should use a Multi Proof for a 8-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
+
+        it('should use a Multi Proof for a 1-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+          testMultiUpdate(1, [0], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 1-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
+          testMultiUpdate(1, [0], options);
+        });
+      });
+
+      describe('Unbalanced', () => {
+        it('should use a Multi Proof for a 3-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiUpdate(3, [0, 1, 2], options);
+        });
+
+        it('should use a Multi Proof for a 3-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiUpdate(3, [1, 2], options);
+        });
+
+        it('should use a Multi Proof for a 3-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiUpdate(3, [2], options);
+        });
+
+        it('should use a Multi Proof for a 12-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiUpdate(12, [2, 3, 8, 11], options);
+        });
+
+        it('should use a Multi Proof for a 19-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiUpdate(19, [2, 4, 9, 12, 17], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 3-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testMultiUpdate(3, [0, 1, 2], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 3-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testMultiUpdate(3, [1, 2], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 3-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testMultiUpdate(3, [2], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 12-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testMultiUpdate(12, [2, 3, 8, 11], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 19-element Merkle Tree, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testMultiUpdate(19, [2, 4, 9, 12, 17], options);
+        });
+      });
+
+      describe('Balanced/Unbalanced Overlapping Cases', () => {
+        it('should use a Multi Proof for a 8-element Merkle Tree, built with the unbalanced option, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
+
+        it('should use a Multi Proof for a sorted-hash 8-element Merkle Tree, built with the unbalanced option, to update elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testMultiUpdate(8, [1, 4, 5], options);
+        });
+      });
+    });
+
+    describe('Existence-Only Boolean-Bit Multi Proof Update Consecutive Uses', () => {
+      describe('Balanced', () => {
+        it('should use 100 Multi Proofs for a 16-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+          const options = { unbalanced: false, sortedHash: false, indexed: false, compact: true };
+          testConsecutiveMultiUpdate(100, 16, 6, options);
+        });
+
+        it('should use 100 Multi Proofs for a sorted-hash 16-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+          const options = { unbalanced: false, sortedHash: true, indexed: false, compact: true };
+          testConsecutiveMultiUpdate(100, 16, 6, options);
+        });
+      });
+
+      describe('Unbalanced', () => {
+        it('should use 100 Multi Proofs for a 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testConsecutiveMultiUpdate(100, 19, 6, options);
+        });
+
+        it('should use 50 Multi Proofs for a 89-element Merkle Tree, to perform 50 updates of up to 13 random elements.', () => {
+          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+          testConsecutiveMultiUpdate(50, 89, 13, options);
+        });
+
+        it('should use 100 Multi Proofs for a sorted-hash 19-element Merkle Tree, to perform 100 updates of up to 6 random elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testConsecutiveMultiUpdate(100, 19, 6, options);
+        });
+
+        it('should use 50 Multi Proofs for a sorted-hash 89-element Merkle Tree, to perform 50 updates of up to 13 random elements.', () => {
+          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+          testConsecutiveMultiUpdate(50, 89, 13, options);
         });
       });
     });
@@ -2929,7 +2930,6 @@ describe('Merkle Trees', () => {
     });
   });
 
-  // TODO: move combined proof verification from Updates with Appends to here
   describe('Combined Proof Common', () => {
     describe('Get Minimum Element Index for Combined Proof', () => {
       it('should get the minimum element index to be included in a Combined Proof a 1-element Merkle Tree.', () => {
@@ -3002,6 +3002,474 @@ describe('Merkle Trees', () => {
         testCombinedProofMinimumIndex(1792, { minimumIndex: 1536 }, options);
       });
     });
+
+    describe('Boolean-Array Combined Proof Verification (Single Update, Single Append)', () => {
+      it('should verify a Combined Proof for a 1-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(1, 0, options);
+      });
+
+      it('should verify a Combined Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(2, 1, options);
+      });
+
+      it('should verify a Combined Proof for a 128-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(128, 127, options);
+      });
+
+      it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(100, 99, options);
+      });
+
+      it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(101, 100, options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(12, 11, options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(12, 10, options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(12, 8, options);
+      });
+    });
+
+    describe('Boolean-Array Combined Proof Verification (Multi Update, Multi Append)', () => {
+      it('should verify a Combined Proof for a 1-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(1, [0], options);
+      });
+
+      it('should verify a Combined Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(2, [1], options);
+      });
+
+      it('should verify a Combined Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(2, [0, 1], options);
+      });
+
+      it('should verify a Combined Proof for a 128-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(128, [2, 4, 12, 15, 127], options);
+      });
+
+      it('should verify a Combined Proof for a 128-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(128, [2, 4, 12, 15, 126, 127], options);
+      });
+
+      it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(100, [99], options);
+      });
+
+      it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 99], options);
+      });
+
+      it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 98, 99], options);
+      });
+
+      it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 97, 99], options);
+      });
+
+      it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 97, 98, 99], options);
+      });
+
+      it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(101, [100], options);
+      });
+
+      it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 100], options);
+      });
+
+      it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 99, 100], options);
+      });
+
+      it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 98, 100], options);
+      });
+
+      it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 98, 99, 100], options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(12, [7, 11], options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(12, [7, 10], options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(12, [7, 9], options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testCombinedProofVerification(12, [7, 8], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 1-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(1, [0], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(2, [1], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(2, [0, 1], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(128, [2, 4, 12, 15, 127], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(128, [2, 4, 12, 15, 126, 127], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(100, [99], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 99], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 98, 99], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 97, 99], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 97, 98, 99], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(101, [100], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 100], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 99, 100], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 98, 100], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 98, 99, 100], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(12, [7, 11], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(12, [7, 10], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(12, [7, 9], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
+        testCombinedProofVerification(12, [7, 8], options);
+      });
+    });
+
+    describe('Boolean-Bit Combined Proof Verification (Single Update, Single Append)', () => {
+      it('should verify a Combined Proof for a 1-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(1, 0, options);
+      });
+
+      it('should verify a Combined Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(2, 1, options);
+      });
+
+      it('should verify a Combined Proof for a 128-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(128, 127, options);
+      });
+
+      it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(100, 99, options);
+      });
+
+      it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(101, 100, options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(12, 11, options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(12, 10, options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(12, 8, options);
+      });
+    });
+
+    describe('Boolean-Bit Combined Proof Verification (Multi Update, Multi Append)', () => {
+      it('should verify a Combined Proof for a 1-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(1, [0], options);
+      });
+
+      it('should verify a Combined Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(2, [1], options);
+      });
+
+      it('should verify a Combined Proof for a 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(2, [0, 1], options);
+      });
+
+      it('should verify a Combined Proof for a 128-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(128, [2, 4, 12, 15, 127], options);
+      });
+
+      it('should verify a Combined Proof for a 128-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(128, [2, 4, 12, 15, 126, 127], options);
+      });
+
+      it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(100, [99], options);
+      });
+
+      it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 99], options);
+      });
+
+      it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 98, 99], options);
+      });
+
+      it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 97, 99], options);
+      });
+
+      it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 97, 98, 99], options);
+      });
+
+      it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(101, [100], options);
+      });
+
+      it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 100], options);
+      });
+
+      it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 99, 100], options);
+      });
+
+      it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 98, 100], options);
+      });
+
+      it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 98, 99, 100], options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(12, [7, 11], options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(12, [7, 10], options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(12, [7, 9], options);
+      });
+
+      it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testCombinedProofVerification(12, [7, 8], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 1-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(1, [0], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(2, [1], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(2, [0, 1], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(128, [2, 4, 12, 15, 127], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(128, [2, 4, 12, 15, 126, 127], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(100, [99], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 99], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 98, 99], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 97, 99], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(100, [2, 4, 12, 15, 97, 98, 99], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(101, [100], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 100], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 99, 100], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 98, 100], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(101, [2, 4, 12, 15, 98, 99, 100], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(12, [7, 11], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(12, [7, 10], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(12, [7, 9], options);
+      });
+
+      it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
+        const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
+        testCombinedProofVerification(12, [7, 8], options);
+      });
+    });
   });
 
   describe('Combined Proof (Updates with Appends)', () => {
@@ -3045,48 +3513,6 @@ describe('Merkle Trees', () => {
         it('should generate a Combined Proof for a 12-element Merkle Tree.', () => {
           const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
           testSingleUpdateSingleAppendProofGeneration(12, 'ff', 8, options);
-        });
-      });
-
-      describe('Boolean-Array Combined Proof Verification (Single Update, Single Append)', () => {
-        it('should verify a Combined Proof for a 1-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(1, 0, options);
-        });
-
-        it('should verify a Combined Proof for a 2-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(2, 1, options);
-        });
-
-        it('should verify a Combined Proof for a 128-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(128, 127, options);
-        });
-
-        it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(100, 99, options);
-        });
-
-        it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(101, 100, options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(12, 11, options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(12, 10, options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(12, 8, options);
         });
       });
 
@@ -3334,198 +3760,6 @@ describe('Merkle Trees', () => {
         it('should generate a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
           const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
           testMultiUpdateMultiAppendProofGeneration(12, 'ff', [7, 8], 5, options);
-        });
-      });
-
-      describe('Boolean-Array Combined Proof Verification (Multi Update, Multi Append)', () => {
-        it('should verify a Combined Proof for a 1-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(1, [0], options);
-        });
-
-        it('should verify a Combined Proof for a 2-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(2, [1], options);
-        });
-
-        it('should verify a Combined Proof for a 2-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(2, [0, 1], options);
-        });
-
-        it('should verify a Combined Proof for a 128-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(128, [2, 4, 12, 15, 127], options);
-        });
-
-        it('should verify a Combined Proof for a 128-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(128, [2, 4, 12, 15, 126, 127], options);
-        });
-
-        it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(100, [99], options);
-        });
-
-        it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 99], options);
-        });
-
-        it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 98, 99], options);
-        });
-
-        it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 97, 99], options);
-        });
-
-        it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 97, 98, 99], options);
-        });
-
-        it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(101, [100], options);
-        });
-
-        it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 100], options);
-        });
-
-        it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 99, 100], options);
-        });
-
-        it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 98, 100], options);
-        });
-
-        it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 98, 99, 100], options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(12, [7, 11], options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(12, [7, 10], options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(12, [7, 9], options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
-          testCombinedProofVerification(12, [7, 8], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 1-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(1, [0], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(2, [1], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(2, [0, 1], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(128, [2, 4, 12, 15, 127], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(128, [2, 4, 12, 15, 126, 127], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(100, [99], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 99], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 98, 99], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 97, 99], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 97, 98, 99], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(101, [100], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 100], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 99, 100], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 98, 100], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 98, 99, 100], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(12, [7, 11], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(12, [7, 10], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(12, [7, 9], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: false };
-          testCombinedProofVerification(12, [7, 8], options);
         });
       });
 
@@ -3787,48 +4021,6 @@ describe('Merkle Trees', () => {
         });
       });
 
-      describe('Boolean-Bit Combined Proof Verification (Single Update, Single Append)', () => {
-        it('should verify a Combined Proof for a 1-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(1, 0, options);
-        });
-
-        it('should verify a Combined Proof for a 2-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(2, 1, options);
-        });
-
-        it('should verify a Combined Proof for a 128-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(128, 127, options);
-        });
-
-        it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(100, 99, options);
-        });
-
-        it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(101, 100, options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(12, 11, options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(12, 10, options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(12, 8, options);
-        });
-      });
-
       describe('Boolean-Bit Combined Proof Execute (Single Update, Single Append)', () => {
         it('should use a Combined Proof for a 1-element Merkle Tree, to update and append elements.', () => {
           const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
@@ -4073,198 +4265,6 @@ describe('Merkle Trees', () => {
         it('should generate a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
           const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
           testMultiUpdateMultiAppendProofGeneration(12, 'ff', [7, 8], 5, options);
-        });
-      });
-
-      describe('Boolean-Bit Combined Proof Verification (Multi Update, Multi Append)', () => {
-        it('should verify a Combined Proof for a 1-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(1, [0], options);
-        });
-
-        it('should verify a Combined Proof for a 2-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(2, [1], options);
-        });
-
-        it('should verify a Combined Proof for a 2-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(2, [0, 1], options);
-        });
-
-        it('should verify a Combined Proof for a 128-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(128, [2, 4, 12, 15, 127], options);
-        });
-
-        it('should verify a Combined Proof for a 128-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(128, [2, 4, 12, 15, 126, 127], options);
-        });
-
-        it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(100, [99], options);
-        });
-
-        it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 99], options);
-        });
-
-        it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 98, 99], options);
-        });
-
-        it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 97, 99], options);
-        });
-
-        it('should verify a Combined Proof for a 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 97, 98, 99], options);
-        });
-
-        it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(101, [100], options);
-        });
-
-        it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 100], options);
-        });
-
-        it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 99, 100], options);
-        });
-
-        it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 98, 100], options);
-        });
-
-        it('should verify a Combined Proof for a 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 98, 99, 100], options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(12, [7, 11], options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(12, [7, 10], options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(12, [7, 9], options);
-        });
-
-        it('should verify a Combined Proof for a 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
-          testCombinedProofVerification(12, [7, 8], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 1-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(1, [0], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(2, [1], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 2-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(2, [0, 1], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(128, [2, 4, 12, 15, 127], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 128-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(128, [2, 4, 12, 15, 126, 127], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(100, [99], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 99], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 98, 99], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 97, 99], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 100-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(100, [2, 4, 12, 15, 97, 98, 99], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(101, [100], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 100], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 99, 100], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 98, 100], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 101-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(101, [2, 4, 12, 15, 98, 99, 100], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(12, [7, 11], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(12, [7, 10], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(12, [7, 9], options);
-        });
-
-        it('should verify a Combined Proof for a sorted-hash 12-element Merkle Tree.', () => {
-          const options = { unbalanced: true, sortedHash: true, indexed: false, compact: true };
-          testCombinedProofVerification(12, [7, 8], options);
         });
       });
 
@@ -5022,6 +5022,80 @@ describe('Merkle Trees', () => {
       it('should verify a simple Size Proof for a 20-element sorted-hash Merkle Tree.', () => {
         const options = { unbalanced: true, sortedHash: true, compact: false, simple: true };
         testSizeProofVerification(20, options);
+      });
+    });
+  });
+
+  describe('Arbitrary Element Sizes', () => {
+    describe('Merkle Tree Construction', () => {
+      it('should build a 28-element Merkle Tree of 10-byte elements.', () => {
+        const expected = {
+          root: 'f22ea9dce286a16f532002cfee669d6755131095e310e2414460cf05173bf970',
+          elementRoot: 'c6e8dab5e6d43912a996048145f94af81fc5314c61e74ed93eb2143189fe13ba',
+          depth: 5,
+        };
+  
+        testBuildTree(28, 'ff', expected, { unbalanced: true, sortedHash: false }, { elementSize: 10 });
+      });
+  
+      it('should build a 28-element Merkle Tree of 100-byte elements.', () => {
+        const expected = {
+          root: 'd341738448ea99be1cbb5d9709dc49e9c55e7ca903971fa4f57650aa7c55067a',
+          elementRoot: '55b732cbfaedd53e9244ed2dc1059c8e0534ce03cbb71effec5fd666ad2c5835',
+          depth: 5,
+        };
+  
+        testBuildTree(28, 'ff', expected, { unbalanced: true, sortedHash: false }, { elementSize: 100 });
+      });
+  
+      it('should build a 28-element Merkle Tree of random size elements.', () => {
+        const expected = {
+          root: 'f3d9d28abdf4024da0b75f98cf0cf3dbb5de429e4cddb69e8affebff325d53d0',
+          elementRoot: '9675e208b3b3207d4e76237ce5606d221f430b85ba193cec69fe84888a07cecc',
+          depth: 5,
+        };
+  
+        testBuildTree(28, 'ff', expected, { unbalanced: true, sortedHash: false }, { elementSize: 'random' });
+      });
+    });
+
+    describe('Single Proof Update Consecutive Uses', () => {
+      it('should use 10 Compact Single Proofs for a 25-element, of random size, Merkle Tree, to update an 10 elements consecutively.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: true };
+        testConsecutiveSingleUpdate(10, 25, options, { elementSize: 'random' });
+      });
+    });
+
+    describe('Index and Existence Multi Proof Update Consecutive Uses', () => {
+      it('should use 10 Compact Multi Proofs for a 19-element, of random size, Merkle Tree, to perform 10 updates of up to 6 random elements.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: true, compact: true };
+        testConsecutiveMultiUpdate(10, 19, 6, options, { elementSize: 'random' });
+      });
+    });
+
+    describe('Existence-Only Boolean-Array Multi Proof Update Consecutive Uses', () => {
+      it('should use 10 Multi Proofs for a 19-element, of random size, Merkle Tree, to perform 10 updates of up to 6 random elements.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: false };
+        testConsecutiveMultiUpdate(10, 19, 6, options, { elementSize: 'random' });
+      });
+    });
+
+    describe('Existence-Only Boolean-Bit Multi Proof Update Consecutive Uses', () => {
+      it('should use 10 Multi Proofs for a 19-element, of random size, Merkle Tree, to perform 10 updates of up to 6 random elements.', () => {
+        const options = { unbalanced: true, sortedHash: false, indexed: false, compact: true };
+        testConsecutiveMultiUpdate(10, 19, 6, options, { elementSize: 'random' });
+      });
+    });
+
+    describe('Append Proof Append Consecutive Uses', () => {
+      it('should use 10 Compact Single Append Proofs for a 160-element, of random size, Merkle Tree, to append an 10 elements consecutively.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: true };
+        testConsecutiveSingleAppend(10, 160, options, { elementSize: 'random' });
+      });
+
+      it('should use 10 Multi Append Proofs for a 0-element Merkle Tree, to perform 10 appends of up to 4 random elements, of random size.', () => {
+        const options = { unbalanced: true, sortedHash: false, compact: false };
+        testConsecutiveMultiAppend(10, 0, 4, options, { elementSize: 'random' });
       });
     });
   });

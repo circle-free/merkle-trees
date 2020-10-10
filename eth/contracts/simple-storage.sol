@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.0 <0.8.0;
+pragma experimental ABIEncoderV2;
 
 contract Simple_Storage {
-
   uint256 public size;
   mapping(uint256 => bytes32) public items;
 
@@ -153,7 +153,11 @@ contract Simple_Storage {
     size = index;
   }
 
-  function update_one_and_append_one(uint256 index, bytes32 update_element, bytes32 append_element) public {
+  function update_one_and_append_one(
+    uint256 index,
+    bytes32 update_element,
+    bytes32 append_element
+  ) public {
     require(index < size, "INVALID_ELEMENT");
 
     items[index] = update_element;
@@ -161,7 +165,11 @@ contract Simple_Storage {
     size += 1;
   }
 
-  function update_one_and_append_many(uint256 index, bytes32 update_element, bytes32[] memory append_elements) public {
+  function update_one_and_append_many(
+    uint256 index,
+    bytes32 update_element,
+    bytes32[] memory append_elements
+  ) public {
     require(index < size, "INVALID_ELEMENT");
     items[index] = update_element;
 
@@ -178,7 +186,11 @@ contract Simple_Storage {
     size = current_size;
   }
 
-  function update_many_and_append_one(uint256[] memory indices, bytes32[] memory update_elements, bytes32 append_element) public {
+  function update_many_and_append_one(
+    uint256[] memory indices,
+    bytes32[] memory update_elements,
+    bytes32 append_element
+  ) public {
     uint256 index_count = indices.length;
     require(update_elements.length == index_count, "LENGTH_MISMATCH");
 
@@ -197,7 +209,11 @@ contract Simple_Storage {
     size += 1;
   }
 
-  function update_many_and_append_many(uint256[] memory indices, bytes32[] memory update_elements, bytes32[] memory append_elements) public {
+  function update_many_and_append_many(
+    uint256[] memory indices,
+    bytes32[] memory update_elements,
+    bytes32[] memory append_elements
+  ) public {
     uint256 count = indices.length;
     require(update_elements.length == count, "LENGTH_MISMATCH");
 
