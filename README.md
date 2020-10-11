@@ -40,7 +40,7 @@ const simpleStorageInstance = await Simple_Storage.new();
 
 // Append the first 200 elements
 const result1 = await simpleStorageInstance.append_many(hexElements);
-console.log(result1.receipt.gasUsed);   // 4,184,952 gas used
+console.log(result1.receipt.gasUsed);   // 4,200,282 gas used
 
 // Use the elements at the 20 above indices, update them, and append 20 more
 const result2 = await simpleStorageInstance.update_many_and_append_many(
@@ -50,7 +50,7 @@ const result2 = await simpleStorageInstance.update_many_and_append_many(
   hexAppendElements
 );
 
-console.log(result2.receipt.gasUsed);   // 577,727 gas used
+console.log(result2.receipt.gasUsed);   // 582,667 gas used
 
 // Launch a contract (using this merkle library) with empty storage
 const merkleStorageInstance = await Merkle_Storage_Using_Library.new();
@@ -77,7 +77,7 @@ const hexAppendProof = compactAppendProof.map(p => '0x' + p.toString('hex'));
 
 // Append the first 200 elements to the merkle storage
 const result3 = await merkleStorageInstance.append_many(hexElements, hexAppendProof);
-console.log(result3.receipt.gasUsed);   // 245,694 gas used (5.87% the gas cost!!)
+console.log(result3.receipt.gasUsed);   // 260,389 gas used (6.2% the gas cost!!)
 
 // Since the contract storage is updated, overwrite the merkle tree with the new one
 merkleTree = newMerkleTree1;
@@ -111,7 +111,7 @@ const result4 = await contractInstance.update_many_and_append_many(
   hexCombinedProof
 );
 
-console.log(result4.receipt.gasUsed);   // 122,496 gas used (21.20% the gas cost!!)
+console.log(result4.receipt.gasUsed);   // 128,695 gas used (22.1% the gas cost!!)
 
 // Since the contract storage is updated, overwrite the merkle tree with the new one
 merkleTree = newMerkleTree2;

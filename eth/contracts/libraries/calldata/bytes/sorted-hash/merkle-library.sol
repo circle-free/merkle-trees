@@ -3,7 +3,7 @@
 pragma solidity >=0.6.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
-library Merkle_Library_Sorted_Hash_32 {
+library Merkle_Library_CBSH {
   // Hashes a and b in the order they are passed
   function hash_node(bytes32 a, bytes32 b) internal pure returns (bytes32 hash) {
     assembly {
@@ -52,33 +52,42 @@ library Merkle_Library_Sorted_Hash_32 {
   }
 
   // Get the Element Merkle Root for a tree with just a single element
-  function get_root_from_one(bytes32 element) internal pure returns (bytes32) {
-    return hash_node(bytes32(0), element);
+  function get_root_from_one(bytes calldata element) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(bytes1(0x00), element));
   }
 
-  // Get the Element Merkle Root for a tree with several elements
-  function get_root_from_many(bytes32[] memory elements) internal pure returns (bytes32) {
+  // Get nodes from elements (nodes are 1 level above leafs, which is one level above nodes)
+  function get_nodes_from_elements(bytes[] calldata elements)
+    internal
+    pure
+    returns (uint256 node_count, bytes32[] memory nodes)
+  {
     uint256 element_count = elements.length;
-    uint256 hashes_size = (element_count >> 1) + (element_count & 1);
-    bytes32[] memory hashes = new bytes32[](hashes_size);
+    node_count = (element_count >> 1) + (element_count & 1);
+    nodes = new bytes32[](node_count);
     uint256 write_index;
     uint256 left_index;
 
-    while (write_index < hashes_size) {
+    while (write_index < node_count) {
       left_index = write_index << 1;
 
       if (left_index == element_count - 1) {
-        hashes[write_index] = hash_node(bytes32(0), elements[left_index]);
+        nodes[write_index] = keccak256(abi.encodePacked(bytes1(0x00), elements[left_index]));
         break;
       }
 
-      hashes[write_index++] = hash_pair(
-        hash_node(bytes32(0), elements[left_index]),
-        hash_node(bytes32(0), elements[left_index + 1])
+      nodes[write_index++] = hash_pair(
+        keccak256(abi.encodePacked(bytes1(0x00), elements[left_index])),
+        keccak256(abi.encodePacked(bytes1(0), elements[left_index + 1]))
       );
     }
+  }
 
-    write_index = 0;
+  // Get the Element Merkle Root for a tree with several elements
+  function get_root_from_many(bytes[] calldata elements) internal pure returns (bytes32) {
+    (uint256 hashes_size, bytes32[] memory hashes) = get_nodes_from_elements(elements);
+    uint256 write_index;
+    uint256 left_index;
 
     while (hashes_size > 1) {
       left_index = write_index << 1;
@@ -107,11 +116,11 @@ library Merkle_Library_Sorted_Hash_32 {
   // Get the original Element Merkle Root, given a Single Proof
   function get_root_from_single_proof(
     uint256 index,
-    bytes32 element,
-    bytes32[] memory proof
+    bytes calldata element,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 hash) {
     uint256 proof_index = proof.length - 1;
-    hash = hash_node(bytes32(0), element);
+    hash = keccak256(abi.encodePacked(bytes1(0), element));
     uint256 upper_bound = uint256(proof[0]) - 1;
 
     while (proof_index > 0) {
@@ -128,22 +137,22 @@ library Merkle_Library_Sorted_Hash_32 {
   // Get the original and updated Element Merkle Root, given a Single Proof and an element to update at a given index
   function get_roots_from_single_proof_update(
     uint256 index,
-    bytes32 element,
-    bytes32 update_element,
-    bytes32[] memory proof
+    bytes calldata element,
+    bytes calldata update_element,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 hash, bytes32 update_hash) {
     uint256 proof_index = proof.length - 1;
-    hash = hash_node(bytes32(0), element);
-    update_hash = hash_node(bytes32(0), update_element);
+    hash = keccak256(abi.encodePacked(bytes1(0x00), element));
+    update_hash = keccak256(abi.encodePacked(bytes1(0x00), update_element));
     uint256 upper_bound = uint256(proof[0]) - 1;
+    bytes32 scratch;
 
     while (proof_index > 0) {
       if ((index != upper_bound) || (index & 1 == 1)) {
-        // reuse element as scratch
-        element = proof[proof_index];
+        scratch = proof[proof_index];
         proof_index -= 1;
-        hash = hash_pair(element, hash);
-        update_hash = hash_pair(element, update_hash);
+        hash = hash_pair(scratch, hash);
+        update_hash = hash_pair(scratch, update_hash);
       }
 
       index >>= 1;
@@ -153,25 +162,33 @@ library Merkle_Library_Sorted_Hash_32 {
 
   // get_indices_from_multi_proof cannot be implemented with sorted hashed pairs
 
+  // Get leafs from elements (and reverse the array)
+  function get_reversed_leafs_from_elements(bytes[] calldata elements)
+    internal
+    pure
+    returns (uint256 leaf_count, bytes32[] memory leafs)
+  {
+    leaf_count = elements.length;
+    leafs = new bytes32[](leaf_count);
+    uint256 read_index = leaf_count - 1;
+    uint256 write_index;
+
+    while (write_index < leaf_count) {
+      leafs[write_index] = keccak256(abi.encodePacked(bytes1(0x00), elements[read_index]));
+      write_index += 1;
+      read_index -= 1;
+    }
+  }
+
   // Get the original Element Merkle Root, given an Existence Multi Proof
-  function get_root_from_multi_proof(bytes32[] memory elements, bytes32[] memory proof)
+  function get_root_from_multi_proof(bytes[] calldata elements, bytes32[] calldata proof)
     internal
     pure
     returns (bytes32 right)
   {
-    uint256 verifying_count = elements.length;
-    bytes32[] memory hashes = new bytes32[](verifying_count);
-    uint256 read_index = verifying_count - 1;
+    (uint256 verifying_count, bytes32[] memory hashes) = get_reversed_leafs_from_elements(elements);
+    uint256 read_index;
     uint256 write_index;
-
-    while (write_index < verifying_count) {
-      hashes[write_index] = hash_node(bytes32(0), elements[read_index]);
-      write_index += 1;
-      read_index -= 1;
-    }
-
-    read_index = 0;
-    write_index = 0;
     uint256 proof_index = 3;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     bytes32 flags = proof[1];
@@ -201,28 +218,38 @@ library Merkle_Library_Sorted_Hash_32 {
     }
   }
 
-  // Get the original and updated Element Merkle Root, given an Existence Multi Proof and elements to update
-  function get_roots_from_multi_proof_update(
-    bytes32[] memory elements,
-    bytes32[] memory update_elements,
-    bytes32[] memory proof
-  ) internal pure returns (bytes32 flags, bytes32 skips) {
-    uint256 update_count = update_elements.length;
-    require(elements.length == update_count, "LENGTH_MISMATCH");
+  // Get current and update leafs from current and update elements (and reverse the array)
+  function get_reversed_leafs_from_current_and_update_elements(
+    bytes[] calldata elements,
+    bytes[] calldata update_elements
+  ) internal pure returns (uint256 leaf_count, bytes32[] memory leafs) {
+    leaf_count = elements.length;
+    require(update_elements.length == leaf_count, "LENGTH_MISMATCH");
 
-    bytes32[] memory hashes = new bytes32[](update_count);
-    bytes32[] memory update_hashes = new bytes32[](update_count);
-    uint256 read_index = update_count - 1;
+    leafs = new bytes32[](leaf_count << 1);
+    uint256 read_index = leaf_count - 1;
     uint256 write_index;
 
-    while (write_index < update_count) {
-      hashes[write_index] = hash_node(bytes32(0), elements[read_index]);
-      update_hashes[write_index] = hash_node(bytes32(0), update_elements[read_index--]);
+    while (write_index < leaf_count) {
+      leafs[write_index] = keccak256(abi.encodePacked(bytes1(0x00), elements[read_index]));
+      leafs[leaf_count + write_index] = keccak256(abi.encodePacked(bytes1(0x00), update_elements[read_index]));
       write_index += 1;
+      read_index -= 1;
     }
+  }
 
-    read_index = 0;
-    write_index = 0;
+  // Get the original and updated Element Merkle Root, given an Existence Multi Proof and elements to update
+  function get_roots_from_multi_proof_update(
+    bytes[] calldata elements,
+    bytes[] calldata update_elements,
+    bytes32[] calldata proof
+  ) internal pure returns (bytes32 flags, bytes32 skips) {
+    (uint256 update_count, bytes32[] memory hashes) = get_reversed_leafs_from_current_and_update_elements(
+      elements,
+      update_elements
+    );
+    uint256 read_index;
+    uint256 write_index;
     uint256 proof_index = 3;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     flags = proof[1];
@@ -235,11 +262,11 @@ library Merkle_Library_Sorted_Hash_32 {
         if (flags & bit_check == bit_check) {
           read_index = (write_index == 0 ? update_count : write_index) - 1;
 
-          return (hashes[read_index], update_hashes[read_index]);
+          return (hashes[read_index], hashes[update_count + read_index]);
         }
 
         hashes[write_index] = hashes[read_index];
-        update_hashes[write_index] = update_hashes[read_index];
+        hashes[update_count + write_index] = hashes[update_count + read_index];
 
         read_index = (read_index + 1) % update_count;
         write_index = (write_index + 1) % update_count;
@@ -250,12 +277,15 @@ library Merkle_Library_Sorted_Hash_32 {
       if (flags & bit_check == bit_check) {
         scratch_2 = (read_index + 1) % update_count;
         hashes[write_index] = hash_pair(hashes[read_index], hashes[scratch_2]);
-        update_hashes[write_index] = hash_pair(update_hashes[read_index], update_hashes[scratch_2]);
+        hashes[update_count + write_index] = hash_pair(
+          hashes[update_count + read_index],
+          hashes[update_count + scratch_2]
+        );
         read_index += 2;
       } else {
         scratch = proof[proof_index++];
         hashes[write_index] = hash_pair(scratch, hashes[read_index]);
-        update_hashes[write_index] = hash_pair(scratch, update_hashes[read_index]);
+        hashes[update_count + write_index] = hash_pair(scratch, hashes[update_count + read_index]);
         read_index += 1;
       }
 
@@ -266,7 +296,7 @@ library Merkle_Library_Sorted_Hash_32 {
   }
 
   // Get the original Element Merkle Root, given an Append Proof
-  function get_root_from_append_proof(bytes32[] memory proof) internal pure returns (bytes32 hash) {
+  function get_root_from_append_proof(bytes32[] calldata proof) internal pure returns (bytes32 hash) {
     uint256 proof_index = bit_count_32(uint32(uint256(proof[0])));
     hash = proof[proof_index];
 
@@ -277,41 +307,48 @@ library Merkle_Library_Sorted_Hash_32 {
   }
 
   // Get the original and updated Element Merkle Root, given an Append Proof and an element to append
-  function get_roots_from_append_proof_single_append(bytes32 append_element, bytes32[] memory proof)
+  function get_roots_from_append_proof_single_append(bytes calldata append_element, bytes32[] calldata proof)
     internal
     pure
     returns (bytes32 hash, bytes32 append_hash)
   {
     uint256 proof_index = bit_count_32(uint32(uint256(proof[0])));
     hash = proof[proof_index];
-    append_hash = hash_pair(hash, hash_node(bytes32(0), append_element));
+    append_hash = hash_pair(hash, keccak256(abi.encodePacked(bytes1(0x00), append_element)));
+    bytes32 scratch;
 
     while (proof_index > 1) {
       proof_index -= 1;
+      scratch = proof[proof_index];
+      append_hash = hash_pair(scratch, append_hash);
+      hash = hash_pair(scratch, hash);
+    }
+  }
 
-      // reuse append_element as scratch variable
-      append_element = proof[proof_index];
-      append_hash = hash_pair(append_element, append_hash);
-      hash = hash_pair(append_element, hash);
+  // Get leafs from elements
+  function get_leafs_from_elements(bytes[] calldata elements)
+    internal
+    pure
+    returns (uint256 leaf_count, bytes32[] memory leafs)
+  {
+    leaf_count = elements.length;
+    leafs = new bytes32[](leaf_count);
+    uint256 index;
+
+    while (index < leaf_count) {
+      leafs[index] = keccak256(abi.encodePacked(bytes1(0x00), elements[index]));
+      index += 1;
     }
   }
 
   // Get the original and updated Element Merkle Root, given an Append Proof and elements to append
-  function get_roots_from_append_proof_multi_append(bytes32[] memory append_elements, bytes32[] memory proof)
+  function get_roots_from_append_proof_multi_append(bytes[] calldata append_elements, bytes32[] calldata proof)
     internal
     pure
     returns (bytes32 hash, bytes32)
   {
-    uint256 append_count = append_elements.length;
-    bytes32[] memory append_hashes = new bytes32[](append_count);
+    (uint256 append_count, bytes32[] memory append_hashes) = get_leafs_from_elements(append_elements);
     uint256 write_index;
-
-    while (write_index < append_count) {
-      append_hashes[write_index] = hash_node(bytes32(0), append_elements[write_index]);
-      write_index += 1;
-    }
-
-    write_index = 0;
     uint256 read_index;
     uint256 offset = uint256(proof[0]);
     uint256 index = offset;
@@ -357,13 +394,13 @@ library Merkle_Library_Sorted_Hash_32 {
   }
 
   // Get the updated Element Merkle Root, given an Append Proof and an element to append
-  function get_new_root_from_append_proof_single_append(bytes32 append_element, bytes32[] memory proof)
+  function get_new_root_from_append_proof_single_append(bytes calldata append_element, bytes32[] memory proof)
     internal
     pure
     returns (bytes32 append_hash)
   {
     uint256 proof_index = bit_count_32(uint32(uint256(proof[0])));
-    append_hash = hash_pair(proof[proof_index], hash_node(bytes32(0), append_element));
+    append_hash = hash_pair(proof[proof_index], keccak256(abi.encodePacked(bytes1(0x00), append_element)));
 
     while (proof_index > 1) {
       proof_index -= 1;
@@ -372,21 +409,13 @@ library Merkle_Library_Sorted_Hash_32 {
   }
 
   // Get the updated Element Merkle Root, given an Append Proof and elements to append
-  function get_new_root_from_append_proof_multi_append(bytes32[] memory append_elements, bytes32[] memory proof)
+  function get_new_root_from_append_proof_multi_append(bytes[] calldata append_elements, bytes32[] memory proof)
     internal
     pure
     returns (bytes32)
   {
-    uint256 append_count = append_elements.length;
-    bytes32[] memory append_hashes = new bytes32[](append_count);
+    (uint256 append_count, bytes32[] memory append_hashes) = get_leafs_from_elements(append_elements);
     uint256 write_index;
-
-    while (write_index < append_count) {
-      append_hashes[write_index] = hash_node(bytes32(0), append_elements[write_index]);
-      write_index += 1;
-    }
-
-    write_index = 0;
     uint256 read_index;
     uint256 offset = uint256(proof[0]);
     uint256 index = offset;
@@ -429,11 +458,11 @@ library Merkle_Library_Sorted_Hash_32 {
   // Get the original Element Merkle Root and derive Append Proof, given a Single Proof
   function get_append_proof_from_single_proof(
     uint256 index,
-    bytes32 element,
-    bytes32[] memory proof
+    bytes calldata element,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 hash, bytes32[] memory append_proof) {
     uint256 proof_index = proof.length - 1;
-    hash = hash_node(bytes32(0), element);
+    hash = keccak256(abi.encodePacked(bytes1(0x00), element));
     uint256 append_node_index = uint256(proof[0]);
     uint256 upper_bound = append_node_index - 1;
     uint256 append_proof_index = bit_count_32(uint32(append_node_index)) + 1;
@@ -475,31 +504,29 @@ library Merkle_Library_Sorted_Hash_32 {
   // Get the original Element Merkle Root and derive Append Proof, given a Single Proof, with an element to update
   function get_append_proof_from_single_proof_update(
     uint256 index,
-    bytes32 element,
-    bytes32 update_element,
-    bytes32[] memory proof
+    bytes calldata element,
+    bytes calldata update_element,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 hash, bytes32[] memory append_proof) {
     uint256 proof_index = proof.length - 1;
-    hash = hash_node(bytes32(0), element);
-    bytes32 update_hash = hash_node(bytes32(0), update_element);
+    hash = keccak256(abi.encodePacked(bytes1(0x00), element));
+    bytes32 update_hash = keccak256(abi.encodePacked(bytes1(0x00), update_element));
     uint256 append_node_index = uint256(proof[0]);
     uint256 upper_bound = append_node_index - 1;
     uint256 append_proof_index = bit_count_32(uint32(append_node_index)) + 1;
     append_proof = new bytes32[](append_proof_index);
     append_proof[0] = bytes32(append_node_index);
     bytes32 append_hash;
-    bytes32 scratch;
 
     while (proof_index > 0) {
       if (index != upper_bound || (index & 1 == 1)) {
-        scratch = proof[proof_index];
-        hash = hash_pair(scratch, hash);
-        update_hash = hash_pair(scratch, update_hash);
+        hash = hash_pair(proof[proof_index], hash);
+        update_hash = hash_pair(proof[proof_index], update_hash);
 
         if (append_node_index & 1 == 1) {
           append_proof_index -= 1;
-          append_proof[append_proof_index] = scratch;
-          append_hash = hash_pair(scratch, append_hash);
+          append_proof[append_proof_index] = proof[proof_index];
+          append_hash = hash_pair(proof[proof_index], append_hash);
         }
 
         proof_index -= 1;
@@ -522,26 +549,14 @@ library Merkle_Library_Sorted_Hash_32 {
   }
 
   // Get the original Element Merkle Root and derive Append Proof, given an Existence Multi Proof
-  function get_append_proof_from_multi_proof(bytes32[] memory elements, bytes32[] memory proof)
+  function get_append_proof_from_multi_proof(bytes[] calldata elements, bytes32[] calldata proof)
     internal
     pure
     returns (bytes32 flags, bytes32[] memory append_proof)
   {
-    uint256 element_count = elements.length;
-    require(elements.length == element_count, "LENGTH_MISMATCH");
-
-    bytes32[] memory hashes = new bytes32[](element_count + 1);
-    uint256 read_index = element_count - 1;
+    (uint256 element_count, bytes32[] memory hashes) = get_reversed_leafs_from_elements(elements);
+    uint256 read_index;
     uint256 write_index;
-
-    while (write_index < element_count) {
-      hashes[write_index] = hash_node(bytes32(0), elements[read_index]);
-      read_index -= 1;
-      write_index += 1;
-    }
-
-    read_index = 0;
-    write_index = 0;
     uint256 proof_index = 3;
     uint256 append_node_index = uint256(proof[0]);
     uint256 append_proof_index = uint256(bit_count_32(uint32(append_node_index))) + 1;
@@ -551,6 +566,7 @@ library Merkle_Library_Sorted_Hash_32 {
     flags = proof[1];
     bytes32 skips = proof[2];
     uint256 read_index_of_append_node;
+    bytes32 append_hash;
 
     while (true) {
       if (skips & bit_check == bit_check) {
@@ -560,7 +576,7 @@ library Merkle_Library_Sorted_Hash_32 {
           // reuse flags as scratch variable
           flags = hashes[read_index];
 
-          require(append_proof_index == 2 || hashes[element_count] == flags, "INVALID_PROOF");
+          require(append_proof_index == 2 || append_hash == flags, "INVALID_PROOF");
 
           if (append_proof_index == 2) {
             append_proof[1] = flags;
@@ -571,7 +587,7 @@ library Merkle_Library_Sorted_Hash_32 {
 
         if (append_node_index & 1 == 1) {
           append_proof_index -= 1;
-          hashes[element_count] = hashes[read_index]; // TODO scratch this hashes[read_index] above
+          append_hash = hashes[read_index]; // TODO scratch this hashes[read_index] above
           append_proof[append_proof_index] = hashes[read_index];
         }
 
@@ -594,10 +610,10 @@ library Merkle_Library_Sorted_Hash_32 {
             // reuse read_index_of_append_node as temporary scratch variable
             read_index_of_append_node = (read_index + 1) % element_count;
 
-            hashes[element_count] = hash_pair(hashes[read_index_of_append_node], hashes[element_count]);
+            append_hash = hash_pair(hashes[read_index_of_append_node], append_hash);
             append_proof[append_proof_index] = hashes[read_index_of_append_node];
           } else {
-            hashes[element_count] = hash_pair(proof[proof_index], hashes[element_count]);
+            append_hash = hash_pair(proof[proof_index], append_hash);
             append_proof[append_proof_index] = proof[proof_index];
           }
         }
@@ -623,25 +639,16 @@ library Merkle_Library_Sorted_Hash_32 {
 
   // Get the original Element Merkle Root and derive Append Proof, given an Existence Multi Proof, with elements to update
   function get_append_proof_from_multi_proof_update(
-    bytes32[] memory elements,
-    bytes32[] memory update_elements,
-    bytes32[] memory proof
+    bytes[] calldata elements,
+    bytes[] calldata update_elements,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 append_hash, bytes32[] memory append_proof) {
-    uint256 update_count = update_elements.length;
-    require(elements.length == update_count, "LENGTH_MISMATCH");
-
-    bytes32[] memory hashes = new bytes32[](update_count << 1);
-    uint256 read_index = update_count - 1;
+    (uint256 update_count, bytes32[] memory hashes) = get_reversed_leafs_from_current_and_update_elements(
+      elements,
+      update_elements
+    );
+    uint256 read_index;
     uint256 write_index;
-
-    while (write_index < update_count) {
-      hashes[write_index] = hash_node(bytes32(0), elements[read_index]);
-      hashes[update_count + write_index] = hash_node(bytes32(0), update_elements[read_index--]);
-      write_index += 1;
-    }
-
-    read_index = 0;
-    write_index = 0;
     uint256 read_index_of_append_node;
     uint256 proof_index = 3;
     uint256 append_node_index = uint256(proof[0]);
@@ -731,8 +738,8 @@ library Merkle_Library_Sorted_Hash_32 {
   function element_exists(
     bytes32 root,
     uint256 index,
-    bytes32 element,
-    bytes32[] memory proof
+    bytes calldata element,
+    bytes32[] calldata proof
   ) internal pure returns (bool) {
     return hash_node(proof[0], get_root_from_single_proof(index, element, proof)) == root;
   }
@@ -740,8 +747,8 @@ library Merkle_Library_Sorted_Hash_32 {
   // Check if elements exist, given an Existence Multi Proof
   function elements_exist(
     bytes32 root,
-    bytes32[] memory elements,
-    bytes32[] memory proof
+    bytes[] calldata elements,
+    bytes32[] calldata proof
   ) internal pure returns (bool) {
     return hash_node(proof[0], get_root_from_multi_proof(elements, proof)) == root;
   }
@@ -765,9 +772,9 @@ library Merkle_Library_Sorted_Hash_32 {
   function try_update_one(
     bytes32 root,
     uint256 index,
-    bytes32 element,
-    bytes32 update_element,
-    bytes32[] memory proof
+    bytes calldata element,
+    bytes calldata update_element,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 new_element_root) {
     bytes32 total_element_count = proof[0];
 
@@ -784,9 +791,9 @@ library Merkle_Library_Sorted_Hash_32 {
   // Try to update many elements, given an Existence Multi Proof and elements to update
   function try_update_many(
     bytes32 root,
-    bytes32[] memory elements,
-    bytes32[] memory update_elements,
-    bytes32[] memory proof
+    bytes[] calldata elements,
+    bytes[] calldata update_elements,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 new_element_root) {
     bytes32 total_element_count = proof[0];
 
@@ -803,8 +810,8 @@ library Merkle_Library_Sorted_Hash_32 {
   // Try to append one element, given an Append Proof and an element to append
   function try_append_one(
     bytes32 root,
-    bytes32 append_element,
-    bytes32[] memory proof
+    bytes calldata append_element,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 new_element_root) {
     bytes32 total_element_count = proof[0];
 
@@ -828,8 +835,8 @@ library Merkle_Library_Sorted_Hash_32 {
   // Try to append elements, given an Append Proof and elements to append
   function try_append_many(
     bytes32 root,
-    bytes32[] memory append_elements,
-    bytes32[] memory proof
+    bytes[] calldata append_elements,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 new_element_root) {
     bytes32 total_element_count = proof[0];
 
@@ -849,9 +856,9 @@ library Merkle_Library_Sorted_Hash_32 {
   function try_append_one_using_one(
     bytes32 root,
     uint256 index,
-    bytes32 element,
-    bytes32 append_element,
-    bytes32[] memory proof
+    bytes calldata element,
+    bytes calldata append_element,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
@@ -871,9 +878,9 @@ library Merkle_Library_Sorted_Hash_32 {
   function try_append_many_using_one(
     bytes32 root,
     uint256 index,
-    bytes32 element,
-    bytes32[] memory append_elements,
-    bytes32[] memory proof
+    bytes calldata element,
+    bytes[] calldata append_elements,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
@@ -892,9 +899,9 @@ library Merkle_Library_Sorted_Hash_32 {
   // Try to append an element, given an Existence Multi Proof and an element to append
   function try_append_one_using_many(
     bytes32 root,
-    bytes32[] memory elements,
-    bytes32 append_element,
-    bytes32[] memory proof
+    bytes[] calldata elements,
+    bytes calldata append_element,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
@@ -913,9 +920,9 @@ library Merkle_Library_Sorted_Hash_32 {
   // Try to append elements, given an Existence Multi Proof and elements to append
   function try_append_many_using_many(
     bytes32 root,
-    bytes32[] memory elements,
-    bytes32[] memory append_elements,
-    bytes32[] memory proof
+    bytes[] calldata elements,
+    bytes[] calldata append_elements,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
@@ -935,10 +942,10 @@ library Merkle_Library_Sorted_Hash_32 {
   function try_update_one_and_append_one(
     bytes32 root,
     uint256 index,
-    bytes32 element,
-    bytes32 update_element,
-    bytes32 append_element,
-    bytes32[] memory proof
+    bytes calldata element,
+    bytes calldata update_element,
+    bytes calldata append_element,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
@@ -958,10 +965,10 @@ library Merkle_Library_Sorted_Hash_32 {
   function try_update_one_and_append_many(
     bytes32 root,
     uint256 index,
-    bytes32 element,
-    bytes32 update_element,
-    bytes32[] memory append_elements,
-    bytes32[] memory proof
+    bytes calldata element,
+    bytes calldata update_element,
+    bytes[] calldata append_elements,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
@@ -980,10 +987,10 @@ library Merkle_Library_Sorted_Hash_32 {
   // Try to update elements and append an element, given an Existence Multi Proof, elements to update, and an element to append
   function try_update_many_and_append_one(
     bytes32 root,
-    bytes32[] memory elements,
-    bytes32[] memory update_elements,
-    bytes32 append_element,
-    bytes32[] memory proof
+    bytes[] calldata elements,
+    bytes[] calldata update_elements,
+    bytes calldata append_element,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
@@ -1002,10 +1009,10 @@ library Merkle_Library_Sorted_Hash_32 {
   // Try to update elements and append elements, given an Existence Multi Proof, elements to update, and elements to append
   function try_update_many_and_append_many(
     bytes32 root,
-    bytes32[] memory elements,
-    bytes32[] memory update_elements,
-    bytes32[] memory append_elements,
-    bytes32[] memory proof
+    bytes[] calldata elements,
+    bytes[] calldata update_elements,
+    bytes[] calldata append_elements,
+    bytes32[] calldata proof
   ) internal pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
