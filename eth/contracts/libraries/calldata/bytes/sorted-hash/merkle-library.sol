@@ -3,13 +3,30 @@
 pragma solidity >=0.6.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
-library Merkle_Library_Calldata {
+library Merkle_Library_CBSH {
   // Hashes a and b in the order they are passed
   function hash_node(bytes32 a, bytes32 b) internal pure returns (bytes32 hash) {
     assembly {
       mstore(0x00, a)
       mstore(0x20, b)
       hash := keccak256(0x00, 0x40)
+    }
+  }
+
+  // Hashes a and b in sorted order
+  function hash_pair(bytes32 a, bytes32 b) internal pure returns (bytes32 hash) {
+    if (a < b) {
+      assembly {
+        mstore(0x00, a)
+        mstore(0x20, b)
+        hash := keccak256(0x00, 0x40)
+      }
+    } else {
+      assembly {
+        mstore(0x00, b)
+        mstore(0x20, a)
+        hash := keccak256(0x00, 0x40)
+      }
     }
   }
 
@@ -45,8 +62,8 @@ library Merkle_Library_Calldata {
     pure
     returns (uint256 node_count, bytes32[] memory nodes)
   {
-    uint256 elements_count = elements.length;
-    node_count = (elements_count >> 1) + (elements_count & 1);
+    uint256 element_count = elements.length;
+    node_count = (element_count >> 1) + (element_count & 1);
     nodes = new bytes32[](node_count);
     uint256 write_index;
     uint256 left_index;
@@ -54,12 +71,12 @@ library Merkle_Library_Calldata {
     while (write_index < node_count) {
       left_index = write_index << 1;
 
-      if (left_index == elements_count - 1) {
+      if (left_index == element_count - 1) {
         nodes[write_index] = keccak256(abi.encodePacked(bytes1(0x00), elements[left_index]));
         break;
       }
 
-      nodes[write_index++] = hash_node(
+      nodes[write_index++] = hash_pair(
         keccak256(abi.encodePacked(bytes1(0x00), elements[left_index])),
         keccak256(abi.encodePacked(bytes1(0), elements[left_index + 1]))
       );
@@ -88,25 +105,13 @@ library Merkle_Library_Calldata {
         continue;
       }
 
-      hashes[write_index++] = hash_node(hashes[left_index], hashes[left_index + 1]);
+      hashes[write_index++] = hash_pair(hashes[left_index], hashes[left_index + 1]);
     }
 
     return hashes[0];
   }
 
-  // Get the original Element Merkle Root, given a Size Proof
-  function get_root_from_size_proof(uint256 element_count, bytes32[] calldata proof)
-    internal
-    pure
-    returns (bytes32 hash)
-  {
-    uint256 proof_index = bit_count_32(uint32(element_count)) - 1;
-    hash = proof[proof_index];
-
-    while (proof_index > 0) {
-      hash = hash_node(proof[--proof_index], hash);
-    }
-  }
+  // get_root_from_size_proof cannot be implemented with sorted hashed pairs
 
   // Get the original Element Merkle Root, given a Single Proof
   function get_root_from_single_proof(
@@ -120,8 +125,7 @@ library Merkle_Library_Calldata {
 
     while (proof_index > 0) {
       if (index != upper_bound || (index & 1 == 1)) {
-        hash = (index & 1 == 1) ? hash_node(proof[proof_index], hash) : hash_node(hash, proof[proof_index]);
-
+        hash = hash_pair(proof[proof_index], hash);
         proof_index -= 1;
       }
 
@@ -147,10 +151,8 @@ library Merkle_Library_Calldata {
       if ((index != upper_bound) || (index & 1 == 1)) {
         scratch = proof[proof_index];
         proof_index -= 1;
-
-        hash = (index & 1 == 1) ? hash_node(scratch, hash) : hash_node(hash, scratch);
-
-        update_hash = (index & 1 == 1) ? hash_node(scratch, update_hash) : hash_node(update_hash, scratch);
+        hash = hash_pair(scratch, hash);
+        update_hash = hash_pair(scratch, update_hash);
       }
 
       index >>= 1;
@@ -158,88 +160,7 @@ library Merkle_Library_Calldata {
     }
   }
 
-  // Get the indices of the elements being proven, given an Existence Multi Proof
-  function get_indices_from_multi_proof(
-    uint256 element_count,
-    bytes32 flags,
-    bytes32 skips,
-    bytes32 orders
-  ) internal pure returns (uint256[] memory indices) {
-    indices = new uint256[](element_count);
-    uint256[] memory bits_pushed = new uint256[](element_count);
-    bool[] memory grouped_with_next = new bool[](element_count);
-    element_count -= 1;
-    uint256 index = element_count;
-    bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
-    bytes32 flag;
-    bytes32 skip;
-    bytes32 order;
-    uint256 bits_to_push;
-
-    while (true) {
-      flag = flags & bit_check;
-      skip = skips & bit_check;
-      order = orders & bit_check;
-      bits_to_push = 1 << bits_pushed[index];
-
-      if (skip == bit_check) {
-        if (flag == bit_check) return indices;
-
-        while (true) {
-          bits_pushed[index]++;
-
-          if (index == 0) {
-            index = element_count;
-            break;
-          }
-
-          if (!grouped_with_next[index--]) break;
-        }
-
-        bit_check <<= 1;
-        continue;
-      }
-
-      if (flag == bit_check) {
-        while (true) {
-          if (order == bit_check) {
-            indices[index] |= bits_to_push;
-          }
-
-          bits_pushed[index]++;
-
-          if (index == 0) {
-            index = element_count;
-            break;
-          }
-
-          if (!grouped_with_next[index]) {
-            grouped_with_next[index--] = true;
-            break;
-          }
-
-          grouped_with_next[index--] = true;
-        }
-      }
-
-      while (true) {
-        if (order != bit_check) {
-          indices[index] |= bits_to_push;
-        }
-
-        bits_pushed[index]++;
-
-        if (index == 0) {
-          index = element_count;
-          break;
-        }
-
-        if (!grouped_with_next[index--]) break;
-      }
-
-      bit_check <<= 1;
-    }
-  }
+  // get_indices_from_multi_proof cannot be implemented with sorted hashed pairs
 
   // Get leafs from elements (and reverse the array)
   function get_reversed_leafs_from_elements(bytes[] calldata elements)
@@ -268,11 +189,10 @@ library Merkle_Library_Calldata {
     (uint256 verifying_count, bytes32[] memory hashes) = get_reversed_leafs_from_elements(elements);
     uint256 read_index;
     uint256 write_index;
-    uint256 proof_index = 4;
+    uint256 proof_index = 3;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     bytes32 flags = proof[1];
     bytes32 skips = proof[2];
-    bytes32 orders = proof[3];
 
     while (true) {
       if (skips & bit_check == bit_check) {
@@ -290,9 +210,7 @@ library Merkle_Library_Calldata {
 
       read_index %= verifying_count;
 
-      hashes[write_index] = (orders & bit_check == bit_check)
-        ? hash_node(hashes[read_index], right)
-        : hash_node(right, hashes[read_index]);
+      hashes[write_index] = hash_pair(right, hashes[read_index]);
 
       read_index = (read_index + 1) % verifying_count;
       write_index = (write_index + 1) % verifying_count;
@@ -332,11 +250,10 @@ library Merkle_Library_Calldata {
     );
     uint256 read_index;
     uint256 write_index;
-    uint256 proof_index = 4;
+    uint256 proof_index = 3;
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     flags = proof[1];
     skips = proof[2];
-    bytes32 orders = proof[3];
     bytes32 scratch;
     uint256 scratch_2;
 
@@ -359,27 +276,16 @@ library Merkle_Library_Calldata {
 
       if (flags & bit_check == bit_check) {
         scratch_2 = (read_index + 1) % update_count;
-
-        hashes[write_index] = (orders & bit_check == bit_check)
-          ? hash_node(hashes[scratch_2], hashes[read_index])
-          : hash_node(hashes[read_index], hashes[scratch_2]);
-
-        hashes[update_count + write_index] = (orders & bit_check == bit_check)
-          ? hash_node(hashes[update_count + scratch_2], hashes[update_count + read_index])
-          : hash_node(hashes[update_count + read_index], hashes[update_count + scratch_2]);
-
+        hashes[write_index] = hash_pair(hashes[read_index], hashes[scratch_2]);
+        hashes[update_count + write_index] = hash_pair(
+          hashes[update_count + read_index],
+          hashes[update_count + scratch_2]
+        );
         read_index += 2;
       } else {
         scratch = proof[proof_index++];
-
-        hashes[write_index] = (orders & bit_check == bit_check)
-          ? hash_node(hashes[read_index], scratch)
-          : hash_node(scratch, hashes[read_index]);
-
-        hashes[update_count + write_index] = (orders & bit_check == bit_check)
-          ? hash_node(hashes[update_count + read_index], scratch)
-          : hash_node(scratch, hashes[update_count + read_index]);
-
+        hashes[write_index] = hash_pair(scratch, hashes[read_index]);
+        hashes[update_count + write_index] = hash_pair(scratch, hashes[update_count + read_index]);
         read_index += 1;
       }
 
@@ -396,7 +302,7 @@ library Merkle_Library_Calldata {
 
     while (proof_index > 1) {
       proof_index -= 1;
-      hash = hash_node(proof[proof_index], hash);
+      hash = hash_pair(proof[proof_index], hash);
     }
   }
 
@@ -408,14 +314,14 @@ library Merkle_Library_Calldata {
   {
     uint256 proof_index = bit_count_32(uint32(uint256(proof[0])));
     hash = proof[proof_index];
-    append_hash = hash_node(hash, keccak256(abi.encodePacked(bytes1(0x00), append_element)));
+    append_hash = hash_pair(hash, keccak256(abi.encodePacked(bytes1(0x00), append_element)));
     bytes32 scratch;
 
     while (proof_index > 1) {
       proof_index -= 1;
       scratch = proof[proof_index];
-      append_hash = hash_node(scratch, append_hash);
-      hash = hash_node(scratch, hash);
+      append_hash = hash_pair(scratch, append_hash);
+      hash = hash_pair(scratch, hash);
     }
   }
 
@@ -455,18 +361,18 @@ library Merkle_Library_Calldata {
 
     while (append_count > 0) {
       if ((write_index == 0) && (index & 1 == 1)) {
-        append_hashes[0] = hash_node(proof[proof_index], append_hashes[read_index]);
+        append_hashes[0] = hash_pair(proof[proof_index], append_hashes[read_index]);
         proof_index -= 1;
         read_index += 1;
 
         if (proof_index > 0) {
-          hash = hash_node(proof[proof_index], hash);
+          hash = hash_pair(proof[proof_index], hash);
         }
 
         write_index = 1;
         index += 1;
       } else if (index < append_count) {
-        append_hashes[write_index++] = hash_node(append_hashes[read_index++], append_hashes[read_index]);
+        append_hashes[write_index++] = hash_pair(append_hashes[read_index++], append_hashes[read_index]);
         read_index += 1;
         index += 2;
       }
@@ -494,11 +400,11 @@ library Merkle_Library_Calldata {
     returns (bytes32 append_hash)
   {
     uint256 proof_index = bit_count_32(uint32(uint256(proof[0])));
-    append_hash = hash_node(proof[proof_index], keccak256(abi.encodePacked(bytes1(0x00), append_element)));
+    append_hash = hash_pair(proof[proof_index], keccak256(abi.encodePacked(bytes1(0x00), append_element)));
 
     while (proof_index > 1) {
       proof_index -= 1;
-      append_hash = hash_node(proof[proof_index], append_hash);
+      append_hash = hash_pair(proof[proof_index], append_hash);
     }
   }
 
@@ -521,14 +427,14 @@ library Merkle_Library_Calldata {
 
     while (append_count > 0) {
       if ((write_index == 0) && (index & 1 == 1)) {
-        append_hashes[0] = hash_node(proof[proof_index], append_hashes[read_index]);
+        append_hashes[0] = hash_pair(proof[proof_index], append_hashes[read_index]);
 
         read_index += 1;
         proof_index -= 1;
         write_index = 1;
         index += 1;
       } else if (index < append_count) {
-        append_hashes[write_index++] = hash_node(append_hashes[read_index++], append_hashes[read_index++]);
+        append_hashes[write_index++] = hash_pair(append_hashes[read_index++], append_hashes[read_index++]);
 
         index += 2;
       }
@@ -568,13 +474,12 @@ library Merkle_Library_Calldata {
     while (proof_index > 0) {
       if (index != upper_bound || (index & 1 == 1)) {
         scratch = proof[proof_index];
-
-        hash = (index & 1 == 1) ? hash_node(scratch, hash) : hash_node(hash, scratch);
+        hash = hash_pair(scratch, hash);
 
         if (append_node_index & 1 == 1) {
           append_proof_index -= 1;
           append_proof[append_proof_index] = scratch;
-          append_hash = hash_node(scratch, append_hash);
+          append_hash = hash_pair(scratch, append_hash);
         }
 
         proof_index -= 1;
@@ -615,16 +520,13 @@ library Merkle_Library_Calldata {
 
     while (proof_index > 0) {
       if (index != upper_bound || (index & 1 == 1)) {
-        hash = (index & 1 == 1) ? hash_node(proof[proof_index], hash) : hash_node(hash, proof[proof_index]);
-
-        update_hash = (index & 1 == 1)
-          ? hash_node(proof[proof_index], update_hash)
-          : hash_node(update_hash, proof[proof_index]);
+        hash = hash_pair(proof[proof_index], hash);
+        update_hash = hash_pair(proof[proof_index], update_hash);
 
         if (append_node_index & 1 == 1) {
           append_proof_index -= 1;
           append_proof[append_proof_index] = proof[proof_index];
-          append_hash = hash_node(proof[proof_index], append_hash);
+          append_hash = hash_pair(proof[proof_index], append_hash);
         }
 
         proof_index -= 1;
@@ -655,18 +557,19 @@ library Merkle_Library_Calldata {
     (uint256 element_count, bytes32[] memory hashes) = get_reversed_leafs_from_elements(elements);
     uint256 read_index;
     uint256 write_index;
-    uint256 proof_index = 4;
+    uint256 proof_index = 3;
     uint256 append_node_index = uint256(proof[0]);
     uint256 append_proof_index = uint256(bit_count_32(uint32(append_node_index))) + 1;
     append_proof = new bytes32[](append_proof_index);
     append_proof[0] = bytes32(append_node_index);
-    flags = proof[1];
     bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
+    flags = proof[1];
+    bytes32 skips = proof[2];
     uint256 read_index_of_append_node;
     bytes32 append_hash;
 
     while (true) {
-      if (proof[2] & bit_check == bit_check) {
+      if (skips & bit_check == bit_check) {
         if (flags & bit_check == bit_check) {
           read_index = (write_index == 0 ? element_count : write_index) - 1;
 
@@ -695,7 +598,6 @@ library Merkle_Library_Calldata {
 
         read_index = (read_index + 1) % element_count;
         write_index = (write_index + 1) % element_count;
-
         bit_check <<= 1;
         continue;
       }
@@ -708,10 +610,10 @@ library Merkle_Library_Calldata {
             // reuse read_index_of_append_node as temporary scratch variable
             read_index_of_append_node = (read_index + 1) % element_count;
 
-            append_hash = hash_node(hashes[read_index_of_append_node], append_hash);
+            append_hash = hash_pair(hashes[read_index_of_append_node], append_hash);
             append_proof[append_proof_index] = hashes[read_index_of_append_node];
           } else {
-            append_hash = hash_node(proof[proof_index], append_hash);
+            append_hash = hash_pair(proof[proof_index], append_hash);
             append_proof[append_proof_index] = proof[proof_index];
           }
         }
@@ -721,23 +623,16 @@ library Merkle_Library_Calldata {
       }
 
       if (flags & bit_check == bit_check) {
-        hashes[write_index] = (proof[3] & bit_check == bit_check)
-          ? hash_node(hashes[(read_index + 1) % element_count], hashes[read_index])
-          : hash_node(hashes[read_index], hashes[(read_index + 1) % element_count]);
-
+        hashes[write_index] = hash_pair(hashes[read_index], hashes[(read_index + 1) % element_count]);
         read_index += 2;
       } else {
-        hashes[write_index] = (proof[3] & bit_check == bit_check)
-          ? hash_node(hashes[read_index], proof[proof_index])
-          : hash_node(proof[proof_index], hashes[read_index]);
-
+        hashes[write_index] = hash_pair(proof[proof_index], hashes[read_index]);
         proof_index += 1;
         read_index += 1;
       }
 
       read_index %= element_count;
       write_index = (write_index + 1) % element_count;
-
       bit_check <<= 1;
     }
   }
@@ -755,16 +650,17 @@ library Merkle_Library_Calldata {
     uint256 read_index;
     uint256 write_index;
     uint256 read_index_of_append_node;
-    uint256 proof_index = 4;
+    uint256 proof_index = 3;
     uint256 append_node_index = uint256(proof[0]);
     uint256 append_proof_index = bit_count_32(uint32(append_node_index)) + 1;
     append_proof = new bytes32[](append_proof_index);
     append_proof[0] = bytes32(append_node_index);
-    bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
     bytes32 flags = proof[1];
+    bytes32 skips = proof[2];
+    bytes32 bit_check = 0x0000000000000000000000000000000000000000000000000000000000000001;
 
     while (true) {
-      if (proof[2] & bit_check == bit_check) {
+      if (skips & bit_check == bit_check) {
         if (flags & bit_check == bit_check) {
           read_index = (write_index == 0 ? update_count : write_index) - 1;
 
@@ -794,7 +690,6 @@ library Merkle_Library_Calldata {
 
         read_index = (read_index + 1) % update_count;
         write_index = (write_index + 1) % update_count;
-
         bit_check <<= 1;
         continue;
       }
@@ -807,10 +702,10 @@ library Merkle_Library_Calldata {
             // use read_index_of_append_node as temporary scratch
             read_index_of_append_node = (read_index + 1) % update_count;
 
-            append_hash = hash_node(hashes[read_index_of_append_node], append_hash);
+            append_hash = hash_pair(hashes[read_index_of_append_node], append_hash);
             append_proof[append_proof_index] = hashes[update_count + read_index_of_append_node];
           } else {
-            append_hash = hash_node(proof[proof_index], append_hash);
+            append_hash = hash_pair(proof[proof_index], append_hash);
             append_proof[append_proof_index] = proof[proof_index];
           }
         }
@@ -820,31 +715,21 @@ library Merkle_Library_Calldata {
       }
 
       if (flags & bit_check == bit_check) {
-        hashes[write_index] = (proof[3] & bit_check == bit_check)
-          ? hash_node(hashes[(read_index + 1) % update_count], hashes[read_index])
-          : hash_node(hashes[read_index], hashes[(read_index + 1) % update_count]);
-
-        hashes[update_count + write_index] = (proof[3] & bit_check == bit_check)
-          ? hash_node(hashes[update_count + ((read_index + 1) % update_count)], hashes[update_count + read_index])
-          : hash_node(hashes[update_count + read_index], hashes[update_count + ((read_index + 1) % update_count)]);
-
+        hashes[write_index] = hash_pair(hashes[read_index], hashes[(read_index + 1) % update_count]);
+        hashes[update_count + write_index] = hash_pair(
+          hashes[update_count + read_index],
+          hashes[update_count + ((read_index + 1) % update_count)]
+        );
         read_index += 2;
       } else {
-        hashes[write_index] = (proof[3] & bit_check == bit_check)
-          ? hash_node(hashes[read_index], proof[proof_index])
-          : hash_node(proof[proof_index], hashes[read_index]);
-
-        hashes[update_count + write_index] = (proof[3] & bit_check == bit_check)
-          ? hash_node(hashes[update_count + read_index], proof[proof_index])
-          : hash_node(proof[proof_index], hashes[update_count + read_index]);
-
+        hashes[write_index] = hash_pair(proof[proof_index], hashes[read_index]);
+        hashes[update_count + write_index] = hash_pair(proof[proof_index], hashes[update_count + read_index]);
         proof_index += 1;
         read_index += 1;
       }
 
       read_index %= update_count;
       write_index = (write_index + 1) % update_count;
-
       bit_check <<= 1;
     }
   }
@@ -868,21 +753,9 @@ library Merkle_Library_Calldata {
     return hash_node(proof[0], get_root_from_multi_proof(elements, proof)) == root;
   }
 
-  // Get the indices of the elements, given an Existence Multi Proof
-  function get_indices(bytes[] calldata elements, bytes32[] calldata proof) internal pure returns (uint256[] memory) {
-    return get_indices_from_multi_proof(elements.length, proof[1], proof[2], proof[3]);
-  }
+  // get_indices cannot be implemented with sorted hashed pairs
 
-  // Check tree size, given a Size Proof
-  function verify_size_with_proof(
-    bytes32 root,
-    uint256 size,
-    bytes32[] calldata proof
-  ) internal pure returns (bool) {
-    if (root == bytes32(0) && size == 0) return true;
-
-    return hash_node(bytes32(size), get_root_from_size_proof(size, proof)) == root;
-  }
+  // verify_size_with_proof cannot be implemented with sorted hashed pairs
 
   // Check tree size, given a the Element Merkle Root
   function verify_size(

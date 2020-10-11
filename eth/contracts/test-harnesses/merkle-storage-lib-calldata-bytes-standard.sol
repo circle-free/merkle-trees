@@ -3,9 +3,9 @@
 pragma solidity >=0.6.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "./merkle-library-calldata.sol";
+import "../libraries/calldata/bytes/standard/merkle-library.sol";
 
-contract Merkle_Storage_Using_Lib_Calldata {
+contract Merkle_Storage_Using_Lib_Calldata_Bytes_Standard {
   bytes32 public root;
 
   event Some_Data(bytes32 some_data);
@@ -19,15 +19,15 @@ contract Merkle_Storage_Using_Lib_Calldata {
     pure
     returns (uint256[] memory)
   {
-    return Merkle_Library_Calldata.get_indices(elements, proof);
+    return Merkle_Library_CBS.get_indices(elements, proof);
   }
 
   function verify_size_with_proof(uint256 size, bytes32[] calldata proof) external view returns (bool) {
-    return Merkle_Library_Calldata.verify_size_with_proof(root, size, proof);
+    return Merkle_Library_CBS.verify_size_with_proof(root, size, proof);
   }
 
   function verify_size(uint256 size, bytes32 element_root) external view returns (bool) {
-    return Merkle_Library_Calldata.verify_size(root, size, element_root);
+    return Merkle_Library_CBS.verify_size(root, size, element_root);
   }
 
   function use_one(
@@ -35,13 +35,13 @@ contract Merkle_Storage_Using_Lib_Calldata {
     bytes calldata element,
     bytes32[] calldata proof
   ) external {
-    require(Merkle_Library_Calldata.element_exists(root, index, element, proof), "INVALID_ELEMENT");
+    require(Merkle_Library_CBS.element_exists(root, index, element, proof), "INVALID_ELEMENT");
 
     emit Some_Data(keccak256(abi.encodePacked(bytes1(0x01), element)));
   }
 
   function use_many(bytes[] calldata elements, bytes32[] calldata proof) external {
-    require(Merkle_Library_Calldata.elements_exist(root, elements, proof), "INVALID_ELEMENTS");
+    require(Merkle_Library_CBS.elements_exist(root, elements, proof), "INVALID_ELEMENTS");
 
     uint256 using_element_count = elements.length;
     bytes32 some_data = 0x0000000000000000000000000000000000000000000000000000000000000001;
@@ -61,7 +61,7 @@ contract Merkle_Storage_Using_Lib_Calldata {
     bytes calldata update_element,
     bytes32[] calldata proof
   ) external {
-    root = Merkle_Library_Calldata.try_update_one(root, index, element, update_element, proof);
+    root = Merkle_Library_CBS.try_update_one(root, index, element, update_element, proof);
   }
 
   function update_many(
@@ -69,15 +69,15 @@ contract Merkle_Storage_Using_Lib_Calldata {
     bytes[] calldata updates_elements,
     bytes32[] calldata proof
   ) external {
-    root = Merkle_Library_Calldata.try_update_many(root, elements, updates_elements, proof);
+    root = Merkle_Library_CBS.try_update_many(root, elements, updates_elements, proof);
   }
 
   function append_one(bytes calldata append_element, bytes32[] calldata proof) external {
-    root = Merkle_Library_Calldata.try_append_one(root, append_element, proof);
+    root = Merkle_Library_CBS.try_append_one(root, append_element, proof);
   }
 
   function append_many(bytes[] calldata append_elements, bytes32[] calldata proof) external {
-    root = Merkle_Library_Calldata.try_append_many(root, append_elements, proof);
+    root = Merkle_Library_CBS.try_append_many(root, append_elements, proof);
   }
 
   function use_one_and_append_one(
@@ -86,7 +86,7 @@ contract Merkle_Storage_Using_Lib_Calldata {
     bytes calldata append_element,
     bytes32[] calldata proof
   ) external {
-    root = Merkle_Library_Calldata.try_append_one_using_one(root, index, element, append_element, proof);
+    root = Merkle_Library_CBS.try_append_one_using_one(root, index, element, append_element, proof);
   }
 
   function use_one_and_append_many(
@@ -95,7 +95,7 @@ contract Merkle_Storage_Using_Lib_Calldata {
     bytes[] calldata append_elements,
     bytes32[] calldata proof
   ) external {
-    root = Merkle_Library_Calldata.try_append_many_using_one(root, index, element, append_elements, proof);
+    root = Merkle_Library_CBS.try_append_many_using_one(root, index, element, append_elements, proof);
   }
 
   function use_many_and_append_one(
@@ -103,7 +103,7 @@ contract Merkle_Storage_Using_Lib_Calldata {
     bytes calldata append_element,
     bytes32[] calldata proof
   ) external {
-    root = Merkle_Library_Calldata.try_append_one_using_many(root, elements, append_element, proof);
+    root = Merkle_Library_CBS.try_append_one_using_many(root, elements, append_element, proof);
   }
 
   function use_many_and_append_many(
@@ -111,7 +111,7 @@ contract Merkle_Storage_Using_Lib_Calldata {
     bytes[] calldata append_elements,
     bytes32[] calldata proof
   ) external {
-    root = Merkle_Library_Calldata.try_append_many_using_many(root, elements, append_elements, proof);
+    root = Merkle_Library_CBS.try_append_many_using_many(root, elements, append_elements, proof);
   }
 
   function update_one_and_append_one(
@@ -121,7 +121,7 @@ contract Merkle_Storage_Using_Lib_Calldata {
     bytes calldata append_element,
     bytes32[] calldata proof
   ) external {
-    root = Merkle_Library_Calldata.try_update_one_and_append_one(
+    root = Merkle_Library_CBS.try_update_one_and_append_one(
       root,
       index,
       element,
@@ -138,7 +138,7 @@ contract Merkle_Storage_Using_Lib_Calldata {
     bytes[] calldata append_elements,
     bytes32[] calldata proof
   ) external {
-    root = Merkle_Library_Calldata.try_update_one_and_append_many(
+    root = Merkle_Library_CBS.try_update_one_and_append_many(
       root,
       index,
       element,
@@ -154,13 +154,7 @@ contract Merkle_Storage_Using_Lib_Calldata {
     bytes calldata append_element,
     bytes32[] calldata proof
   ) external {
-    root = Merkle_Library_Calldata.try_update_many_and_append_one(
-      root,
-      elements,
-      update_elements,
-      append_element,
-      proof
-    );
+    root = Merkle_Library_CBS.try_update_many_and_append_one(root, elements, update_elements, append_element, proof);
   }
 
   function update_many_and_append_many(
@@ -169,12 +163,6 @@ contract Merkle_Storage_Using_Lib_Calldata {
     bytes[] calldata append_elements,
     bytes32[] calldata proof
   ) external {
-    root = Merkle_Library_Calldata.try_update_many_and_append_many(
-      root,
-      elements,
-      update_elements,
-      append_elements,
-      proof
-    );
+    root = Merkle_Library_CBS.try_update_many_and_append_many(root, elements, update_elements, append_elements, proof);
   }
 }
