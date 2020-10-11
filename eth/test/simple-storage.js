@@ -196,7 +196,7 @@ const testUpdateManyAndAppendMany = async (indices, updateSeed, appendSize, appe
   expect(receipt.gasUsed).to.equal(expectedGas);
 };
 
-describe("Simple Storage", async accounts => {
+describe.skip("Simple Storage", async accounts => {
   after(() => {
     fs.writeFileSync('./test/fixtures/simple-gas-costs.json', JSON.stringify(gasCosts, null, ' ').concat('\n'));
   });
