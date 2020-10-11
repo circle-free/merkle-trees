@@ -15,14 +15,20 @@ Ideally, this structure and library can be used to roll up and entire object, in
 ```solidity
 pragma solidity >=0.6.0 <0.8.0;
 
-import "./merkle-library.sol";
+import "../node_modules/merkle-trees/eth/contracts/merkle-library-calldata.sol";
+
+// or
+
+import "./merkle-trees/eth/contracts/merkle-library-calldata.sol";
+
+// depending on your setup
 
 ...
 
 Merkle_Library.elements_exist(root, elements, proof);
 ```
 
-See `merkle-storage-using-lib.sol` contract for better idea of how to use this in your contracts, and the tests for how to pair this with the javascript library.
+See `./contracts/test-harnesses` for contracts that give a better idea of how to use one of these libraries in your contracts. Also, see `./tests/merkle-storage.js` for examples on how to pair this with the javascript library.
 <br>
 <br>
 
@@ -30,6 +36,7 @@ See `merkle-storage-using-lib.sol` contract for better idea of how to use this i
 
 - Merkle trees with pairs that are sorted at hash-time result in cheaper and smaller proofs, at the cost of not being able to prove an element's index.
 - More work can still be done to make these contracts more readable (at the cost of gas?)
+- Contrary top the line above, more work can be done to write this all in assembly and save a lot of gas
 <br>
 <br>
 
@@ -37,7 +44,7 @@ See `merkle-storage-using-lib.sol` contract for better idea of how to use this i
 
 - [ ] unbalanced proofs for indexed multi-proofs in library (with tests)
 - [ ] anything done in the JS lib
-- [ ] some optimizations and more assembly wouldn't hurt
+- [ ] some optimizations and more (or entirely) assembly wouldn't hurt
 - [ ] security review
 - [ ] test gas cost of view functions (i.e. index inferring, size proofs)
 - [ ] try to squeeze in index inferring during normal multi-proof algorithm (to return old and new root, and indices)
@@ -60,5 +67,5 @@ foo@bar:~$ ganache-cli
 ...
 foo@bar:~$ yarn test
 ...
-180 passing (1m)
+392 passing (3m)
 ```

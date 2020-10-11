@@ -11,7 +11,7 @@ let contractInstance = null;
 let elementCount = null;
 
 const testUseOne = async (index) => {
-  const gasFixtureString = `testUseOne_${elementCount}_${index}`;
+  const gasFixtureString = `${elementCount}_testUseOne_${index}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const { receipt } = await contractInstance.use_one(index);
@@ -22,7 +22,7 @@ const testUseOne = async (index) => {
 };
 
 const testUseMany = async (indices) => {
-  const gasFixtureString = `testUseMany_${elementCount}_${indices.join('-')}`;
+  const gasFixtureString = `${elementCount}_testUseMany_${indices.join('-')}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const { receipt } = await contractInstance.use_many(indices);
@@ -33,7 +33,7 @@ const testUseMany = async (indices) => {
 };
 
 const testUpdateOne = async (index, seed) => {
-  const gasFixtureString = `testUpdateOne_${elementCount}_${index}_${seed}`;
+  const gasFixtureString = `${elementCount}_testUpdateOne_${index}_${seed}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const updateElement = generateElements(1, { seed })[0];
@@ -46,7 +46,7 @@ const testUpdateOne = async (index, seed) => {
 };
 
 const testUpdateMany = async (indices, seed) => {
-  const gasFixtureString = `testUpdateMany_${elementCount}_${indices.join('-')}_${seed}`;
+  const gasFixtureString = `${elementCount}_testUpdateMany_${indices.join('-')}_${seed}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const updateElements = generateElements(indices.length, { seed });
@@ -59,7 +59,7 @@ const testUpdateMany = async (indices, seed) => {
 };
 
 const testAppendOne = async (seed) => {
-  const gasFixtureString = `testAppendOne_${elementCount}_${seed}`;
+  const gasFixtureString = `${elementCount}_testAppendOne_${seed}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const appendElement = generateElements(1, { seed })[0];
@@ -72,7 +72,7 @@ const testAppendOne = async (seed) => {
 };
 
 const testAppendMany = async (appendSize, seed) => {
-  const gasFixtureString = `testAppendMany_${elementCount}_${appendSize}_${seed}`;
+  const gasFixtureString = `${elementCount}_testAppendMany_${appendSize}_${seed}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const appendElements = generateElements(appendSize, { seed });
@@ -85,7 +85,7 @@ const testAppendMany = async (appendSize, seed) => {
 };
 
 const testUseOneAndAppendOne = async (index, seed) => {
-  const gasFixtureString = `testUseOneAndAppendOne_${elementCount}_${index}_${seed}`;
+  const gasFixtureString = `${elementCount}_testUseOneAndAppendOne_${index}_${seed}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const appendElement = generateElements(1, { seed })[0];
@@ -98,7 +98,7 @@ const testUseOneAndAppendOne = async (index, seed) => {
 };
 
 const testUseOneAndAppendMany = async (index, appendSize, seed) => {
-  const gasFixtureString = `testUseOneAndAppendMany_${elementCount}_${index}_${appendSize}_${seed}`;
+  const gasFixtureString = `${elementCount}_testUseOneAndAppendMany_${index}_${appendSize}_${seed}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const appendElements = generateElements(appendSize, { seed });
@@ -111,7 +111,7 @@ const testUseOneAndAppendMany = async (index, appendSize, seed) => {
 };
 
 const testUseManyAndAppendOne = async (indices, seed) => {
-  const gasFixtureString = `testUseManyAndAppendOne_${elementCount}_${indices.join('-')}_${seed}`;
+  const gasFixtureString = `${elementCount}_testUseManyAndAppendOne_${indices.join('-')}_${seed}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const appendElement = generateElements(1, { seed })[0];
@@ -124,7 +124,7 @@ const testUseManyAndAppendOne = async (indices, seed) => {
 };
 
 const testUseManyAndAppendMany = async (indices, appendSize, seed) => {
-  const gasFixtureString = `testUseManyAndAppendMany_${elementCount}_${indices.join('-')}_${appendSize}_${seed}`;
+  const gasFixtureString = `${elementCount}_testUseManyAndAppendMany_${indices.join('-')}_${appendSize}_${seed}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const appendElements = generateElements(appendSize, { seed });
@@ -137,7 +137,7 @@ const testUseManyAndAppendMany = async (indices, appendSize, seed) => {
 };
 
 const testUpdateOneAndAppendOne = async (index, updateSeed, appendSeed) => {
-  const gasFixtureString = `testUpdateOneAndAppendOne_${elementCount}_${index}_${updateSeed}_${appendSeed}`;
+  const gasFixtureString = `${elementCount}_testUpdateOneAndAppendOne_${index}_${updateSeed}_${appendSeed}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const updateElement = generateElements(1, { seed: updateSeed })[0];
@@ -152,7 +152,7 @@ const testUpdateOneAndAppendOne = async (index, updateSeed, appendSeed) => {
 };
 
 const testUpdateOneAndAppendMany = async (index, updateSeed, appendSize, appendSeed) => {
-  const gasFixtureString = `testUpdateOneAndAppendMany_${elementCount}_${index}_${updateSeed}_${appendSize}_${appendSeed}`;
+  const gasFixtureString = `${elementCount}_testUpdateOneAndAppendMany_${index}_${updateSeed}_${appendSize}_${appendSeed}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const updateElement = generateElements(1, { seed: updateSeed })[0];
@@ -167,7 +167,7 @@ const testUpdateOneAndAppendMany = async (index, updateSeed, appendSize, appendS
 };
 
 const testUpdateManyAndAppendOne = async (indices, updateSeed, appendSeed) => {
-  const gasFixtureString = `testUpdateOneAndAppendMany_${elementCount}_${indices.join('-')}_${updateSeed}_${appendSeed}`;
+  const gasFixtureString = `${elementCount}_testUpdateOneAndAppendMany_${indices.join('-')}_${updateSeed}_${appendSeed}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const updateElements = generateElements(indices.length, { seed: updateSeed });
@@ -182,7 +182,7 @@ const testUpdateManyAndAppendOne = async (indices, updateSeed, appendSeed) => {
 };
 
 const testUpdateManyAndAppendMany = async (indices, updateSeed, appendSize, appendSeed) => {
-  const gasFixtureString = `testUpdateManyAndAppendMany_${elementCount}_${indices.join('-')}_${updateSeed}_${appendSize}_${appendSeed}`;
+  const gasFixtureString = `${elementCount}_testUpdateManyAndAppendMany_${indices.join('-')}_${updateSeed}_${appendSize}_${appendSeed}`;
   const expectedGas = gasCosts[gasFixtureString];
   
   const updateElements = generateElements(indices.length, { seed: updateSeed });
@@ -196,10 +196,9 @@ const testUpdateManyAndAppendMany = async (indices, updateSeed, appendSize, appe
   expect(receipt.gasUsed).to.equal(expectedGas);
 };
 
-
 describe.skip("Simple Storage", async accounts => {
   after(() => {
-    fs.writeFileSync('./test/fixtures/simple-gas-costs.json', JSON.stringify(gasCosts, null, ' '));
+    fs.writeFileSync('./test/fixtures/simple-gas-costs.json', JSON.stringify(gasCosts, null, ' ').concat('\n'));
   });
 
   describe("Starting with 200 elements", async accounts => {
@@ -211,7 +210,7 @@ describe.skip("Simple Storage", async accounts => {
       const { receipt } = await contractInstance.append_many(hexElements);
       elementCount = 200;
 
-      const gasFixtureString = `constructAppendMany_${elementCount}_${seed}`;
+      const gasFixtureString = `${elementCount}_constructAppendMany_${seed}`;
       gasCosts[gasFixtureString] = receipt.gasUsed;
     });
   

@@ -3,9 +3,9 @@
 pragma solidity >=0.6.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "./merkle-library.sol";
+import "../libraries/memory/bytes/sorted-hash/merkle-library.sol";
 
-contract Merkle_Storage_Using_Lib {
+contract Merkle_Storage_Using_Lib_Memory_Bytes_Sorted_Hash {
   bytes32 public root;
 
   event Some_Data(bytes32 some_data);
@@ -14,16 +14,8 @@ contract Merkle_Storage_Using_Lib {
     root = _root;
   }
 
-  function verify_indices(bytes[] memory elements, bytes32[] memory proof) public pure returns (uint256[] memory) {
-    return Merkle_Library.get_indices(elements, proof);
-  }
-
-  function verify_size_with_proof(uint256 size, bytes32[] memory proof) public view returns (bool) {
-    return Merkle_Library.verify_size_with_proof(root, size, proof);
-  }
-
   function verify_size(uint256 size, bytes32 element_root) public view returns (bool) {
-    return Merkle_Library.verify_size(root, size, element_root);
+    return Merkle_Library_MBSH.verify_size(root, size, element_root);
   }
 
   function use_one(
@@ -31,13 +23,13 @@ contract Merkle_Storage_Using_Lib {
     bytes memory element,
     bytes32[] memory proof
   ) public {
-    require(Merkle_Library.element_exists(root, index, element, proof), "INVALID_ELEMENT");
+    require(Merkle_Library_MBSH.element_exists(root, index, element, proof), "INVALID_ELEMENT");
 
     emit Some_Data(keccak256(abi.encodePacked(bytes1(0x01), element)));
   }
 
   function use_many(bytes[] memory elements, bytes32[] memory proof) public {
-    require(Merkle_Library.elements_exist(root, elements, proof), "INVALID_ELEMENTS");
+    require(Merkle_Library_MBSH.elements_exist(root, elements, proof), "INVALID_ELEMENTS");
 
     uint256 using_element_count = elements.length;
     bytes32 some_data = 0x0000000000000000000000000000000000000000000000000000000000000001;
@@ -57,7 +49,7 @@ contract Merkle_Storage_Using_Lib {
     bytes memory update_element,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library.try_update_one(root, index, element, update_element, proof);
+    root = Merkle_Library_MBSH.try_update_one(root, index, element, update_element, proof);
   }
 
   function update_many(
@@ -65,15 +57,15 @@ contract Merkle_Storage_Using_Lib {
     bytes[] memory updates_elements,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library.try_update_many(root, elements, updates_elements, proof);
+    root = Merkle_Library_MBSH.try_update_many(root, elements, updates_elements, proof);
   }
 
   function append_one(bytes memory append_element, bytes32[] memory proof) public {
-    root = Merkle_Library.try_append_one(root, append_element, proof);
+    root = Merkle_Library_MBSH.try_append_one(root, append_element, proof);
   }
 
   function append_many(bytes[] memory append_elements, bytes32[] memory proof) public {
-    root = Merkle_Library.try_append_many(root, append_elements, proof);
+    root = Merkle_Library_MBSH.try_append_many(root, append_elements, proof);
   }
 
   function use_one_and_append_one(
@@ -82,7 +74,7 @@ contract Merkle_Storage_Using_Lib {
     bytes memory append_element,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library.try_append_one_using_one(root, index, element, append_element, proof);
+    root = Merkle_Library_MBSH.try_append_one_using_one(root, index, element, append_element, proof);
   }
 
   function use_one_and_append_many(
@@ -91,7 +83,7 @@ contract Merkle_Storage_Using_Lib {
     bytes[] memory append_elements,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library.try_append_many_using_one(root, index, element, append_elements, proof);
+    root = Merkle_Library_MBSH.try_append_many_using_one(root, index, element, append_elements, proof);
   }
 
   function use_many_and_append_one(
@@ -99,7 +91,7 @@ contract Merkle_Storage_Using_Lib {
     bytes memory append_element,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library.try_append_one_using_many(root, elements, append_element, proof);
+    root = Merkle_Library_MBSH.try_append_one_using_many(root, elements, append_element, proof);
   }
 
   function use_many_and_append_many(
@@ -107,7 +99,7 @@ contract Merkle_Storage_Using_Lib {
     bytes[] memory append_elements,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library.try_append_many_using_many(root, elements, append_elements, proof);
+    root = Merkle_Library_MBSH.try_append_many_using_many(root, elements, append_elements, proof);
   }
 
   function update_one_and_append_one(
@@ -117,7 +109,14 @@ contract Merkle_Storage_Using_Lib {
     bytes memory append_element,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library.try_update_one_and_append_one(root, index, element, update_element, append_element, proof);
+    root = Merkle_Library_MBSH.try_update_one_and_append_one(
+      root,
+      index,
+      element,
+      update_element,
+      append_element,
+      proof
+    );
   }
 
   function update_one_and_append_many(
@@ -127,7 +126,14 @@ contract Merkle_Storage_Using_Lib {
     bytes[] memory append_elements,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library.try_update_one_and_append_many(root, index, element, update_element, append_elements, proof);
+    root = Merkle_Library_MBSH.try_update_one_and_append_many(
+      root,
+      index,
+      element,
+      update_element,
+      append_elements,
+      proof
+    );
   }
 
   function update_many_and_append_one(
@@ -136,7 +142,7 @@ contract Merkle_Storage_Using_Lib {
     bytes memory append_element,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library.try_update_many_and_append_one(root, elements, update_elements, append_element, proof);
+    root = Merkle_Library_MBSH.try_update_many_and_append_one(root, elements, update_elements, append_element, proof);
   }
 
   function update_many_and_append_many(
@@ -145,6 +151,6 @@ contract Merkle_Storage_Using_Lib {
     bytes[] memory append_elements,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library.try_update_many_and_append_many(root, elements, update_elements, append_elements, proof);
+    root = Merkle_Library_MBSH.try_update_many_and_append_many(root, elements, update_elements, append_elements, proof);
   }
 }
