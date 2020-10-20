@@ -5,7 +5,7 @@ const { expect } = chai;
 const gasCosts = require('./fixtures/simple-gas-costs.json');
 const { generateElements } = require('./helpers');
 
-const Simple_Storage = artifacts.require("Simple_Storage");
+const Simple_Storage = artifacts.require('Simple_Storage');
 
 let contractInstance = null;
 let elementCount = null;
@@ -50,7 +50,7 @@ const testUpdateMany = async (indices, seed) => {
   const expectedGas = gasCosts[gasFixtureString];
 
   const updateElements = generateElements(indices.length, { seed });
-  const hexUpdateElements = updateElements.map(e => '0x' + e.toString('hex'));
+  const hexUpdateElements = updateElements.map((e) => '0x' + e.toString('hex'));
   const { receipt } = await contractInstance.update_many(indices, hexUpdateElements);
 
   gasCosts[gasFixtureString] = receipt.gasUsed;
@@ -76,7 +76,7 @@ const testAppendMany = async (appendSize, seed) => {
   const expectedGas = gasCosts[gasFixtureString];
 
   const appendElements = generateElements(appendSize, { seed });
-  const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+  const hexAppendElements = appendElements.map((e) => '0x' + e.toString('hex'));
   const { receipt } = await contractInstance.append_many(hexAppendElements);
 
   gasCosts[gasFixtureString] = receipt.gasUsed;
@@ -102,11 +102,11 @@ const testUseOneAndAppendMany = async (index, appendSize, seed) => {
   const expectedGas = gasCosts[gasFixtureString];
 
   const appendElements = generateElements(appendSize, { seed });
-  const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+  const hexAppendElements = appendElements.map((e) => '0x' + e.toString('hex'));
   const { receipt } = await contractInstance.use_one_and_append_many(index, hexAppendElements);
 
   gasCosts[gasFixtureString] = receipt.gasUsed;
-  
+
   expect(receipt.gasUsed).to.equal(expectedGas);
 };
 
@@ -128,7 +128,7 @@ const testUseManyAndAppendMany = async (indices, appendSize, seed) => {
   const expectedGas = gasCosts[gasFixtureString];
 
   const appendElements = generateElements(appendSize, { seed });
-  const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+  const hexAppendElements = appendElements.map((e) => '0x' + e.toString('hex'));
   const { receipt } = await contractInstance.use_many_and_append_many(indices, hexAppendElements);
 
   gasCosts[gasFixtureString] = receipt.gasUsed;
@@ -158,7 +158,7 @@ const testUpdateOneAndAppendMany = async (index, updateSeed, appendSize, appendS
   const updateElement = generateElements(1, { seed: updateSeed })[0];
   const hexUpdateElement = '0x' + updateElement.toString('hex');
   const appendElements = generateElements(appendSize, { seed: appendSeed });
-  const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+  const hexAppendElements = appendElements.map((e) => '0x' + e.toString('hex'));
   const { receipt } = await contractInstance.update_one_and_append_many(index, hexUpdateElement, hexAppendElements);
 
   gasCosts[gasFixtureString] = receipt.gasUsed;
@@ -167,11 +167,13 @@ const testUpdateOneAndAppendMany = async (index, updateSeed, appendSize, appendS
 };
 
 const testUpdateManyAndAppendOne = async (indices, updateSeed, appendSeed) => {
-  const gasFixtureString = `${elementCount}_testUpdateOneAndAppendMany_${indices.join('-')}_${updateSeed}_${appendSeed}`;
+  const gasFixtureString = `${elementCount}_testUpdateOneAndAppendMany_${indices.join(
+    '-'
+  )}_${updateSeed}_${appendSeed}`;
   const expectedGas = gasCosts[gasFixtureString];
 
   const updateElements = generateElements(indices.length, { seed: updateSeed });
-  const hexUpdateElements = updateElements.map(e => '0x' + e.toString('hex'));
+  const hexUpdateElements = updateElements.map((e) => '0x' + e.toString('hex'));
   const appendElement = generateElements(1, { seed: appendSeed })[0];
   const hexAppendElement = '0x' + appendElement.toString('hex');
   const { receipt } = await contractInstance.update_many_and_append_one(indices, hexUpdateElements, hexAppendElement);
@@ -182,13 +184,15 @@ const testUpdateManyAndAppendOne = async (indices, updateSeed, appendSeed) => {
 };
 
 const testUpdateManyAndAppendMany = async (indices, updateSeed, appendSize, appendSeed) => {
-  const gasFixtureString = `${elementCount}_testUpdateManyAndAppendMany_${indices.join('-')}_${updateSeed}_${appendSize}_${appendSeed}`;
+  const gasFixtureString = `${elementCount}_testUpdateManyAndAppendMany_${indices.join(
+    '-'
+  )}_${updateSeed}_${appendSize}_${appendSeed}`;
   const expectedGas = gasCosts[gasFixtureString];
-  
+
   const updateElements = generateElements(indices.length, { seed: updateSeed });
-  const hexUpdateElements = updateElements.map(e => '0x' + e.toString('hex'));
+  const hexUpdateElements = updateElements.map((e) => '0x' + e.toString('hex'));
   const appendElements = generateElements(appendSize, { seed: appendSeed });
-  const hexAppendElements = appendElements.map(e => '0x' + e.toString('hex'));
+  const hexAppendElements = appendElements.map((e) => '0x' + e.toString('hex'));
   const { receipt } = await contractInstance.update_many_and_append_many(indices, hexUpdateElements, hexAppendElements);
 
   gasCosts[gasFixtureString] = receipt.gasUsed;
@@ -196,88 +200,88 @@ const testUpdateManyAndAppendMany = async (indices, updateSeed, appendSize, appe
   expect(receipt.gasUsed).to.equal(expectedGas);
 };
 
-describe.skip("Simple Storage", async accounts => {
+describe.skip('Simple Storage', async (accounts) => {
   after(() => {
     fs.writeFileSync('./test/fixtures/simple-gas-costs.json', JSON.stringify(gasCosts, null, ' ').concat('\n'));
   });
 
-  describe("Starting with 200 elements", async accounts => {
+  describe('Starting with 200 elements', async (accounts) => {
     beforeEach(async () => {
       contractInstance = await Simple_Storage.new();
       const seed = 'ff';
       const elements = generateElements(200, { seed });
-      const hexElements = elements.map(e => '0x' + e.toString('hex'));
+      const hexElements = elements.map((e) => '0x' + e.toString('hex'));
       const { receipt } = await contractInstance.append_many(hexElements);
       elementCount = 200;
 
       const gasFixtureString = `${elementCount}_constructAppendMany_${seed}`;
       gasCosts[gasFixtureString] = receipt.gasUsed;
     });
-  
-    it("should use 1 element.", () => {
+
+    it('should use 1 element.', () => {
       return testUseOne(0);
     });
 
-    it("should use 2 elements.", () => {
+    it('should use 2 elements.', () => {
       return testUseMany([0, 1]);
     });
-  
-    it("should use 5 elements.", () => {
+
+    it('should use 5 elements.', () => {
       return testUseMany([0, 1, 2, 3, 4]);
     });
-  
-    it("should use 10 elements.", () => {
+
+    it('should use 10 elements.', () => {
       const firstHalf = Array.from(Array(5).keys());
-      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
-      return testUseMany(firstHalf.concat(secondHalf));
-    });
-  
-    it("should use 20 elements.", () => {
-      const firstHalf = Array.from(Array(10).keys());
-      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      const secondHalf = Array.from(Array(5).keys()).map((i) => elementCount - 5 + i);
       return testUseMany(firstHalf.concat(secondHalf));
     });
 
-    it("should update 1 element.", () => {
+    it('should use 20 elements.', () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map((i) => elementCount - 10 + i);
+      return testUseMany(firstHalf.concat(secondHalf));
+    });
+
+    it('should update 1 element.', () => {
       return testUpdateOne(0, '11');
     });
 
-    it("should update 2 elements.", () => {
+    it('should update 2 elements.', () => {
       return testUpdateMany([0, 1], '11');
     });
-  
-    it("should update 5 elements.", () => {
+
+    it('should update 5 elements.', () => {
       return testUpdateMany([0, 1, 2, 3, 4], '11');
     });
-  
-    it("should update 10 elements.", () => {
+
+    it('should update 10 elements.', () => {
       const firstHalf = Array.from(Array(5).keys());
-      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
-      return testUpdateMany(firstHalf.concat(secondHalf), '11');
-    });
-  
-    it("should update 20 elements.", () => {
-      const firstHalf = Array.from(Array(10).keys());
-      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      const secondHalf = Array.from(Array(5).keys()).map((i) => elementCount - 5 + i);
       return testUpdateMany(firstHalf.concat(secondHalf), '11');
     });
 
-    it("should append 1 new element.", async () => {
+    it('should update 20 elements.', () => {
+      const firstHalf = Array.from(Array(10).keys());
+      const secondHalf = Array.from(Array(10).keys()).map((i) => elementCount - 10 + i);
+      return testUpdateMany(firstHalf.concat(secondHalf), '11');
+    });
+
+    it('should append 1 new element.', async () => {
       return testAppendOne('22');
     });
-  
+
     it(`should append 2 new elements.`, async () => {
       return testAppendMany(2, '22');
     });
-  
+
     it(`should append 5 new elements.`, async () => {
       return testAppendMany(5, '22');
     });
-  
+
     it(`should append 10 new elements.`, async () => {
       return testAppendMany(10, '22');
     });
-  
+
     it(`should append 20 new elements.`, async () => {
       return testAppendMany(20, '22');
     });
@@ -312,13 +316,13 @@ describe.skip("Simple Storage", async accounts => {
 
     it(`should use 10 elements and append 1 element.`, async () => {
       const firstHalf = Array.from(Array(5).keys());
-      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      const secondHalf = Array.from(Array(5).keys()).map((i) => elementCount - 5 + i);
       return testUseManyAndAppendOne(firstHalf.concat(secondHalf), '22');
     });
 
     it(`should use 20 elements and append 1 element.`, async () => {
       const firstHalf = Array.from(Array(10).keys());
-      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      const secondHalf = Array.from(Array(10).keys()).map((i) => elementCount - 10 + i);
       return testUseManyAndAppendOne(firstHalf.concat(secondHalf), '22');
     });
 
@@ -332,13 +336,13 @@ describe.skip("Simple Storage", async accounts => {
 
     it(`should use 10 elements and append 10 elements.`, async () => {
       const firstHalf = Array.from(Array(5).keys());
-      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      const secondHalf = Array.from(Array(5).keys()).map((i) => elementCount - 5 + i);
       return testUseManyAndAppendMany(firstHalf.concat(secondHalf), 10, '22');
     });
 
     it(`should use 20 elements and append 20 elements.`, async () => {
       const firstHalf = Array.from(Array(10).keys());
-      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      const secondHalf = Array.from(Array(10).keys()).map((i) => elementCount - 10 + i);
       return testUseManyAndAppendMany(firstHalf.concat(secondHalf), 20, '22');
     });
 
@@ -372,13 +376,13 @@ describe.skip("Simple Storage", async accounts => {
 
     it(`should update 10 elements and append 1 element.`, async () => {
       const firstHalf = Array.from(Array(5).keys());
-      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      const secondHalf = Array.from(Array(5).keys()).map((i) => elementCount - 5 + i);
       return testUpdateManyAndAppendOne(firstHalf.concat(secondHalf), '11', '22');
     });
 
     it(`should update 20 elements and append 1 element.`, async () => {
       const firstHalf = Array.from(Array(10).keys());
-      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      const secondHalf = Array.from(Array(10).keys()).map((i) => elementCount - 10 + i);
       return testUpdateManyAndAppendOne(firstHalf.concat(secondHalf), '11', '22');
     });
 
@@ -392,13 +396,13 @@ describe.skip("Simple Storage", async accounts => {
 
     it(`should update 10 elements and append 10 elements.`, async () => {
       const firstHalf = Array.from(Array(5).keys());
-      const secondHalf = Array.from(Array(5).keys()).map(i => elementCount - 5 + i);
+      const secondHalf = Array.from(Array(5).keys()).map((i) => elementCount - 5 + i);
       return testUpdateManyAndAppendMany(firstHalf.concat(secondHalf), '11', 10, '22');
     });
 
     it(`should update 20 elements and append 20 elements.`, async () => {
       const firstHalf = Array.from(Array(10).keys());
-      const secondHalf = Array.from(Array(10).keys()).map(i => elementCount - 10 + i);
+      const secondHalf = Array.from(Array(10).keys()).map((i) => elementCount - 10 + i);
       return testUpdateManyAndAppendMany(firstHalf.concat(secondHalf), '11', 20, '22');
     });
   });

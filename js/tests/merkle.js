@@ -1687,24 +1687,7 @@ describe('Merkle Trees', () => {
               false,
               false,
             ],
-            orders: [
-              false,
-              true,
-              false,
-              true,
-              true,
-              true,
-              true,
-              true,
-              true,
-              false,
-              true,
-              true,
-              true,
-              true,
-              true,
-              true,
-            ],
+            orders: [false, true, false, true, true, true, true, true, true, false, true, true, true, true, true, true],
           };
 
           testMultiProofGeneration(19, 'ff', [2, 4, 9, 12, 17], expected, options);
@@ -1978,7 +1961,7 @@ describe('Merkle Trees', () => {
       });
     });
   });
-  
+
   describe('Existence-Only Boolean-Bit (Compact) Multi Proofs', () => {
     describe('Existence-Only Boolean-Bit Multi Proof Generation', () => {
       describe('Balanced', () => {
@@ -5034,27 +5017,27 @@ describe('Merkle Trees', () => {
           elementRoot: 'c6e8dab5e6d43912a996048145f94af81fc5314c61e74ed93eb2143189fe13ba',
           depth: 5,
         };
-  
+
         testBuildTree(28, 'ff', expected, { unbalanced: true, sortedHash: false }, { elementSize: 10 });
       });
-  
+
       it('should build a 28-element Merkle Tree of 100-byte elements.', () => {
         const expected = {
           root: 'd341738448ea99be1cbb5d9709dc49e9c55e7ca903971fa4f57650aa7c55067a',
           elementRoot: '55b732cbfaedd53e9244ed2dc1059c8e0534ce03cbb71effec5fd666ad2c5835',
           depth: 5,
         };
-  
+
         testBuildTree(28, 'ff', expected, { unbalanced: true, sortedHash: false }, { elementSize: 100 });
       });
-  
+
       it('should build a 28-element Merkle Tree of random size elements.', () => {
         const expected = {
           root: 'f3d9d28abdf4024da0b75f98cf0cf3dbb5de429e4cddb69e8affebff325d53d0',
           elementRoot: '9675e208b3b3207d4e76237ce5606d221f430b85ba193cec69fe84888a07cecc',
           depth: 5,
         };
-  
+
         testBuildTree(28, 'ff', expected, { unbalanced: true, sortedHash: false }, { elementSize: 'random' });
       });
     });

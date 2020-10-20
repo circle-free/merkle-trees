@@ -16,7 +16,7 @@ const generateElements = (elementCount, options = {}) => {
 
   for (let i = 0; i < elementCount; i++) {
     element = random ? generateRandomElement() : seed ? hashNode(seedBuffer, element) : to32ByteBuffer(i);
-    
+
     const elementSize = size === 'random' ? element.readUInt8(31) : size;
 
     if (element.length < elementSize) {
