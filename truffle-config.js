@@ -74,6 +74,11 @@ module.exports = {
     // }
   },
 
+  contracts_directory: "./eth/contracts",
+  contracts_build_directory: "./eth/build",
+  migrations_directory: "./eth/migrations",
+  test_directory: './eth/tests',
+
   // Set default mocha options here, use special reporters etc.
   mocha: {
     useColors: true,
