@@ -14,6 +14,10 @@ contract Merkle_Storage_Using_Lib_Memory_Bytes32_Standard {
     root = _root;
   }
 
+  function create(bytes32[] memory elements) external {
+    root = Merkle_Library_MB32S.create_from_many(elements);
+  }
+
   function verify_indices(bytes32[] memory elements, bytes32[] memory proof) public pure returns (uint256[] memory) {
     return Merkle_Library_MB32S.get_indices(elements, proof);
   }

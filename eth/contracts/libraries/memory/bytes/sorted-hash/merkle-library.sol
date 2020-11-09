@@ -820,12 +820,7 @@ library Merkle_Library_MBSH {
 
     require((root == bytes32(0)) == (total_element_count == bytes32(0)), "INVALID_TREE");
 
-    if (root == bytes32(0))
-      return
-        hash_node(
-          0x0000000000000000000000000000000000000000000000000000000000000001,
-          get_root_from_one(append_element)
-        );
+    if (root == bytes32(0)) return hash_node(bytes32(uint256(1)), get_root_from_one(append_element));
 
     bytes32 old_element_root;
     (old_element_root, new_element_root) = get_roots_from_append_proof_single_append(append_element, proof);
@@ -1029,5 +1024,15 @@ library Merkle_Library_MBSH {
     element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
 
     return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
+  }
+
+  // Create a tree and return the root, given one element
+  function create_from_one(bytes memory element) internal pure returns (bytes32 new_element_root) {
+    return hash_node(bytes32(uint256(1)), get_root_from_one(element));
+  }
+
+  // Create a tree and return the root, given many element
+  function create_from_many(bytes[] memory elements) internal pure returns (bytes32 new_element_root) {
+    return hash_node(bytes32(elements.length), get_root_from_many(elements));
   }
 }

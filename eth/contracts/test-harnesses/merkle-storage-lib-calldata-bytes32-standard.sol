@@ -14,6 +14,10 @@ contract Merkle_Storage_Using_Lib_Calldata_Bytes32_Standard {
     root = _root;
   }
 
+  function create(bytes32[] calldata elements) external {
+    root = Merkle_Library_CB32S.create_from_many(elements);
+  }
+
   function verify_indices(bytes32[] calldata elements, bytes32[] calldata proof)
     external
     pure

@@ -202,7 +202,7 @@ const testUpdateManyAndAppendMany = async (indices, updateSeed, appendSize, appe
 
 describe.skip('Simple Storage', async (accounts) => {
   after(() => {
-    fs.writeFileSync('./test/fixtures/simple-gas-costs.json', JSON.stringify(gasCosts, null, ' ').concat('\n'));
+    fs.writeFileSync('./eth/tests/fixtures/simple-gas-costs.json', JSON.stringify(gasCosts, null, ' ').concat('\n'));
   });
 
   describe('Starting with 200 elements', async (accounts) => {
