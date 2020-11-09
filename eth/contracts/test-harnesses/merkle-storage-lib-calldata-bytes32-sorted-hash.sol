@@ -14,6 +14,10 @@ contract Merkle_Storage_Using_Lib_Calldata_Bytes32_Sorted_Hash {
     root = _root;
   }
 
+  function create(bytes32[] calldata elements) external {
+    root = Merkle_Library_CB32SH.create_from_many(elements);
+  }
+
   function verify_size(uint256 size, bytes32 element_root) external view returns (bool) {
     return Merkle_Library_CB32SH.verify_size(root, size, element_root);
   }

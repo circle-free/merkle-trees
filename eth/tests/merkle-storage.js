@@ -469,7 +469,7 @@ const testUpdateManyAndAppendMany = async (indices, updateSeed, appendSize, appe
 
 describe('Merkle Storage Using Merkle Library', async () => {
   after(() => {
-    fs.writeFileSync('./test/fixtures/merkle-gas-costs.json', JSON.stringify(gasCosts, null, ' ').concat('\n'));
+    fs.writeFileSync('./eth/tests/fixtures/merkle-gas-costs.json', JSON.stringify(gasCosts, null, ' ').concat('\n'));
   });
 
   contracts.forEach(async (contract) => {
@@ -517,19 +517,14 @@ describe('Merkle Storage Using Merkle Library', async () => {
       beforeEach(async () => {
         contract.instance = await contract.artifact.new();
         const seed = 'ff';
-        const elements = [];
+        const elements = generateElements(200, { seed });
         contract.merkleTree = new MerkleTree(elements, contract.treeOptions);
 
-        const appendElements = generateElements(200, { seed });
-        const hexAppendElements = appendElements.map((e) => '0x' + e.toString('hex'));
-        const { newMerkleTree, proof } = contract.merkleTree.appendMulti(appendElements, contract.proofOptions);
-        const { compactProof } = proof;
-        const hexProof = compactProof.map((p) => '0x' + p.toString('hex'));
-        const { receipt } = await contract.instance.append_many(hexAppendElements, hexProof);
-        contract.merkleTree = newMerkleTree;
+        const hexElements = elements.map((e) => '0x' + e.toString('hex'));
+        const { receipt } = await contract.instance.create(hexElements);
         contract.elementCount = 200;
 
-        const gasFixtureString = `${contract.type}_${contract.elementCount}_constructAppendMany_${seed}`;
+        const gasFixtureString = `${contract.type}_${contract.elementCount}_constructCreate_${seed}`;
         gasCosts[gasFixtureString] = receipt.gasUsed;
       });
 
