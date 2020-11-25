@@ -3,14 +3,14 @@ const chai = require('chai');
 const { expect } = chai;
 
 const gasCosts = require('./fixtures/merkle-gas-costs.json');
-const { generateElements } = require('./helpers');
+const { generateElements, to32ByteBuffer } = require('./helpers');
 const { MerkleTree } = require('../../js');
 
 const contracts = [
   {
     name: 'Calldata Bytes Sorted-Hash',
-    type: 'cbsh',
-    artifact: artifacts.require('Merkle_Storage_Using_Lib_Calldata_Bytes_Sorted_Hash'),
+    type: 'icbsh',
+    artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Calldata_Bytes_Sorted_Hash'),
     instance: null,
     merkleTree: null,
     elementCount: null,
@@ -26,8 +26,8 @@ const contracts = [
   },
   {
     name: 'Calldata Bytes Standard',
-    type: 'cbs',
-    artifact: artifacts.require('Merkle_Storage_Using_Lib_Calldata_Bytes_Standard'),
+    type: 'icbs',
+    artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Calldata_Bytes_Standard'),
     instance: null,
     merkleTree: null,
     elementCount: null,
@@ -43,8 +43,8 @@ const contracts = [
   },
   {
     name: 'Calldata Bytes32 Sorted-Hash',
-    type: 'cb32sh',
-    artifact: artifacts.require('Merkle_Storage_Using_Lib_Calldata_Bytes32_Sorted_Hash'),
+    type: 'icb32sh',
+    artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Calldata_Bytes32_Sorted_Hash'),
     instance: null,
     merkleTree: null,
     elementCount: null,
@@ -60,8 +60,8 @@ const contracts = [
   },
   {
     name: 'Calldata Bytes32 Standard',
-    type: 'cb32s',
-    artifact: artifacts.require('Merkle_Storage_Using_Lib_Calldata_Bytes32_Standard'),
+    type: 'icb32s',
+    artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Calldata_Bytes32_Standard'),
     instance: null,
     merkleTree: null,
     elementCount: null,
@@ -77,8 +77,8 @@ const contracts = [
   },
   {
     name: 'Memory Bytes Sorted-Hash',
-    type: 'mbsh',
-    artifact: artifacts.require('Merkle_Storage_Using_Lib_Memory_Bytes_Sorted_Hash'),
+    type: 'imbsh',
+    artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Memory_Bytes_Sorted_Hash'),
     instance: null,
     merkleTree: null,
     elementCount: null,
@@ -94,8 +94,8 @@ const contracts = [
   },
   {
     name: 'Memory Bytes Standard',
-    type: 'mbs',
-    artifact: artifacts.require('Merkle_Storage_Using_Lib_Memory_Bytes_Standard'),
+    type: 'imbs',
+    artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Memory_Bytes_Standard'),
     instance: null,
     merkleTree: null,
     elementCount: null,
@@ -111,8 +111,8 @@ const contracts = [
   },
   {
     name: 'Memory Bytes32 Sorted-Hash',
-    type: 'mb32sh',
-    artifact: artifacts.require('Merkle_Storage_Using_Lib_Memory_Bytes32_Sorted_Hash'),
+    type: 'imb32sh',
+    artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Memory_Bytes32_Sorted_Hash'),
     instance: null,
     merkleTree: null,
     elementCount: null,
@@ -128,8 +128,8 @@ const contracts = [
   },
   {
     name: 'Memory Bytes32 Standard',
-    type: 'mb32s',
-    artifact: artifacts.require('Merkle_Storage_Using_Lib_Memory_Bytes32_Standard'),
+    type: 'imb32s',
+    artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Memory_Bytes32_Standard'),
     instance: null,
     merkleTree: null,
     elementCount: null,
@@ -475,7 +475,9 @@ describe('Merkle Storage Using Merkle Library', async () => {
   contracts.forEach(async (contract) => {
     describe(`Starting with 0 elements (${contract.name})`, async () => {
       beforeEach(async () => {
-        contract.instance = await contract.artifact.new();
+        contract.instance = await contract.artifact.deployed();
+        await contract.instance._debug_set_root(to32ByteBuffer(0));
+
         contract.merkleTree = new MerkleTree([], contract.treeOptions);
         contract.elementCount = 0;
       });
@@ -515,7 +517,9 @@ describe('Merkle Storage Using Merkle Library', async () => {
 
     describe(`Starting with 200 elements (${contract.name})`, async () => {
       beforeEach(async () => {
-        contract.instance = await contract.artifact.new();
+        contract.instance = await contract.artifact.deployed();
+        await contract.instance._debug_set_root(to32ByteBuffer(0));
+
         const seed = 'ff';
         const elements = generateElements(200, { seed });
         contract.merkleTree = new MerkleTree(elements, contract.treeOptions);
