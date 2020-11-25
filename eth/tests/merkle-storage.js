@@ -8,7 +8,7 @@ const { MerkleTree } = require('../../js');
 
 const contracts = [
   {
-    name: 'Calldata Bytes Sorted-Hash',
+    name: 'Internal Library Calldata Bytes Sorted-Hash',
     type: 'icbsh',
     artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Calldata_Bytes_Sorted_Hash'),
     instance: null,
@@ -25,7 +25,7 @@ const contracts = [
     },
   },
   {
-    name: 'Calldata Bytes Standard',
+    name: 'Internal Library Calldata Bytes Standard',
     type: 'icbs',
     artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Calldata_Bytes_Standard'),
     instance: null,
@@ -42,7 +42,7 @@ const contracts = [
     },
   },
   {
-    name: 'Calldata Bytes32 Sorted-Hash',
+    name: 'Internal Library Calldata Bytes32 Sorted-Hash',
     type: 'icb32sh',
     artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Calldata_Bytes32_Sorted_Hash'),
     instance: null,
@@ -59,7 +59,7 @@ const contracts = [
     },
   },
   {
-    name: 'Calldata Bytes32 Standard',
+    name: 'Internal Library Calldata Bytes32 Standard',
     type: 'icb32s',
     artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Calldata_Bytes32_Standard'),
     instance: null,
@@ -76,7 +76,7 @@ const contracts = [
     },
   },
   {
-    name: 'Memory Bytes Sorted-Hash',
+    name: 'Internal Library Memory Bytes Sorted-Hash',
     type: 'imbsh',
     artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Memory_Bytes_Sorted_Hash'),
     instance: null,
@@ -93,7 +93,7 @@ const contracts = [
     },
   },
   {
-    name: 'Memory Bytes Standard',
+    name: 'Internal Library Memory Bytes Standard',
     type: 'imbs',
     artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Memory_Bytes_Standard'),
     instance: null,
@@ -110,7 +110,7 @@ const contracts = [
     },
   },
   {
-    name: 'Memory Bytes32 Sorted-Hash',
+    name: 'Internal Library Memory Bytes32 Sorted-Hash',
     type: 'imb32sh',
     artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Memory_Bytes32_Sorted_Hash'),
     instance: null,
@@ -127,9 +127,145 @@ const contracts = [
     },
   },
   {
-    name: 'Memory Bytes32 Standard',
+    name: 'Internal Library Memory Bytes32 Standard',
     type: 'imb32s',
     artifact: artifacts.require('Merkle_Storage_Using_Internal_Lib_Memory_Bytes32_Standard'),
+    instance: null,
+    merkleTree: null,
+    elementCount: null,
+    treeOptions: {
+      unbalanced: true,
+      sortedHash: false,
+      elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+    },
+    proofOptions: {
+      indexed: false,
+      compact: true,
+    },
+  },
+  {
+    name: 'Deployable Library Calldata Bytes Sorted-Hash',
+    type: 'dcbsh',
+    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes_Sorted_Hash'),
+    instance: null,
+    merkleTree: null,
+    elementCount: null,
+    treeOptions: {
+      unbalanced: true,
+      sortedHash: true,
+      elementPrefix: '00',
+    },
+    proofOptions: {
+      indexed: false,
+      compact: true,
+    },
+  },
+  {
+    name: 'Deployable Library Calldata Bytes Standard',
+    type: 'dcbs',
+    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes_Standard'),
+    instance: null,
+    merkleTree: null,
+    elementCount: null,
+    treeOptions: {
+      unbalanced: true,
+      sortedHash: false,
+      elementPrefix: '00',
+    },
+    proofOptions: {
+      indexed: false,
+      compact: true,
+    },
+  },
+  {
+    name: 'Deployable Library Calldata Bytes32 Sorted-Hash',
+    type: 'dcb32sh',
+    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes32_Sorted_Hash'),
+    instance: null,
+    merkleTree: null,
+    elementCount: null,
+    treeOptions: {
+      unbalanced: true,
+      sortedHash: true,
+      elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+    },
+    proofOptions: {
+      indexed: false,
+      compact: true,
+    },
+  },
+  {
+    name: 'Deployable Library Calldata Bytes32 Standard',
+    type: 'dcb32s',
+    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes32_Standard'),
+    instance: null,
+    merkleTree: null,
+    elementCount: null,
+    treeOptions: {
+      unbalanced: true,
+      sortedHash: false,
+      elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+    },
+    proofOptions: {
+      indexed: false,
+      compact: true,
+    },
+  },
+  {
+    name: 'Deployable Library Memory Bytes Sorted-Hash',
+    type: 'dmbsh',
+    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes_Sorted_Hash'),
+    instance: null,
+    merkleTree: null,
+    elementCount: null,
+    treeOptions: {
+      unbalanced: true,
+      sortedHash: true,
+      elementPrefix: '00',
+    },
+    proofOptions: {
+      indexed: false,
+      compact: true,
+    },
+  },
+  {
+    name: 'Deployable Library Memory Bytes Standard',
+    type: 'dmbs',
+    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes_Standard'),
+    instance: null,
+    merkleTree: null,
+    elementCount: null,
+    treeOptions: {
+      unbalanced: true,
+      sortedHash: false,
+      elementPrefix: '00',
+    },
+    proofOptions: {
+      indexed: false,
+      compact: true,
+    },
+  },
+  {
+    name: 'Deployable Library Memory Bytes32 Sorted-Hash',
+    type: 'dmb32sh',
+    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Sorted_Hash'),
+    instance: null,
+    merkleTree: null,
+    elementCount: null,
+    treeOptions: {
+      unbalanced: true,
+      sortedHash: true,
+      elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+    },
+    proofOptions: {
+      indexed: false,
+      compact: true,
+    },
+  },
+  {
+    name: 'Deployable Library Memory Bytes32 Standard',
+    type: 'dmb32s',
+    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard'),
     instance: null,
     merkleTree: null,
     elementCount: null,
