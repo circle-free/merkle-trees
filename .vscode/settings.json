@@ -12,7 +12,9 @@
     "Merkle",
     "SPDX",
     "appendable",
+    "camelcase",
     "keccak",
+    "mixedcase",
     "mstore",
     "solhint"
   ]

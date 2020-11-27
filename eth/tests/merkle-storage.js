@@ -51,7 +51,7 @@ const contracts = [
     treeOptions: {
       unbalanced: true,
       sortedHash: true,
-      elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+      elementPrefix: '00',
     },
     proofOptions: {
       indexed: false,
@@ -68,7 +68,7 @@ const contracts = [
     treeOptions: {
       unbalanced: true,
       sortedHash: false,
-      elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+      elementPrefix: '00',
     },
     proofOptions: {
       indexed: false,
@@ -119,7 +119,7 @@ const contracts = [
     treeOptions: {
       unbalanced: true,
       sortedHash: true,
-      elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+      elementPrefix: '00',
     },
     proofOptions: {
       indexed: false,
@@ -136,23 +136,6 @@ const contracts = [
     treeOptions: {
       unbalanced: true,
       sortedHash: false,
-      elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
-    },
-    proofOptions: {
-      indexed: false,
-      compact: true,
-    },
-  },
-  {
-    name: 'Deployable Library Calldata Bytes Sorted-Hash',
-    type: 'dcbsh',
-    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes_Sorted_Hash'),
-    instance: null,
-    merkleTree: null,
-    elementCount: null,
-    treeOptions: {
-      unbalanced: true,
-      sortedHash: true,
       elementPrefix: '00',
     },
     proofOptions: {
@@ -160,125 +143,142 @@ const contracts = [
       compact: true,
     },
   },
-  {
-    name: 'Deployable Library Calldata Bytes Standard',
-    type: 'dcbs',
-    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes_Standard'),
-    instance: null,
-    merkleTree: null,
-    elementCount: null,
-    treeOptions: {
-      unbalanced: true,
-      sortedHash: false,
-      elementPrefix: '00',
-    },
-    proofOptions: {
-      indexed: false,
-      compact: true,
-    },
-  },
-  {
-    name: 'Deployable Library Calldata Bytes32 Sorted-Hash',
-    type: 'dcb32sh',
-    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes32_Sorted_Hash'),
-    instance: null,
-    merkleTree: null,
-    elementCount: null,
-    treeOptions: {
-      unbalanced: true,
-      sortedHash: true,
-      elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
-    },
-    proofOptions: {
-      indexed: false,
-      compact: true,
-    },
-  },
-  {
-    name: 'Deployable Library Calldata Bytes32 Standard',
-    type: 'dcb32s',
-    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes32_Standard'),
-    instance: null,
-    merkleTree: null,
-    elementCount: null,
-    treeOptions: {
-      unbalanced: true,
-      sortedHash: false,
-      elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
-    },
-    proofOptions: {
-      indexed: false,
-      compact: true,
-    },
-  },
-  {
-    name: 'Deployable Library Memory Bytes Sorted-Hash',
-    type: 'dmbsh',
-    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes_Sorted_Hash'),
-    instance: null,
-    merkleTree: null,
-    elementCount: null,
-    treeOptions: {
-      unbalanced: true,
-      sortedHash: true,
-      elementPrefix: '00',
-    },
-    proofOptions: {
-      indexed: false,
-      compact: true,
-    },
-  },
-  {
-    name: 'Deployable Library Memory Bytes Standard',
-    type: 'dmbs',
-    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes_Standard'),
-    instance: null,
-    merkleTree: null,
-    elementCount: null,
-    treeOptions: {
-      unbalanced: true,
-      sortedHash: false,
-      elementPrefix: '00',
-    },
-    proofOptions: {
-      indexed: false,
-      compact: true,
-    },
-  },
-  {
-    name: 'Deployable Library Memory Bytes32 Sorted-Hash',
-    type: 'dmb32sh',
-    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Sorted_Hash'),
-    instance: null,
-    merkleTree: null,
-    elementCount: null,
-    treeOptions: {
-      unbalanced: true,
-      sortedHash: true,
-      elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
-    },
-    proofOptions: {
-      indexed: false,
-      compact: true,
-    },
-  },
-  {
-    name: 'Deployable Library Memory Bytes32 Standard',
-    type: 'dmb32s',
-    artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard'),
-    instance: null,
-    merkleTree: null,
-    elementCount: null,
-    treeOptions: {
-      unbalanced: true,
-      sortedHash: false,
-      elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
-    },
-    proofOptions: {
-      indexed: false,
-      compact: true,
-    },
-  },
+  // {
+  //   name: 'Deployable Library Calldata Bytes Sorted-Hash',
+  //   type: 'dcbsh',
+  //   artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes_Sorted_Hash'),
+  //   instance: null,
+  //   merkleTree: null,
+  //   elementCount: null,
+  //   treeOptions: {
+  //     unbalanced: true,
+  //     sortedHash: true,
+  //     elementPrefix: '00',
+  //   },
+  //   proofOptions: {
+  //     indexed: false,
+  //     compact: true,
+  //   },
+  // },
+  // {
+  //   name: 'Deployable Library Calldata Bytes Standard',
+  //   type: 'dcbs',
+  //   artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes_Standard'),
+  //   instance: null,
+  //   merkleTree: null,
+  //   elementCount: null,
+  //   treeOptions: {
+  //     unbalanced: true,
+  //     sortedHash: false,
+  //     elementPrefix: '00',
+  //   },
+  //   proofOptions: {
+  //     indexed: false,
+  //     compact: true,
+  //   },
+  // },
+  // {
+  //   name: 'Deployable Library Calldata Bytes32 Sorted-Hash',
+  //   type: 'dcb32sh',
+  //   artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes32_Sorted_Hash'),
+  //   instance: null,
+  //   merkleTree: null,
+  //   elementCount: null,
+  //   treeOptions: {
+  //     unbalanced: true,
+  //     sortedHash: true,
+  //     elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+  //   },
+  //   proofOptions: {
+  //     indexed: false,
+  //     compact: true,
+  //   },
+  // },
+  // {
+  //   name: 'Deployable Library Calldata Bytes32 Standard',
+  //   type: 'dcb32s',
+  //   artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes32_Standard'),
+  //   instance: null,
+  //   merkleTree: null,
+  //   elementCount: null,
+  //   treeOptions: {
+  //     unbalanced: true,
+  //     sortedHash: false,
+  //     elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+  //   },
+  //   proofOptions: {
+  //     indexed: false,
+  //     compact: true,
+  //   },
+  // },
+  // {
+  //   name: 'Deployable Library Memory Bytes Sorted-Hash',
+  //   type: 'dmbsh',
+  //   artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes_Sorted_Hash'),
+  //   instance: null,
+  //   merkleTree: null,
+  //   elementCount: null,
+  //   treeOptions: {
+  //     unbalanced: true,
+  //     sortedHash: true,
+  //     elementPrefix: '00',
+  //   },
+  //   proofOptions: {
+  //     indexed: false,
+  //     compact: true,
+  //   },
+  // },
+  // {
+  //   name: 'Deployable Library Memory Bytes Standard',
+  //   type: 'dmbs',
+  //   artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes_Standard'),
+  //   instance: null,
+  //   merkleTree: null,
+  //   elementCount: null,
+  //   treeOptions: {
+  //     unbalanced: true,
+  //     sortedHash: false,
+  //     elementPrefix: '00',
+  //   },
+  //   proofOptions: {
+  //     indexed: false,
+  //     compact: true,
+  //   },
+  // },
+  // {
+  //   name: 'Deployable Library Memory Bytes32 Sorted-Hash',
+  //   type: 'dmb32sh',
+  //   artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Sorted_Hash'),
+  //   instance: null,
+  //   merkleTree: null,
+  //   elementCount: null,
+  //   treeOptions: {
+  //     unbalanced: true,
+  //     sortedHash: true,
+  //     elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+  //   },
+  //   proofOptions: {
+  //     indexed: false,
+  //     compact: true,
+  //   },
+  // },
+  // {
+  //   name: 'Deployable Library Memory Bytes32 Standard',
+  //   type: 'dmb32s',
+  //   artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard'),
+  //   instance: null,
+  //   merkleTree: null,
+  //   elementCount: null,
+  //   treeOptions: {
+  //     unbalanced: true,
+  //     sortedHash: false,
+  //     elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+  //   },
+  //   proofOptions: {
+  //     indexed: false,
+  //     compact: true,
+  //   },
+  // },
 ];
 
 const testUseOne = async (index, contract) => {
