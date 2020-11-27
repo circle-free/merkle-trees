@@ -145,7 +145,7 @@ const contracts = [
   },
   {
     name: 'Deployable Library Calldata Bytes Sorted-Hash',
-    type: 'dcbsh',
+    type: 'ecbsh',
     artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes_Sorted_Hash'),
     instance: null,
     merkleTree: null,
@@ -162,7 +162,7 @@ const contracts = [
   },
   {
     name: 'Deployable Library Calldata Bytes Standard',
-    type: 'dcbs',
+    type: 'ecbs',
     artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes_Standard'),
     instance: null,
     merkleTree: null,
@@ -179,7 +179,7 @@ const contracts = [
   },
   {
     name: 'Deployable Library Calldata Bytes32 Sorted-Hash',
-    type: 'dcb32sh',
+    type: 'ecb32sh',
     artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes32_Sorted_Hash'),
     instance: null,
     merkleTree: null,
@@ -196,7 +196,7 @@ const contracts = [
   },
   {
     name: 'Deployable Library Calldata Bytes32 Standard',
-    type: 'dcb32s',
+    type: 'ecb32s',
     artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Calldata_Bytes32_Standard'),
     instance: null,
     merkleTree: null,
@@ -213,7 +213,7 @@ const contracts = [
   },
   {
     name: 'Deployable Library Memory Bytes Sorted-Hash',
-    type: 'dmbsh',
+    type: 'embsh',
     artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes_Sorted_Hash'),
     instance: null,
     merkleTree: null,
@@ -230,7 +230,7 @@ const contracts = [
   },
   {
     name: 'Deployable Library Memory Bytes Standard',
-    type: 'dmbs',
+    type: 'embs',
     artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes_Standard'),
     instance: null,
     merkleTree: null,
@@ -247,7 +247,7 @@ const contracts = [
   },
   {
     name: 'Deployable Library Memory Bytes32 Sorted-Hash',
-    type: 'dmb32sh',
+    type: 'emb32sh',
     artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Sorted_Hash'),
     instance: null,
     merkleTree: null,
@@ -264,7 +264,7 @@ const contracts = [
   },
   {
     name: 'Deployable Library Memory Bytes32 Standard',
-    type: 'dmb32s',
+    type: 'emb32s',
     artifact: artifacts.require('Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard'),
     instance: null,
     merkleTree: null,

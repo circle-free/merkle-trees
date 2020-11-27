@@ -1,9 +1,9 @@
 {
   "cSpell.words": [
-    "DCBS",
-    "DCBSH",
-    "DMBS",
-    "DMBSH",
+    "ECBS",
+    "ECBSH",
+    "EMBS",
+    "EMBSH",
     "ICBS",
     "ICBSH",
     "IMBS",
@@ -11,6 +11,7 @@
     "MMRs",
     "Merkle",
     "SPDX",
+    "TODOs",
     "appendable",
     "camelcase",
     "keccak",
