@@ -3,7 +3,7 @@
 pragma solidity >=0.6.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "../internal/merkle-library.sol";
+import "../internal-merkle-library.sol";
 
 contract Merkle_Storage_Using_Internal_Lib_Memory_Bytes32_Standard {
   bytes32 public root;

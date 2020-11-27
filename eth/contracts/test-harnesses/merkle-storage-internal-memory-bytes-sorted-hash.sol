@@ -3,7 +3,7 @@
 pragma solidity >=0.6.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "../internal/merkle-library-sorted-hash.sol";
+import "../internal-merkle-library-sorted-hash.sol";
 
 contract Merkle_Storage_Using_Internal_Lib_Memory_Bytes_Sorted_Hash {
   bytes32 public root;

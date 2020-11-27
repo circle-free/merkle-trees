@@ -20,7 +20,7 @@
     "ganache": "ganache-cli",
     "lint-eth": "solhint 'eth/contracts/**/*.sol'",
     "prettier": "prettier --write 'eth/contracts/**/*.sol' 'eth/tests/**/*.js' 'js/src/**/*.js' 'js/tests/**/*.js'",
-    "prettier-eth": "prettier --write 'eth/contracts/**/*.sol' 'eth/tests/**/*.js'",
+    "prettier-eth": "prettier --write 'eth/contracts/**/*.sol' 'eth/specific-contracts/**/*.sol' 'eth/other-contracts/**/*.sol' 'eth/tests/**/*.js'",
     "prettier-js": "prettier --write 'js/src/**/*.js' 'js/tests/**/*.js'",
     "compile-eth": "yarn truffle compile",
     "migrate": "truffle migrate --network development"
