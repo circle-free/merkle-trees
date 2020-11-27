@@ -1,12 +1,21 @@
 {
   "cSpell.words": [
-    "CBSH",
-    "MBSH",
+    "ECBS",
+    "ECBSH",
+    "EMBS",
+    "EMBSH",
+    "ICBS",
+    "ICBSH",
+    "IMBS",
+    "IMBSH",
     "MMRs",
     "Merkle",
     "SPDX",
+    "TODOs",
     "appendable",
+    "camelcase",
     "keccak",
+    "mixedcase",
     "mstore",
     "solhint"
   ]

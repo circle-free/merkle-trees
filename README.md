@@ -53,12 +53,12 @@ const result2 = await simpleStorageInstance.update_many_and_append_many(
 console.log(result2.receipt.gasUsed);   // 582,667 gas used
 
 // Launch a contract (using this merkle library) with empty storage
-const merkleStorageInstance = await Merkle_Storage_Using_Library.new();
+const merkleStorageInstance = await Merkle_Storage_Using_Internal_Lib_Memory_Bytes32_Standard.new();
 
 // Create empty Merkle Tree object
 const merkleOptions = {
   compact: true,
-  elementPrefix: '0000000000000000000000000000000000000000000000000000000000000000',
+  elementPrefix: '00',
 };
 
 let merkleTree = new MerkleTree([], merkleOptions);
@@ -77,7 +77,7 @@ const hexAppendProof = compactAppendProof.map(p => '0x' + p.toString('hex'));
 
 // Append the first 200 elements to the merkle storage
 const result3 = await merkleStorageInstance.append_many(hexElements, hexAppendProof);
-console.log(result3.receipt.gasUsed);   // 260,389 gas used (6.2% the gas cost!!)
+console.log(result3.receipt.gasUsed);   // 259,071 gas used (6.2% the gas cost!!)
 
 // Since the contract storage is updated, overwrite the merkle tree with the new one
 merkleTree = newMerkleTree1;
@@ -111,7 +111,7 @@ const result4 = await contractInstance.update_many_and_append_many(
   hexCombinedProof
 );
 
-console.log(result4.receipt.gasUsed);   // 128,695 gas used (22.1% the gas cost!!)
+console.log(result4.receipt.gasUsed);   // 131,877 gas used (22.6% the gas cost!!)
 
 // Since the contract storage is updated, overwrite the merkle tree with the new one
 merkleTree = newMerkleTree2;

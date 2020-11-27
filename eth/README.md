@@ -15,17 +15,17 @@ Ideally, this structure and library can be used to roll up and entire object, in
 ```solidity
 pragma solidity >=0.6.0 <0.8.0;
 
-import "../node_modules/merkle-trees/eth/contracts/merkle-library-calldata.sol";
+import "../node_modules/merkle-trees/eth/contracts/internal-merkle-library.sol";
 
 // or
 
-import "./merkle-trees/eth/contracts/merkle-library-calldata.sol";
+import "merkle-trees/eth/contracts/internal-merkle-library.sol";
 
 // depending on your setup
 
 ...
 
-Merkle_Library.elements_exist(root, elements, proof);
+Internal_Merkle_Library.elements_exist(root, elements, proof);
 ```
 
 See `./contracts/test-harnesses` for contracts that give a better idea of how to use one of these libraries in your contracts. Also, see `./tests/merkle-storage.js` for examples on how to pair this with the javascript library.
@@ -52,6 +52,7 @@ See `./contracts/test-harnesses` for contracts that give a better idea of how to
 - [X] ~~implement index inferring for multi-proofs without sorted hashing~~
 - [X] ~~an example using the library contract~~
 - [X] ~~testing of the library contract~~
+- [X] ~~Consolidate contracts and logic~~
 <br>
 <br>
 
@@ -65,7 +66,9 @@ foo@bar:~$ yarn install
 Done in 0.16s.
 foo@bar:~$ ganache-cli
 ...
-foo@bar:~$ yarn test
+foo@bar:~$ yarn compile-eth
+foo@bar:~$ yarn migrate
+foo@bar:~$ yarn test-eth
 ...
-392 passing (3m)
+784 passing (11m)
 ```

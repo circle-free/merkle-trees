@@ -74,4 +74,5 @@ module.exports = {
   shuffle,
   swap,
   randomNumberGenerator,
+  to32ByteBuffer,
 };
