@@ -3,7 +3,7 @@
 pragma solidity >=0.6.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
-library Merkle_Library {
+library Internal_Merkle_Library {
   // Hashes a and b in the order they are passed
   function hash_node(bytes32 a, bytes32 b) internal pure returns (bytes32 hash) {
     assembly {

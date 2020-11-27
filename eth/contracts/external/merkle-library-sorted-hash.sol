@@ -3,7 +3,7 @@
 pragma solidity >=0.6.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
-library Internal_Merkle_Library_Sorted_Hash {
+library External_Merkle_Library_Sorted_Hash {
   // Hashes a and b in the order they are passed
   function hash_node(bytes32 a, bytes32 b) internal pure returns (bytes32 hash) {
     assembly {
@@ -40,12 +40,7 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // Get the Element Merkle Root for a tree with just a single bytes element in calldata
-  function get_root_from_one_c(bytes calldata element) internal pure returns (bytes32) {
-    return keccak256(abi.encodePacked(bytes1(0), element));
-  }
-
-  // Get the Element Merkle Root for a tree with just a single bytes element in memory
-  function get_root_from_one_m(bytes memory element) internal pure returns (bytes32) {
+  function get_root_from_one(bytes calldata element) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(bytes1(0), element));
   }
 
@@ -55,30 +50,7 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // Get nodes (parent of leafs) from bytes elements in calldata
-  function get_nodes_from_elements_c(bytes[] calldata elements) internal pure returns (bytes32[] memory nodes) {
-    uint256 element_count = elements.length;
-    uint256 node_count = (element_count >> 1) + (element_count & 1);
-    nodes = new bytes32[](node_count);
-    uint256 write_index;
-    uint256 left_index;
-
-    while (write_index < node_count) {
-      left_index = write_index << 1;
-
-      if (left_index == element_count - 1) {
-        nodes[write_index] = keccak256(abi.encodePacked(bytes1(0), elements[left_index]));
-        break;
-      }
-
-      nodes[write_index++] = hash_pair(
-        keccak256(abi.encodePacked(bytes1(0), elements[left_index])),
-        keccak256(abi.encodePacked(bytes1(0), elements[left_index + 1]))
-      );
-    }
-  }
-
-  // Get nodes (parent of leafs) from bytes elements in memory
-  function get_nodes_from_elements_m(bytes[] memory elements) internal pure returns (bytes32[] memory nodes) {
+  function get_nodes_from_elements(bytes[] calldata elements) internal pure returns (bytes32[] memory nodes) {
     uint256 element_count = elements.length;
     uint256 node_count = (element_count >> 1) + (element_count & 1);
     nodes = new bytes32[](node_count);
@@ -101,30 +73,7 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // Get nodes (parent of leafs) from bytes32 elements in calldata
-  function get_nodes_from_elements_c(bytes32[] calldata elements) internal pure returns (bytes32[] memory nodes) {
-    uint256 element_count = elements.length;
-    uint256 node_count = (element_count >> 1) + (element_count & 1);
-    nodes = new bytes32[](node_count);
-    uint256 write_index;
-    uint256 left_index;
-
-    while (write_index < node_count) {
-      left_index = write_index << 1;
-
-      if (left_index == element_count - 1) {
-        nodes[write_index] = keccak256(abi.encodePacked(bytes1(0), elements[left_index]));
-        break;
-      }
-
-      nodes[write_index++] = hash_pair(
-        keccak256(abi.encodePacked(bytes1(0), elements[left_index])),
-        keccak256(abi.encodePacked(bytes1(0), elements[left_index + 1]))
-      );
-    }
-  }
-
-  // Get nodes (parent of leafs) from bytes32 elements in memory
-  function get_nodes_from_elements_m(bytes32[] memory elements) internal pure returns (bytes32[] memory nodes) {
+  function get_nodes_from_elements(bytes32[] calldata elements) internal pure returns (bytes32[] memory nodes) {
     uint256 element_count = elements.length;
     uint256 node_count = (element_count >> 1) + (element_count & 1);
     nodes = new bytes32[](node_count);
@@ -175,23 +124,13 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // Get the Element Merkle Root for a tree with several bytes elements in calldata
-  function get_root_from_many_c(bytes[] calldata elements) internal pure returns (bytes32) {
-    return get_root_from_nodes(get_nodes_from_elements_c(elements));
-  }
-
-  // Get the Element Merkle Root for a tree with several bytes elements in memory
-  function get_root_from_many_m(bytes[] memory elements) internal pure returns (bytes32) {
-    return get_root_from_nodes(get_nodes_from_elements_m(elements));
+  function get_root_from_many(bytes[] calldata elements) internal pure returns (bytes32) {
+    return get_root_from_nodes(get_nodes_from_elements(elements));
   }
 
   // Get the Element Merkle Root for a tree with several bytes32 elements in calldata
-  function get_root_from_many_c(bytes32[] calldata elements) internal pure returns (bytes32) {
-    return get_root_from_nodes(get_nodes_from_elements_c(elements));
-  }
-
-  // Get the Element Merkle Root for a tree with several bytes32 elements in memory
-  function get_root_from_many_m(bytes32[] memory elements) internal pure returns (bytes32) {
-    return get_root_from_nodes(get_nodes_from_elements_m(elements));
+  function get_root_from_many(bytes32[] calldata elements) internal pure returns (bytes32) {
+    return get_root_from_nodes(get_nodes_from_elements(elements));
   }
 
   // get_root_from_size_proof cannot be implemented with sorted hashed pairs
@@ -265,23 +204,10 @@ library Internal_Merkle_Library_Sorted_Hash {
 
   // Get the original and updated Element Merkle Root,
   // given an index, a bytes element in calldata, a bytes update element in calldata, and a Single Proof
-  function get_roots_from_single_proof_update_c(
+  function get_roots_from_single_proof_update(
     uint256 index,
     bytes calldata element,
     bytes calldata update_element,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 hash, bytes32 update_hash) {
-    hash = keccak256(abi.encodePacked(bytes1(0), element));
-    update_hash = keccak256(abi.encodePacked(bytes1(0), update_element));
-    return get_roots_from_leaf_and_single_proof_update(index, hash, update_hash, proof);
-  }
-
-  // Get the original and updated Element Merkle Root,
-  // given an index, a bytes element in calldata, a bytes update element in memory, and a Single Proof
-  function get_roots_from_single_proof_update_m(
-    uint256 index,
-    bytes calldata element,
-    bytes memory update_element,
     bytes32[] calldata proof
   ) internal pure returns (bytes32 hash, bytes32 update_hash) {
     hash = keccak256(abi.encodePacked(bytes1(0), element));
@@ -392,7 +318,7 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // Get current and update leafs from current bytes elements in calldata and update bytes elements in calldata, in reverse order
-  function get_reversed_leafs_from_current_and_update_elements_c(
+  function get_reversed_leafs_from_current_and_update_elements(
     bytes[] calldata elements,
     bytes[] calldata update_elements
   ) internal pure returns (bytes32[] memory leafs, bytes32[] memory update_leafs) {
@@ -412,52 +338,10 @@ library Internal_Merkle_Library_Sorted_Hash {
     }
   }
 
-  // Get current and update leafs from current bytes elements in calldata and update bytes elements in memory, in reverse order
-  function get_reversed_leafs_from_current_and_update_elements_m(
-    bytes[] calldata elements,
-    bytes[] memory update_elements
-  ) internal pure returns (bytes32[] memory leafs, bytes32[] memory update_leafs) {
-    uint256 element_count = elements.length;
-    require(update_elements.length == element_count, "LENGTH_MISMATCH");
-
-    leafs = new bytes32[](element_count);
-    update_leafs = new bytes32[](element_count);
-    uint256 read_index = element_count - 1;
-    uint256 write_index;
-
-    while (write_index < element_count) {
-      leafs[write_index] = keccak256(abi.encodePacked(bytes1(0), elements[read_index]));
-      update_leafs[write_index] = keccak256(abi.encodePacked(bytes1(0), update_elements[read_index]));
-      write_index += 1;
-      read_index -= 1;
-    }
-  }
-
   // Get current and update leafs from current bytes32 elements in calldata and update bytes32 elements in calldata, in reverse order
-  function get_reversed_leafs_from_current_and_update_elements_c(
+  function get_reversed_leafs_from_current_and_update_elements(
     bytes32[] calldata elements,
     bytes32[] calldata update_elements
-  ) internal pure returns (bytes32[] memory leafs, bytes32[] memory update_leafs) {
-    uint256 element_count = elements.length;
-    require(update_elements.length == element_count, "LENGTH_MISMATCH");
-
-    leafs = new bytes32[](element_count);
-    update_leafs = new bytes32[](element_count);
-    uint256 read_index = element_count - 1;
-    uint256 write_index;
-
-    while (write_index < element_count) {
-      leafs[write_index] = keccak256(abi.encodePacked(bytes1(0), elements[read_index]));
-      update_leafs[write_index] = keccak256(abi.encodePacked(bytes1(0), update_elements[read_index]));
-      write_index += 1;
-      read_index -= 1;
-    }
-  }
-
-  // Get current and update leafs from current bytes32 elements in calldata and update bytes32 elements in memory, in reverse order
-  function get_reversed_leafs_from_current_and_update_elements_m(
-    bytes32[] calldata elements,
-    bytes32[] memory update_elements
   ) internal pure returns (bytes32[] memory leafs, bytes32[] memory update_leafs) {
     uint256 element_count = elements.length;
     require(update_elements.length == element_count, "LENGTH_MISMATCH");
@@ -528,26 +412,12 @@ library Internal_Merkle_Library_Sorted_Hash {
 
   // Get the original and updated Element Merkle Root,
   // given bytes elements in calldata, bytes update elements in calldata, and an Existence Multi Proof
-  function get_roots_from_multi_proof_update_c(
+  function get_roots_from_multi_proof_update(
     bytes[] calldata elements,
     bytes[] calldata update_elements,
     bytes32[] calldata proof
   ) internal pure returns (bytes32, bytes32) {
-    (bytes32[] memory leafs, bytes32[] memory update_leafs) = get_reversed_leafs_from_current_and_update_elements_c(
-      elements,
-      update_elements
-    );
-    return get_roots_from_leafs_and_multi_proof_update(leafs, update_leafs, proof);
-  }
-
-  // Get the original and updated Element Merkle Root,
-  // given bytes elements in calldata, bytes update elements in memory, and an Existence Multi Proof
-  function get_roots_from_multi_proof_update_m(
-    bytes[] calldata elements,
-    bytes[] memory update_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32, bytes32) {
-    (bytes32[] memory leafs, bytes32[] memory update_leafs) = get_reversed_leafs_from_current_and_update_elements_m(
+    (bytes32[] memory leafs, bytes32[] memory update_leafs) = get_reversed_leafs_from_current_and_update_elements(
       elements,
       update_elements
     );
@@ -556,26 +426,12 @@ library Internal_Merkle_Library_Sorted_Hash {
 
   // Get the original and updated Element Merkle Root,
   // given bytes32 elements in calldata, bytes32 update elements in calldata, and an Existence Multi Proof
-  function get_roots_from_multi_proof_update_c(
+  function get_roots_from_multi_proof_update(
     bytes32[] calldata elements,
     bytes32[] calldata update_elements,
     bytes32[] calldata proof
   ) internal pure returns (bytes32, bytes32) {
-    (bytes32[] memory leafs, bytes32[] memory update_leafs) = get_reversed_leafs_from_current_and_update_elements_c(
-      elements,
-      update_elements
-    );
-    return get_roots_from_leafs_and_multi_proof_update(leafs, update_leafs, proof);
-  }
-
-  // Get the original and updated Element Merkle Root,
-  // given bytes32 elements in calldata, bytes32 update elements in memory, and an Existence Multi Proof
-  function get_roots_from_multi_proof_update_m(
-    bytes32[] calldata elements,
-    bytes32[] memory update_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32, bytes32) {
-    (bytes32[] memory leafs, bytes32[] memory update_leafs) = get_reversed_leafs_from_current_and_update_elements_m(
+    (bytes32[] memory leafs, bytes32[] memory update_leafs) = get_reversed_leafs_from_current_and_update_elements(
       elements,
       update_elements
     );
@@ -614,17 +470,7 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // Get the original and updated Element Merkle Root, given a bytes append element in calldata and an Append Proof
-  function get_roots_from_append_proof_single_append_c(bytes calldata append_element, bytes32[] calldata proof)
-    internal
-    pure
-    returns (bytes32 append_leaf, bytes32)
-  {
-    append_leaf = keccak256(abi.encodePacked(bytes1(0), append_element));
-    return get_roots_from_leaf_and_append_proof_single_append(append_leaf, proof);
-  }
-
-  // Get the original and updated Element Merkle Root, given a bytes append element in memory and an Append Proof
-  function get_roots_from_append_proof_single_append_m(bytes memory append_element, bytes32[] calldata proof)
+  function get_roots_from_append_proof_single_append(bytes calldata append_element, bytes32[] calldata proof)
     internal
     pure
     returns (bytes32 append_leaf, bytes32)
@@ -644,18 +490,7 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // Get leafs from bytes elements in calldata
-  function get_leafs_from_elements_c(bytes[] calldata elements) internal pure returns (bytes32[] memory leafs) {
-    uint256 element_count = elements.length;
-    leafs = new bytes32[](element_count);
-
-    while (element_count > 0) {
-      element_count -= 1;
-      leafs[element_count] = keccak256(abi.encodePacked(bytes1(0), elements[element_count]));
-    }
-  }
-
-  // Get leafs from bytes elements in memory
-  function get_leafs_from_elements_m(bytes[] memory elements) internal pure returns (bytes32[] memory leafs) {
+  function get_leafs_from_elements(bytes[] calldata elements) internal pure returns (bytes32[] memory leafs) {
     uint256 element_count = elements.length;
     leafs = new bytes32[](element_count);
 
@@ -666,18 +501,7 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // Get leafs from bytes32 elements in calldata
-  function get_leafs_from_elements_c(bytes32[] calldata elements) internal pure returns (bytes32[] memory leafs) {
-    uint256 element_count = elements.length;
-    leafs = new bytes32[](element_count);
-
-    while (element_count > 0) {
-      element_count -= 1;
-      leafs[element_count] = keccak256(abi.encodePacked(bytes1(0), elements[element_count]));
-    }
-  }
-
-  // Get leafs from bytes32 elements in memory
-  function get_leafs_from_elements_m(bytes32[] memory elements) internal pure returns (bytes32[] memory leafs) {
+  function get_leafs_from_elements(bytes32[] calldata elements) internal pure returns (bytes32[] memory leafs) {
     uint256 element_count = elements.length;
     leafs = new bytes32[](element_count);
 
@@ -740,39 +564,21 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // Get the original and updated Element Merkle Root, given bytes append elements in calldata and an Append Proof
-  function get_roots_from_append_proof_multi_append_c(bytes[] calldata append_elements, bytes32[] calldata proof)
+  function get_roots_from_append_proof_multi_append(bytes[] calldata append_elements, bytes32[] calldata proof)
     internal
     pure
     returns (bytes32, bytes32)
   {
-    return get_roots_from_leafs_and_append_proof_multi_append(get_leafs_from_elements_c(append_elements), proof);
-  }
-
-  // Get the original and updated Element Merkle Root, given bytes append elements in memory and an Append Proof
-  function get_roots_from_append_proof_multi_append_m(bytes[] memory append_elements, bytes32[] calldata proof)
-    internal
-    pure
-    returns (bytes32, bytes32)
-  {
-    return get_roots_from_leafs_and_append_proof_multi_append(get_leafs_from_elements_m(append_elements), proof);
+    return get_roots_from_leafs_and_append_proof_multi_append(get_leafs_from_elements(append_elements), proof);
   }
 
   // Get the original and updated Element Merkle Root, given bytes32 append elements in calldata and an Append Proof
-  function get_roots_from_append_proof_multi_append_c(bytes32[] calldata append_elements, bytes32[] calldata proof)
+  function get_roots_from_append_proof_multi_append(bytes32[] calldata append_elements, bytes32[] calldata proof)
     internal
     pure
     returns (bytes32, bytes32)
   {
-    return get_roots_from_leafs_and_append_proof_multi_append(get_leafs_from_elements_c(append_elements), proof);
-  }
-
-  // Get the original and updated Element Merkle Root, given bytes32 append elements in memory and an Append Proof
-  function get_roots_from_append_proof_multi_append_m(bytes32[] memory append_elements, bytes32[] calldata proof)
-    internal
-    pure
-    returns (bytes32, bytes32)
-  {
-    return get_roots_from_leafs_and_append_proof_multi_append(get_leafs_from_elements_m(append_elements), proof);
+    return get_roots_from_leafs_and_append_proof_multi_append(get_leafs_from_elements(append_elements), proof);
   }
 
   // Get the updated Element Merkle Root, given an append leaf and an Append Proof
@@ -791,17 +597,7 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // Get the updated Element Merkle Root, given a bytes append elements in calldata and an Append Proof
-  function get_new_root_from_append_proof_single_append_c(bytes calldata append_element, bytes32[] memory proof)
-    internal
-    pure
-    returns (bytes32 append_leaf)
-  {
-    append_leaf = keccak256(abi.encodePacked(bytes1(0), append_element));
-    return get_new_root_from_leafs_and_append_proof_single_append(append_leaf, proof);
-  }
-
-  // Get the updated Element Merkle Root, given a bytes append elements in memory and an Append Proof
-  function get_new_root_from_append_proof_single_append_m(bytes memory append_element, bytes32[] memory proof)
+  function get_new_root_from_append_proof_single_append(bytes calldata append_element, bytes32[] memory proof)
     internal
     pure
     returns (bytes32 append_leaf)
@@ -868,39 +664,21 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // Get the updated Element Merkle Root, given bytes append elements in calldata and an Append Proof
-  function get_new_root_from_append_proof_multi_append_c(bytes[] calldata append_elements, bytes32[] memory proof)
+  function get_new_root_from_append_proof_multi_append(bytes[] calldata append_elements, bytes32[] memory proof)
     internal
     pure
     returns (bytes32)
   {
-    return get_new_root_from_leafs_and_append_proof_multi_append(get_leafs_from_elements_c(append_elements), proof);
-  }
-
-  // Get the updated Element Merkle Root, given bytes append elements in memory and an Append Proof
-  function get_new_root_from_append_proof_multi_append_m(bytes[] memory append_elements, bytes32[] memory proof)
-    internal
-    pure
-    returns (bytes32)
-  {
-    return get_new_root_from_leafs_and_append_proof_multi_append(get_leafs_from_elements_m(append_elements), proof);
+    return get_new_root_from_leafs_and_append_proof_multi_append(get_leafs_from_elements(append_elements), proof);
   }
 
   // Get the updated Element Merkle Root, given bytes32 append elements in calldata and an Append Proof
-  function get_new_root_from_append_proof_multi_append_c(bytes32[] calldata append_elements, bytes32[] memory proof)
+  function get_new_root_from_append_proof_multi_append(bytes32[] calldata append_elements, bytes32[] memory proof)
     internal
     pure
     returns (bytes32)
   {
-    return get_new_root_from_leafs_and_append_proof_multi_append(get_leafs_from_elements_c(append_elements), proof);
-  }
-
-  // Get the updated Element Merkle Root, given bytes32 append elements in memory and an Append Proof
-  function get_new_root_from_append_proof_multi_append_m(bytes32[] memory append_elements, bytes32[] memory proof)
-    internal
-    pure
-    returns (bytes32)
-  {
-    return get_new_root_from_leafs_and_append_proof_multi_append(get_leafs_from_elements_m(append_elements), proof);
+    return get_new_root_from_leafs_and_append_proof_multi_append(get_leafs_from_elements(append_elements), proof);
   }
 
   // Get the original Element Merkle Root and derive Append Proof, given an index, an append leaf, and a Single Proof
@@ -1015,23 +793,10 @@ library Internal_Merkle_Library_Sorted_Hash {
 
   // Get the original Element Merkle Root and derive Append Proof,
   // given an index, a bytes element in calldata, a bytes update element in calldata, and a Single Proof
-  function get_append_proof_from_single_proof_update_c(
+  function get_append_proof_from_single_proof_update(
     uint256 index,
     bytes calldata element,
     bytes calldata update_element,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 leaf, bytes32[] memory) {
-    leaf = keccak256(abi.encodePacked(bytes1(0), element));
-    bytes32 update_leaf = keccak256(abi.encodePacked(bytes1(0), update_element));
-    return get_append_proof_from_leaf_and_single_proof_update(index, leaf, update_leaf, proof);
-  }
-
-  // Get the original Element Merkle Root and derive Append Proof,
-  // given an index, a bytes element in calldata, a bytes update element in memory, and a Single Proof
-  function get_append_proof_from_single_proof_update_m(
-    uint256 index,
-    bytes calldata element,
-    bytes memory update_element,
     bytes32[] calldata proof
   ) internal pure returns (bytes32 leaf, bytes32[] memory) {
     leaf = keccak256(abi.encodePacked(bytes1(0), element));
@@ -1179,7 +944,7 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // Get combined current and update leafs from current bytes elements in calldata and update bytes elements in calldata, in reverse order
-  function get_reversed_combined_leafs_from_current_and_update_elements_c(
+  function get_reversed_combined_leafs_from_current_and_update_elements(
     bytes[] calldata elements,
     bytes[] calldata update_elements
   ) internal pure returns (bytes32[] memory combined_leafs) {
@@ -1198,50 +963,10 @@ library Internal_Merkle_Library_Sorted_Hash {
     }
   }
 
-  // Get combined current and update leafs from current bytes elements in calldata and update bytes elements in memory, in reverse order
-  function get_reversed_combined_leafs_from_current_and_update_elements_m(
-    bytes[] calldata elements,
-    bytes[] memory update_elements
-  ) internal pure returns (bytes32[] memory combined_leafs) {
-    uint256 element_count = elements.length;
-    require(update_elements.length == element_count, "LENGTH_MISMATCH");
-
-    combined_leafs = new bytes32[](element_count << 1);
-    uint256 read_index = element_count - 1;
-    uint256 write_index;
-
-    while (write_index < element_count) {
-      combined_leafs[write_index] = keccak256(abi.encodePacked(bytes1(0), elements[read_index]));
-      combined_leafs[element_count + write_index] = keccak256(abi.encodePacked(bytes1(0), update_elements[read_index]));
-      write_index += 1;
-      read_index -= 1;
-    }
-  }
-
   // Get combined current and update leafs from current bytes32 elements in calldata and update bytes32 elements in calldata, in reverse order
-  function get_reversed_combined_leafs_from_current_and_update_elements_c(
+  function get_reversed_combined_leafs_from_current_and_update_elements(
     bytes32[] calldata elements,
     bytes32[] calldata update_elements
-  ) internal pure returns (bytes32[] memory combined_leafs) {
-    uint256 element_count = elements.length;
-    require(update_elements.length == element_count, "LENGTH_MISMATCH");
-
-    combined_leafs = new bytes32[](element_count << 1);
-    uint256 read_index = element_count - 1;
-    uint256 write_index;
-
-    while (write_index < element_count) {
-      combined_leafs[write_index] = keccak256(abi.encodePacked(bytes1(0), elements[read_index]));
-      combined_leafs[element_count + write_index] = keccak256(abi.encodePacked(bytes1(0), update_elements[read_index]));
-      write_index += 1;
-      read_index -= 1;
-    }
-  }
-
-  // Get combined current and update leafs from current bytes32 elements in calldata and update bytes32 elements in memory, in reverse order
-  function get_reversed_combined_leafs_from_current_and_update_elements_m(
-    bytes32[] calldata elements,
-    bytes32[] memory update_elements
   ) internal pure returns (bytes32[] memory combined_leafs) {
     uint256 element_count = elements.length;
     require(update_elements.length == element_count, "LENGTH_MISMATCH");
@@ -1387,56 +1112,28 @@ library Internal_Merkle_Library_Sorted_Hash {
 
   // Get the original Element Merkle Root and derive Append Proof,
   // given bytes elements in calldata, bytes update elements in calldata, and an Existence Multi Proof
-  function get_append_proof_from_multi_proof_update_c(
+  function get_append_proof_from_multi_proof_update(
     bytes[] calldata elements,
     bytes[] calldata update_elements,
     bytes32[] calldata proof
   ) internal pure returns (bytes32, bytes32[] memory) {
     return
       get_append_proof_from_leafs_and_multi_proof_update(
-        get_reversed_combined_leafs_from_current_and_update_elements_c(elements, update_elements),
-        proof
-      );
-  }
-
-  // Get the original Element Merkle Root and derive Append Proof,
-  // given bytes elements in calldata, bytes update elements in memory, and an Existence Multi Proof
-  function get_append_proof_from_multi_proof_update_m(
-    bytes[] calldata elements,
-    bytes[] memory update_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32, bytes32[] memory) {
-    return
-      get_append_proof_from_leafs_and_multi_proof_update(
-        get_reversed_combined_leafs_from_current_and_update_elements_m(elements, update_elements),
+        get_reversed_combined_leafs_from_current_and_update_elements(elements, update_elements),
         proof
       );
   }
 
   // Get the original Element Merkle Root and derive Append Proof,
   // given bytes32 elements in calldata, bytes32 update elements in calldata, and an Existence Multi Proof
-  function get_append_proof_from_multi_proof_update_c(
+  function get_append_proof_from_multi_proof_update(
     bytes32[] calldata elements,
     bytes32[] calldata update_elements,
     bytes32[] calldata proof
   ) internal pure returns (bytes32, bytes32[] memory) {
     return
       get_append_proof_from_leafs_and_multi_proof_update(
-        get_reversed_combined_leafs_from_current_and_update_elements_c(elements, update_elements),
-        proof
-      );
-  }
-
-  // Get the original Element Merkle Root and derive Append Proof,
-  // given bytes32 elements in calldata, bytes32 update elements in memory, and an Existence Multi Proof
-  function get_append_proof_from_multi_proof_update_m(
-    bytes32[] calldata elements,
-    bytes32[] memory update_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32, bytes32[] memory) {
-    return
-      get_append_proof_from_leafs_and_multi_proof_update(
-        get_reversed_combined_leafs_from_current_and_update_elements_m(elements, update_elements),
+        get_reversed_combined_leafs_from_current_and_update_elements(elements, update_elements),
         proof
       );
   }
@@ -1447,7 +1144,7 @@ library Internal_Merkle_Library_Sorted_Hash {
     uint256 index,
     bytes calldata element,
     bytes32[] calldata proof
-  ) internal pure returns (bool) {
+  ) external pure returns (bool) {
     return hash_node(proof[0], get_root_from_single_proof(index, element, proof)) == root;
   }
 
@@ -1457,7 +1154,7 @@ library Internal_Merkle_Library_Sorted_Hash {
     uint256 index,
     bytes32 element,
     bytes32[] calldata proof
-  ) internal pure returns (bool) {
+  ) external pure returns (bool) {
     return hash_node(proof[0], get_root_from_single_proof(index, element, proof)) == root;
   }
 
@@ -1466,7 +1163,7 @@ library Internal_Merkle_Library_Sorted_Hash {
     bytes32 root,
     bytes[] calldata elements,
     bytes32[] calldata proof
-  ) internal pure returns (bool) {
+  ) external pure returns (bool) {
     return hash_node(proof[0], get_root_from_multi_proof(elements, proof)) == root;
   }
 
@@ -1475,7 +1172,7 @@ library Internal_Merkle_Library_Sorted_Hash {
     bytes32 root,
     bytes32[] calldata elements,
     bytes32[] calldata proof
-  ) internal pure returns (bool) {
+  ) external pure returns (bool) {
     return hash_node(proof[0], get_root_from_multi_proof(elements, proof)) == root;
   }
 
@@ -1488,46 +1185,26 @@ library Internal_Merkle_Library_Sorted_Hash {
     bytes32 root,
     uint256 size,
     bytes32 element_root
-  ) internal pure returns (bool) {
+  ) external pure returns (bool) {
     if (root == bytes32(0) && size == 0) return true;
 
     return hash_node(bytes32(size), element_root) == root;
   }
 
   // INTERFACE: Try to update a bytes element in calldata, given a root, and index, an bytes element in calldata, and a Single Proof
-  function try_update_one_c(
+  function try_update_one(
     bytes32 root,
     uint256 index,
     bytes calldata element,
     bytes calldata update_element,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
+  ) external pure returns (bytes32 new_element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
 
     bytes32 old_element_root;
-    (old_element_root, new_element_root) = get_roots_from_single_proof_update_c(index, element, update_element, proof);
-
-    require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
-
-    return hash_node(total_element_count, new_element_root);
-  }
-
-  // INTERFACE: Try to update a bytes element in memory, given a root, and index, an bytes element in calldata, and a Single Proof
-  function try_update_one_m(
-    bytes32 root,
-    uint256 index,
-    bytes calldata element,
-    bytes memory update_element,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32 old_element_root;
-    (old_element_root, new_element_root) = get_roots_from_single_proof_update_m(index, element, update_element, proof);
+    (old_element_root, new_element_root) = get_roots_from_single_proof_update(index, element, update_element, proof);
 
     require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
 
@@ -1541,7 +1218,7 @@ library Internal_Merkle_Library_Sorted_Hash {
     bytes32 element,
     bytes32 update_element,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
+  ) external pure returns (bytes32 new_element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
@@ -1555,37 +1232,18 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // INTERFACE: Try to update bytes elements in calldata, given a root, bytes elements in calldata, and an Existence Multi Proof
-  function try_update_many_c(
+  function try_update_many(
     bytes32 root,
     bytes[] calldata elements,
     bytes[] calldata update_elements,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
+  ) external pure returns (bytes32 new_element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
 
     bytes32 old_element_root;
-    (old_element_root, new_element_root) = get_roots_from_multi_proof_update_c(elements, update_elements, proof);
-
-    require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
-
-    return hash_node(total_element_count, new_element_root);
-  }
-
-  // INTERFACE: Try to update bytes elements in calldata, given a root, bytes elements in calldata, and an Existence Multi Proof
-  function try_update_many_m(
-    bytes32 root,
-    bytes[] calldata elements,
-    bytes[] memory update_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32 old_element_root;
-    (old_element_root, new_element_root) = get_roots_from_multi_proof_update_m(elements, update_elements, proof);
+    (old_element_root, new_element_root) = get_roots_from_multi_proof_update(elements, update_elements, proof);
 
     require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
 
@@ -1593,37 +1251,18 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // INTERFACE: Try to update bytes32 elements in calldata, given a root, bytes32 elements in calldata, and an Existence Multi Proof
-  function try_update_many_c(
+  function try_update_many(
     bytes32 root,
     bytes32[] calldata elements,
     bytes32[] calldata update_elements,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
+  ) external pure returns (bytes32 new_element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
 
     bytes32 old_element_root;
-    (old_element_root, new_element_root) = get_roots_from_multi_proof_update_c(elements, update_elements, proof);
-
-    require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
-
-    return hash_node(total_element_count, new_element_root);
-  }
-
-  // INTERFACE: Try to update bytes32 elements in calldata, given a root, bytes32 elements in calldata, and an Existence Multi Proof
-  function try_update_many_m(
-    bytes32 root,
-    bytes32[] calldata elements,
-    bytes32[] memory update_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32 old_element_root;
-    (old_element_root, new_element_root) = get_roots_from_multi_proof_update_m(elements, update_elements, proof);
+    (old_element_root, new_element_root) = get_roots_from_multi_proof_update(elements, update_elements, proof);
 
     require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
 
@@ -1631,39 +1270,19 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // INTERFACE: Try to append a bytes element in calldata, given a root and an Append Proof
-  function try_append_one_c(
+  function try_append_one(
     bytes32 root,
     bytes calldata append_element,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
+  ) external pure returns (bytes32 new_element_root) {
     bytes32 total_element_count = proof[0];
 
     require((root == bytes32(0)) == (total_element_count == bytes32(0)), "INVALID_TREE");
 
-    if (root == bytes32(0)) return hash_node(bytes32(uint256(1)), get_root_from_one_c(append_element));
+    if (root == bytes32(0)) return hash_node(bytes32(uint256(1)), get_root_from_one(append_element));
 
     bytes32 old_element_root;
-    (old_element_root, new_element_root) = get_roots_from_append_proof_single_append_c(append_element, proof);
-
-    require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
-
-    return hash_node(bytes32(uint256(total_element_count) + 1), new_element_root);
-  }
-
-  // INTERFACE: Try to append a bytes element in memory, given a root and an Append Proof
-  function try_append_one_m(
-    bytes32 root,
-    bytes memory append_element,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require((root == bytes32(0)) == (total_element_count == bytes32(0)), "INVALID_TREE");
-
-    if (root == bytes32(0)) return hash_node(bytes32(uint256(1)), get_root_from_one_m(append_element));
-
-    bytes32 old_element_root;
-    (old_element_root, new_element_root) = get_roots_from_append_proof_single_append_m(append_element, proof);
+    (old_element_root, new_element_root) = get_roots_from_append_proof_single_append(append_element, proof);
 
     require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
 
@@ -1675,7 +1294,7 @@ library Internal_Merkle_Library_Sorted_Hash {
     bytes32 root,
     bytes32 append_element,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
+  ) external pure returns (bytes32 new_element_root) {
     bytes32 total_element_count = proof[0];
 
     require((root == bytes32(0)) == (total_element_count == bytes32(0)), "INVALID_TREE");
@@ -1691,39 +1310,19 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // INTERFACE: Try to append bytes elements in calldata, given a root and an Append Proof
-  function try_append_many_c(
+  function try_append_many(
     bytes32 root,
     bytes[] calldata append_elements,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
+  ) external pure returns (bytes32 new_element_root) {
     bytes32 total_element_count = proof[0];
 
     require((root == bytes32(0)) == (total_element_count == bytes32(0)), "INVALID_TREE");
 
-    if (root == bytes32(0)) return hash_node(bytes32(append_elements.length), get_root_from_many_c(append_elements));
+    if (root == bytes32(0)) return hash_node(bytes32(append_elements.length), get_root_from_many(append_elements));
 
     bytes32 old_element_root;
-    (old_element_root, new_element_root) = get_roots_from_append_proof_multi_append_c(append_elements, proof);
-
-    require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
-
-    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), new_element_root);
-  }
-
-  // INTERFACE: Try to append bytes elements in memory, given a root and an Append Proof
-  function try_append_many_m(
-    bytes32 root,
-    bytes[] memory append_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require((root == bytes32(0)) == (total_element_count == bytes32(0)), "INVALID_TREE");
-
-    if (root == bytes32(0)) return hash_node(bytes32(append_elements.length), get_root_from_many_m(append_elements));
-
-    bytes32 old_element_root;
-    (old_element_root, new_element_root) = get_roots_from_append_proof_multi_append_m(append_elements, proof);
+    (old_element_root, new_element_root) = get_roots_from_append_proof_multi_append(append_elements, proof);
 
     require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
 
@@ -1731,39 +1330,19 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // INTERFACE: Try to append bytes32 elements in calldata, given a root and an Append Proof
-  function try_append_many_c(
+  function try_append_many(
     bytes32 root,
     bytes32[] calldata append_elements,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
+  ) external pure returns (bytes32 new_element_root) {
     bytes32 total_element_count = proof[0];
 
     require((root == bytes32(0)) == (total_element_count == bytes32(0)), "INVALID_TREE");
 
-    if (root == bytes32(0)) return hash_node(bytes32(append_elements.length), get_root_from_many_c(append_elements));
+    if (root == bytes32(0)) return hash_node(bytes32(append_elements.length), get_root_from_many(append_elements));
 
     bytes32 old_element_root;
-    (old_element_root, new_element_root) = get_roots_from_append_proof_multi_append_c(append_elements, proof);
-
-    require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
-
-    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), new_element_root);
-  }
-
-  // INTERFACE: Try to append bytes32 elements in memory, given a root and an Append Proof
-  function try_append_many_m(
-    bytes32 root,
-    bytes32[] memory append_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 new_element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require((root == bytes32(0)) == (total_element_count == bytes32(0)), "INVALID_TREE");
-
-    if (root == bytes32(0)) return hash_node(bytes32(append_elements.length), get_root_from_many_m(append_elements));
-
-    bytes32 old_element_root;
-    (old_element_root, new_element_root) = get_roots_from_append_proof_multi_append_m(append_elements, proof);
+    (old_element_root, new_element_root) = get_roots_from_append_proof_multi_append(append_elements, proof);
 
     require(hash_node(total_element_count, old_element_root) == root, "INVALID_PROOF");
 
@@ -1771,13 +1350,13 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // INTERFACE: Try to append a bytes element in calldata, given a root, an index, a bytes element in calldata, and a Single Proof
-  function try_append_one_using_one_c(
+  function try_append_one_using_one(
     bytes32 root,
     uint256 index,
     bytes calldata element,
     bytes calldata append_element,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
@@ -1787,29 +1366,7 @@ library Internal_Merkle_Library_Sorted_Hash {
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
-    element_root = get_new_root_from_append_proof_single_append_c(append_element, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
-  }
-
-  // INTERFACE: Try to append a bytes element in memory, given a root, an index, a bytes element in calldata, and a Single Proof
-  function try_append_one_using_one_m(
-    bytes32 root,
-    uint256 index,
-    bytes calldata element,
-    bytes memory append_element,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_single_proof(index, element, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_single_append_m(append_element, append_proof);
+    element_root = get_new_root_from_append_proof_single_append(append_element, append_proof);
 
     return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
   }
@@ -1821,7 +1378,7 @@ library Internal_Merkle_Library_Sorted_Hash {
     bytes32 element,
     bytes32 append_element,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
@@ -1837,13 +1394,13 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // INTERFACE: Try to append bytes elements in calldata, given a root, an index, a bytes element in calldata, and a Single Proof
-  function try_append_many_using_one_c(
+  function try_append_many_using_one(
     bytes32 root,
     uint256 index,
     bytes calldata element,
     bytes[] calldata append_elements,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
@@ -1853,41 +1410,19 @@ library Internal_Merkle_Library_Sorted_Hash {
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
-    element_root = get_new_root_from_append_proof_multi_append_c(append_elements, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
-  }
-
-  // INTERFACE: Try to append bytes elements in memory, given a root, an index, a bytes element in calldata, and a Single Proof
-  function try_append_many_using_one_m(
-    bytes32 root,
-    uint256 index,
-    bytes calldata element,
-    bytes[] memory append_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_single_proof(index, element, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_multi_append_m(append_elements, append_proof);
+    element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
 
     return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
   }
 
   // INTERFACE: Try to append bytes32 elements in calldata, given a root, an index, a bytes32 element, and a Single Proof
-  function try_append_many_using_one_c(
+  function try_append_many_using_one(
     bytes32 root,
     uint256 index,
     bytes32 element,
     bytes32[] calldata append_elements,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
@@ -1897,40 +1432,18 @@ library Internal_Merkle_Library_Sorted_Hash {
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
-    element_root = get_new_root_from_append_proof_multi_append_c(append_elements, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
-  }
-
-  // INTERFACE: Try to append bytes32 elements in memory, given a root, an index, a bytes32 element, and a Single Proof
-  function try_append_many_using_one_m(
-    bytes32 root,
-    uint256 index,
-    bytes32 element,
-    bytes32[] memory append_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_single_proof(index, element, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_multi_append_m(append_elements, append_proof);
+    element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
 
     return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
   }
 
   // INTERFACE: Try to append a bytes element in calldata, given a root, bytes elements in calldata, and an Existence Multi Proof
-  function try_append_one_using_many_c(
+  function try_append_one_using_many(
     bytes32 root,
     bytes[] calldata elements,
     bytes calldata append_element,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
@@ -1940,28 +1453,7 @@ library Internal_Merkle_Library_Sorted_Hash {
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
-    element_root = get_new_root_from_append_proof_single_append_c(append_element, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
-  }
-
-  // INTERFACE: Try to append a bytes element in memory, given a root, bytes elements in calldata, and an Existence Multi Proof
-  function try_append_one_using_many_m(
-    bytes32 root,
-    bytes[] calldata elements,
-    bytes memory append_element,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_multi_proof(elements, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_single_append_m(append_element, append_proof);
+    element_root = get_new_root_from_append_proof_single_append(append_element, append_proof);
 
     return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
   }
@@ -1972,7 +1464,7 @@ library Internal_Merkle_Library_Sorted_Hash {
     bytes32[] calldata elements,
     bytes32 append_element,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
@@ -1988,12 +1480,12 @@ library Internal_Merkle_Library_Sorted_Hash {
   }
 
   // INTERFACE: Try to append bytes elements in calldata, given a root, bytes elements in calldata, and an Existence Multi Proof
-  function try_append_many_using_many_c(
+  function try_append_many_using_many(
     bytes32 root,
     bytes[] calldata elements,
     bytes[] calldata append_elements,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
@@ -2003,39 +1495,18 @@ library Internal_Merkle_Library_Sorted_Hash {
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
-    element_root = get_new_root_from_append_proof_multi_append_c(append_elements, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
-  }
-
-  // INTERFACE: Try to append bytes elements in memory, given a root, bytes elements in calldata, and an Existence Multi Proof
-  function try_append_many_using_many_m(
-    bytes32 root,
-    bytes[] calldata elements,
-    bytes[] memory append_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_multi_proof(elements, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_multi_append_m(append_elements, append_proof);
+    element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
 
     return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
   }
 
   // INTERFACE: Try to append bytes32 elements in calldata, given a root, bytes32 elements in calldata, and an Existence Multi Proof
-  function try_append_many_using_many_c(
+  function try_append_many_using_many(
     bytes32 root,
     bytes32[] calldata elements,
     bytes32[] calldata append_elements,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
@@ -2045,76 +1516,31 @@ library Internal_Merkle_Library_Sorted_Hash {
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
-    element_root = get_new_root_from_append_proof_multi_append_c(append_elements, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
-  }
-
-  // INTERFACE: Try to append bytes32 elements in memory, given a root, bytes32 elements in calldata, and an Existence Multi Proof
-  function try_append_many_using_many_m(
-    bytes32 root,
-    bytes32[] calldata elements,
-    bytes32[] memory append_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_multi_proof(elements, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_multi_append_m(append_elements, append_proof);
+    element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
 
     return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
   }
 
   // INTERFACE: Try to update a bytes element in calldata and append a bytes element in calldata,
   // given a root, an index, a bytes element in calldata, and a Single Proof
-  function try_update_one_and_append_one_c(
+  function try_update_one_and_append_one(
     bytes32 root,
     uint256 index,
     bytes calldata element,
     bytes calldata update_element,
     bytes calldata append_element,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
 
     bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_single_proof_update_c(index, element, update_element, proof);
+    (element_root, append_proof) = get_append_proof_from_single_proof_update(index, element, update_element, proof);
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
-    element_root = get_new_root_from_append_proof_single_append_c(append_element, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
-  }
-
-  // INTERFACE: Try to update a bytes element in memory and append a bytes element in memory,
-  // given a root, an index, a bytes element in calldata, and a Single Proof
-  function try_update_one_and_append_one_m(
-    bytes32 root,
-    uint256 index,
-    bytes calldata element,
-    bytes memory update_element,
-    bytes memory append_element,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_single_proof_update_m(index, element, update_element, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_single_append_m(append_element, append_proof);
+    element_root = get_new_root_from_append_proof_single_append(append_element, append_proof);
 
     return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
   }
@@ -2128,7 +1554,7 @@ library Internal_Merkle_Library_Sorted_Hash {
     bytes32 update_element,
     bytes32 append_element,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
@@ -2145,62 +1571,38 @@ library Internal_Merkle_Library_Sorted_Hash {
 
   // INTERFACE: Try to update a bytes element in calldata and append bytes elements in calldata,
   // given a root, an index, a bytes element in calldata, and a Single Proof
-  function try_update_one_and_append_many_c(
+  function try_update_one_and_append_many(
     bytes32 root,
     uint256 index,
     bytes calldata element,
     bytes calldata update_element,
     bytes[] calldata append_elements,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
 
     bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_single_proof_update_c(index, element, update_element, proof);
+    (element_root, append_proof) = get_append_proof_from_single_proof_update(index, element, update_element, proof);
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
-    element_root = get_new_root_from_append_proof_multi_append_c(append_elements, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
-  }
-
-  // INTERFACE: Try to update a bytes element in memory and append bytes elements in memory,
-  // given a root, an index, a bytes element in calldata, and a Single Proof
-  function try_update_one_and_append_many_m(
-    bytes32 root,
-    uint256 index,
-    bytes calldata element,
-    bytes memory update_element,
-    bytes[] memory append_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_single_proof_update_m(index, element, update_element, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_multi_append_m(append_elements, append_proof);
+    element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
 
     return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
   }
 
   // INTERFACE: Try to update a bytes32 element and append bytes32 elements in calldata,
   // given a root, an index, a bytes32 element, and a Single Proof
-  function try_update_one_and_append_many_c(
+  function try_update_one_and_append_many(
     bytes32 root,
     uint256 index,
     bytes32 element,
     bytes32 update_element,
     bytes32[] calldata append_elements,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
@@ -2210,96 +1612,26 @@ library Internal_Merkle_Library_Sorted_Hash {
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
-    element_root = get_new_root_from_append_proof_multi_append_c(append_elements, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
-  }
-
-  // INTERFACE: Try to update a bytes32 element and append bytes32 elements in memory,
-  // given a root, an index, a bytes32 element, and a Single Proof
-  function try_update_one_and_append_many_m(
-    bytes32 root,
-    uint256 index,
-    bytes32 element,
-    bytes32 update_element,
-    bytes32[] memory append_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_single_proof_update(index, element, update_element, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_multi_append_m(append_elements, append_proof);
+    element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
 
     return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
   }
 
   // INTERFACE: Try to update bytes elements in calldata and append a bytes element in calldata,
   // given a root, bytes elements in calldata, and a Single Proof
-  function try_update_many_and_append_one_c(
+  function try_update_many_and_append_one(
     bytes32 root,
     bytes[] calldata elements,
     bytes[] calldata update_elements,
     bytes calldata append_element,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
 
     bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_multi_proof_update_c(elements, update_elements, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_single_append_c(append_element, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
-  }
-
-  // INTERFACE: Try to update bytes elements in memory and append a bytes element in memory,
-  // given a root, bytes elements in calldata, and a Single Proof
-  function try_update_many_and_append_one_m(
-    bytes32 root,
-    bytes[] calldata elements,
-    bytes[] memory update_elements,
-    bytes memory append_element,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_multi_proof_update_m(elements, update_elements, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_single_append_m(append_element, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
-  }
-
-  // INTERFACE: Try to update bytes32 elements in calldata and append a bytes32 element,
-  // given a root, bytes32 elements in calldata, and a Single Proof
-  function try_update_many_and_append_one_c(
-    bytes32 root,
-    bytes32[] calldata elements,
-    bytes32[] calldata update_elements,
-    bytes32 append_element,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_multi_proof_update_c(elements, update_elements, proof);
+    (element_root, append_proof) = get_append_proof_from_multi_proof_update(elements, update_elements, proof);
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
@@ -2308,21 +1640,21 @@ library Internal_Merkle_Library_Sorted_Hash {
     return hash_node(bytes32(uint256(total_element_count) + 1), element_root);
   }
 
-  // INTERFACE: Try to update bytes32 elements in memory and append a bytes32 element,
+  // INTERFACE: Try to update bytes32 elements in calldata and append a bytes32 element,
   // given a root, bytes32 elements in calldata, and a Single Proof
-  function try_update_many_and_append_one_m(
+  function try_update_many_and_append_one(
     bytes32 root,
     bytes32[] calldata elements,
-    bytes32[] memory update_elements,
+    bytes32[] calldata update_elements,
     bytes32 append_element,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
 
     bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_multi_proof_update_m(elements, update_elements, proof);
+    (element_root, append_proof) = get_append_proof_from_multi_proof_update(elements, update_elements, proof);
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
@@ -2333,128 +1665,67 @@ library Internal_Merkle_Library_Sorted_Hash {
 
   // INTERFACE: Try to update bytes elements in calldata and append bytes elements in calldata,
   // given a root, bytes elements in calldata, and an Existence Multi Proof
-  function try_update_many_and_append_many_c(
+  function try_update_many_and_append_many(
     bytes32 root,
     bytes[] calldata elements,
     bytes[] calldata update_elements,
     bytes[] calldata append_elements,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
 
     bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_multi_proof_update_c(elements, update_elements, proof);
+    (element_root, append_proof) = get_append_proof_from_multi_proof_update(elements, update_elements, proof);
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
-    element_root = get_new_root_from_append_proof_multi_append_c(append_elements, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
-  }
-
-  // INTERFACE: Try to update bytes elements in memory and append bytes elements in memory,
-  // given a root, bytes elements in calldata, and an Existence Multi Proof
-  function try_update_many_and_append_many_m(
-    bytes32 root,
-    bytes[] calldata elements,
-    bytes[] memory update_elements,
-    bytes[] memory append_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_multi_proof_update_m(elements, update_elements, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_multi_append_m(append_elements, append_proof);
+    element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
 
     return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
   }
 
   // INTERFACE: Try to update bytes32 elements in calldata and append bytes32 elements in calldata,
   // given a root, bytes32 elements in calldata, and an Existence Multi Proof
-  function try_update_many_and_append_many_c(
+  function try_update_many_and_append_many(
     bytes32 root,
     bytes32[] calldata elements,
     bytes32[] calldata update_elements,
     bytes32[] calldata append_elements,
     bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
+  ) external pure returns (bytes32 element_root) {
     bytes32 total_element_count = proof[0];
 
     require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
 
     bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_multi_proof_update_c(elements, update_elements, proof);
+    (element_root, append_proof) = get_append_proof_from_multi_proof_update(elements, update_elements, proof);
 
     require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
 
-    element_root = get_new_root_from_append_proof_multi_append_c(append_elements, append_proof);
-
-    return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
-  }
-
-  // INTERFACE: Try to update bytes32 elements in memory and append bytes32 elements in memory,
-  // given a root, bytes32 elements in calldata, and an Existence Multi Proof
-  function try_update_many_and_append_many_m(
-    bytes32 root,
-    bytes32[] calldata elements,
-    bytes32[] memory update_elements,
-    bytes32[] memory append_elements,
-    bytes32[] calldata proof
-  ) internal pure returns (bytes32 element_root) {
-    bytes32 total_element_count = proof[0];
-
-    require(root != bytes32(0) || total_element_count == bytes32(0), "EMPTY_TREE");
-
-    bytes32[] memory append_proof;
-    (element_root, append_proof) = get_append_proof_from_multi_proof_update_m(elements, update_elements, proof);
-
-    require(hash_node(total_element_count, element_root) == root, "INVALID_PROOF");
-
-    element_root = get_new_root_from_append_proof_multi_append_m(append_elements, append_proof);
+    element_root = get_new_root_from_append_proof_multi_append(append_elements, append_proof);
 
     return hash_node(bytes32(uint256(total_element_count) + append_elements.length), element_root);
   }
 
   // INTERFACE: Create a tree and return the root, given a bytes element in calldata
-  function create_from_one_c(bytes calldata element) internal pure returns (bytes32 new_element_root) {
-    return hash_node(bytes32(uint256(1)), get_root_from_one_c(element));
-  }
-
-  // INTERFACE: Create a tree and return the root, given a bytes element in memory
-  function create_from_one_m(bytes memory element) internal pure returns (bytes32 new_element_root) {
-    return hash_node(bytes32(uint256(1)), get_root_from_one_m(element));
+  function create_from_one(bytes calldata element) external pure returns (bytes32 new_element_root) {
+    return hash_node(bytes32(uint256(1)), get_root_from_one(element));
   }
 
   // INTERFACE: Create a tree and return the root, given a bytes32 element
-  function create_from_one(bytes32 element) internal pure returns (bytes32 new_element_root) {
+  function create_from_one(bytes32 element) external pure returns (bytes32 new_element_root) {
     return hash_node(bytes32(uint256(1)), get_root_from_one(element));
   }
 
   // INTERFACE: Create a tree and return the root, given bytes elements in calldata
-  function create_from_many_c(bytes[] calldata elements) internal pure returns (bytes32 new_element_root) {
-    return hash_node(bytes32(elements.length), get_root_from_many_c(elements));
-  }
-
-  // INTERFACE: Create a tree and return the root, given bytes elements in memory
-  function create_from_many_m(bytes[] memory elements) internal pure returns (bytes32 new_element_root) {
-    return hash_node(bytes32(elements.length), get_root_from_many_m(elements));
+  function create_from_many(bytes[] calldata elements) external pure returns (bytes32 new_element_root) {
+    return hash_node(bytes32(elements.length), get_root_from_many(elements));
   }
 
   // INTERFACE: Create a tree and return the root, given bytes32 elements in calldata
-  function create_from_many_c(bytes32[] calldata elements) internal pure returns (bytes32 new_element_root) {
-    return hash_node(bytes32(elements.length), get_root_from_many_c(elements));
-  }
-
-  // INTERFACE: Create a tree and return the root, given bytes32 elements in memory
-  function create_from_many_m(bytes32[] memory elements) internal pure returns (bytes32 new_element_root) {
-    return hash_node(bytes32(elements.length), get_root_from_many_m(elements));
+  function create_from_many(bytes32[] calldata elements) external pure returns (bytes32 new_element_root) {
+    return hash_node(bytes32(elements.length), get_root_from_many(elements));
   }
 }

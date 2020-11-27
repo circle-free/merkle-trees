@@ -3,7 +3,7 @@
 pragma solidity >=0.6.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "../deployable/memory/bytes32/standard/merkle-library.sol";
+import "../external/merkle-library.sol";
 
 contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
   bytes32 public root;
@@ -15,19 +15,19 @@ contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
   }
 
   function create(bytes32[] memory elements) external {
-    root = Merkle_Library_DMB32S.create_from_many(elements);
+    root = External_Merkle_Library.create_from_many(elements);
   }
 
   function verify_indices(bytes32[] memory elements, bytes32[] memory proof) public pure returns (uint256[] memory) {
-    return Merkle_Library_DMB32S.get_indices(elements, proof);
+    return External_Merkle_Library.get_indices(elements, proof);
   }
 
   function verify_size_with_proof(uint256 size, bytes32[] memory proof) public view returns (bool) {
-    return Merkle_Library_DMB32S.verify_size_with_proof(root, size, proof);
+    return External_Merkle_Library.verify_size_with_proof(root, size, proof);
   }
 
   function verify_size(uint256 size, bytes32 element_root) public view returns (bool) {
-    return Merkle_Library_DMB32S.verify_size(root, size, element_root);
+    return External_Merkle_Library.verify_size(root, size, element_root);
   }
 
   function use_one(
@@ -35,22 +35,22 @@ contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
     bytes32 element,
     bytes32[] memory proof
   ) public {
-    require(Merkle_Library_DMB32S.element_exists(root, index, element, proof), "INVALID_ELEMENT");
+    require(External_Merkle_Library.element_exists(root, index, element, proof), "INVALID_ELEMENT");
 
     emit Some_Data(
-      Merkle_Library_DMB32S.hash_node(0x0000000000000000000000000000000000000000000000000000000000000001, element)
+      External_Merkle_Library.hash_node(0x0000000000000000000000000000000000000000000000000000000000000001, element)
     );
   }
 
   function use_many(bytes32[] memory elements, bytes32[] memory proof) public {
-    require(Merkle_Library_DMB32S.elements_exist(root, elements, proof), "INVALID_ELEMENTS");
+    require(External_Merkle_Library.elements_exist(root, elements, proof), "INVALID_ELEMENTS");
 
     uint256 using_element_count = elements.length;
     bytes32 some_data = 0x0000000000000000000000000000000000000000000000000000000000000001;
     uint256 i;
 
     while (i < using_element_count) {
-      some_data = Merkle_Library_DMB32S.hash_node(some_data, elements[i]);
+      some_data = External_Merkle_Library.hash_node(some_data, elements[i]);
       i += 1;
     }
 
@@ -63,7 +63,7 @@ contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
     bytes32 update_element,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library_DMB32S.try_update_one(root, index, element, update_element, proof);
+    root = External_Merkle_Library.try_update_one(root, index, element, update_element, proof);
   }
 
   function update_many(
@@ -71,15 +71,15 @@ contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
     bytes32[] memory updates_elements,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library_DMB32S.try_update_many(root, elements, updates_elements, proof);
+    root = External_Merkle_Library.try_update_many(root, elements, updates_elements, proof);
   }
 
   function append_one(bytes32 append_element, bytes32[] memory proof) public {
-    root = Merkle_Library_DMB32S.try_append_one(root, append_element, proof);
+    root = External_Merkle_Library.try_append_one(root, append_element, proof);
   }
 
   function append_many(bytes32[] memory append_elements, bytes32[] memory proof) public {
-    root = Merkle_Library_DMB32S.try_append_many(root, append_elements, proof);
+    root = External_Merkle_Library.try_append_many(root, append_elements, proof);
   }
 
   function use_one_and_append_one(
@@ -88,7 +88,7 @@ contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
     bytes32 append_element,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library_DMB32S.try_append_one_using_one(root, index, element, append_element, proof);
+    root = External_Merkle_Library.try_append_one_using_one(root, index, element, append_element, proof);
   }
 
   function use_one_and_append_many(
@@ -97,7 +97,7 @@ contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
     bytes32[] memory append_elements,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library_DMB32S.try_append_many_using_one(root, index, element, append_elements, proof);
+    root = External_Merkle_Library.try_append_many_using_one(root, index, element, append_elements, proof);
   }
 
   function use_many_and_append_one(
@@ -105,7 +105,7 @@ contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
     bytes32 append_element,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library_DMB32S.try_append_one_using_many(root, elements, append_element, proof);
+    root = External_Merkle_Library.try_append_one_using_many(root, elements, append_element, proof);
   }
 
   function use_many_and_append_many(
@@ -113,7 +113,7 @@ contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
     bytes32[] memory append_elements,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library_DMB32S.try_append_many_using_many(root, elements, append_elements, proof);
+    root = External_Merkle_Library.try_append_many_using_many(root, elements, append_elements, proof);
   }
 
   function update_one_and_append_one(
@@ -123,7 +123,7 @@ contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
     bytes32 append_element,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library_DMB32S.try_update_one_and_append_one(
+    root = External_Merkle_Library.try_update_one_and_append_one(
       root,
       index,
       element,
@@ -140,7 +140,7 @@ contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
     bytes32[] memory append_elements,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library_DMB32S.try_update_one_and_append_many(
+    root = External_Merkle_Library.try_update_one_and_append_many(
       root,
       index,
       element,
@@ -156,7 +156,13 @@ contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
     bytes32 append_element,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library_DMB32S.try_update_many_and_append_one(root, elements, update_elements, append_element, proof);
+    root = External_Merkle_Library.try_update_many_and_append_one(
+      root,
+      elements,
+      update_elements,
+      append_element,
+      proof
+    );
   }
 
   function update_many_and_append_many(
@@ -165,7 +171,7 @@ contract Merkle_Storage_Using_Deployable_Lib_Memory_Bytes32_Standard {
     bytes32[] memory append_elements,
     bytes32[] memory proof
   ) public {
-    root = Merkle_Library_DMB32S.try_update_many_and_append_many(
+    root = External_Merkle_Library.try_update_many_and_append_many(
       root,
       elements,
       update_elements,
