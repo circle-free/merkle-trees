@@ -235,9 +235,19 @@ library Internal_Merkle_Library {
   }
 
   // Get the original Element Merkle Root, given an index, a bytes element in calldata, and a Single Proof
-  function get_root_from_single_proof(
+  function get_root_from_single_proof_c(
     uint256 index,
     bytes calldata element,
+    bytes32[] calldata proof
+  ) internal pure returns (bytes32 hash) {
+    hash = keccak256(abi.encodePacked(bytes1(0), element));
+    hash = get_root_from_leaf_and_single_proof(index, hash, proof);
+  }
+
+  // Get the original Element Merkle Root, given an index, a bytes element in memory, and a Single Proof
+  function get_root_from_single_proof_m(
+    uint256 index,
+    bytes memory element,
     bytes32[] calldata proof
   ) internal pure returns (bytes32 hash) {
     hash = keccak256(abi.encodePacked(bytes1(0), element));
@@ -401,7 +411,25 @@ library Internal_Merkle_Library {
   }
 
   // Get leafs from bytes elements in calldata, in reverse order
-  function get_reversed_leafs_from_elements(bytes[] calldata elements) internal pure returns (bytes32[] memory leafs) {
+  function get_reversed_leafs_from_elements_c(bytes[] calldata elements)
+    internal
+    pure
+    returns (bytes32[] memory leafs)
+  {
+    uint256 element_count = elements.length;
+    leafs = new bytes32[](element_count);
+    uint256 read_index = element_count - 1;
+    uint256 write_index;
+
+    while (write_index < element_count) {
+      leafs[write_index] = keccak256(abi.encodePacked(bytes1(0), elements[read_index]));
+      write_index += 1;
+      read_index -= 1;
+    }
+  }
+
+  // Get leafs from bytes elements in memory, in reverse order
+  function get_reversed_leafs_from_elements_m(bytes[] memory elements) internal pure returns (bytes32[] memory leafs) {
     uint256 element_count = elements.length;
     leafs = new bytes32[](element_count);
     uint256 read_index = element_count - 1;
@@ -415,7 +443,25 @@ library Internal_Merkle_Library {
   }
 
   // Get leafs from bytes32 elements in calldata, in reverse order
-  function get_reversed_leafs_from_elements(bytes32[] calldata elements)
+  function get_reversed_leafs_from_elements_c(bytes32[] calldata elements)
+    internal
+    pure
+    returns (bytes32[] memory leafs)
+  {
+    uint256 element_count = elements.length;
+    leafs = new bytes32[](element_count);
+    uint256 read_index = element_count - 1;
+    uint256 write_index;
+
+    while (write_index < element_count) {
+      leafs[write_index] = keccak256(abi.encodePacked(bytes1(0), elements[read_index]));
+      write_index += 1;
+      read_index -= 1;
+    }
+  }
+
+  // Get leafs from bytes32 elements in memory, in reverse order
+  function get_reversed_leafs_from_elements_m(bytes32[] memory elements)
     internal
     pure
     returns (bytes32[] memory leafs)
@@ -472,21 +518,39 @@ library Internal_Merkle_Library {
   }
 
   // Get the original Element Merkle Root, given bytes elements in calldata and an Existence Multi Proof
-  function get_root_from_multi_proof(bytes[] calldata elements, bytes32[] calldata proof)
+  function get_root_from_multi_proof_c(bytes[] calldata elements, bytes32[] calldata proof)
     internal
     pure
     returns (bytes32)
   {
-    return get_root_from_leafs_and_multi_proof(get_reversed_leafs_from_elements(elements), proof);
+    return get_root_from_leafs_and_multi_proof(get_reversed_leafs_from_elements_c(elements), proof);
+  }
+
+  // Get the original Element Merkle Root, given bytes memory in calldata and an Existence Multi Proof
+  function get_root_from_multi_proof_m(bytes[] memory elements, bytes32[] calldata proof)
+    internal
+    pure
+    returns (bytes32)
+  {
+    return get_root_from_leafs_and_multi_proof(get_reversed_leafs_from_elements_m(elements), proof);
   }
 
   // Get the original Element Merkle Root, given bytes32 elements in calldata and an Existence Multi Proof
-  function get_root_from_multi_proof(bytes32[] calldata elements, bytes32[] calldata proof)
+  function get_root_from_multi_proof_c(bytes32[] calldata elements, bytes32[] calldata proof)
     internal
     pure
     returns (bytes32)
   {
-    return get_root_from_leafs_and_multi_proof(get_reversed_leafs_from_elements(elements), proof);
+    return get_root_from_leafs_and_multi_proof(get_reversed_leafs_from_elements_c(elements), proof);
+  }
+
+  // Get the original Element Merkle Root, given bytes32 memory in calldata and an Existence Multi Proof
+  function get_root_from_multi_proof_m(bytes32[] memory elements, bytes32[] calldata proof)
+    internal
+    pure
+    returns (bytes32)
+  {
+    return get_root_from_leafs_and_multi_proof(get_reversed_leafs_from_elements_m(elements), proof);
   }
 
   // Get current and update leafs from current bytes elements in calldata and update bytes elements in calldata, in reverse order
@@ -1284,7 +1348,7 @@ library Internal_Merkle_Library {
     pure
     returns (bytes32, bytes32[] memory)
   {
-    return get_append_proof_from_leafs_and_multi_proof(get_reversed_leafs_from_elements(elements), proof);
+    return get_append_proof_from_leafs_and_multi_proof(get_reversed_leafs_from_elements_c(elements), proof);
   }
 
   // Get the original Element Merkle Root and derive Append Proof, given bytes32 elements in calldata and an Existence Multi Proof
@@ -1293,7 +1357,7 @@ library Internal_Merkle_Library {
     pure
     returns (bytes32, bytes32[] memory)
   {
-    return get_append_proof_from_leafs_and_multi_proof(get_reversed_leafs_from_elements(elements), proof);
+    return get_append_proof_from_leafs_and_multi_proof(get_reversed_leafs_from_elements_c(elements), proof);
   }
 
   // Get combined current and update leafs from current bytes elements in calldata and update bytes elements in calldata, in reverse order
@@ -1576,13 +1640,23 @@ library Internal_Merkle_Library {
   }
 
   // INTERFACE: Check if bytes element in calldata exists at index, given a root and a Single Proof
-  function element_exists(
+  function element_exists_c(
     bytes32 root,
     uint256 index,
     bytes calldata element,
     bytes32[] calldata proof
   ) internal pure returns (bool) {
-    return hash_node(proof[0], get_root_from_single_proof(index, element, proof)) == root;
+    return hash_node(proof[0], get_root_from_single_proof_c(index, element, proof)) == root;
+  }
+
+  // INTERFACE: Check if bytes element in memory exists at index, given a root and a Single Proof
+  function element_exists_m(
+    bytes32 root,
+    uint256 index,
+    bytes memory element,
+    bytes32[] calldata proof
+  ) internal pure returns (bool) {
+    return hash_node(proof[0], get_root_from_single_proof_m(index, element, proof)) == root;
   }
 
   // INTERFACE: Check if bytes32 element exists at index, given a root and a Single Proof
@@ -1596,21 +1670,39 @@ library Internal_Merkle_Library {
   }
 
   // INTERFACE: Check if bytes elements in calldata exist, given a root and a Single Proof
-  function elements_exist(
+  function elements_exist_c(
     bytes32 root,
     bytes[] calldata elements,
     bytes32[] calldata proof
   ) internal pure returns (bool) {
-    return hash_node(proof[0], get_root_from_multi_proof(elements, proof)) == root;
+    return hash_node(proof[0], get_root_from_multi_proof_c(elements, proof)) == root;
+  }
+
+  // INTERFACE: Check if bytes elements in memory exist, given a root and a Single Proof
+  function elements_exist_m(
+    bytes32 root,
+    bytes[] memory elements,
+    bytes32[] calldata proof
+  ) internal pure returns (bool) {
+    return hash_node(proof[0], get_root_from_multi_proof_m(elements, proof)) == root;
   }
 
   // INTERFACE: Check if bytes32 elements in calldata exist, given a root and a Single Proof
-  function elements_exist(
+  function elements_exist_c(
     bytes32 root,
     bytes32[] calldata elements,
     bytes32[] calldata proof
   ) internal pure returns (bool) {
-    return hash_node(proof[0], get_root_from_multi_proof(elements, proof)) == root;
+    return hash_node(proof[0], get_root_from_multi_proof_c(elements, proof)) == root;
+  }
+
+  // INTERFACE: Check if bytes32 elements in memory exist, given a root and a Single Proof
+  function elements_exist_m(
+    bytes32 root,
+    bytes32[] memory elements,
+    bytes32[] calldata proof
+  ) internal pure returns (bool) {
+    return hash_node(proof[0], get_root_from_multi_proof_m(elements, proof)) == root;
   }
 
   // INTERFACE: Get the indices of the bytes elements in calldata, given an Existence Multi Proof

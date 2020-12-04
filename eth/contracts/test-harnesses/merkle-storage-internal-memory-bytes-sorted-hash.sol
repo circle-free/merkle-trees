@@ -22,20 +22,18 @@ contract Merkle_Storage_Using_Internal_Lib_Memory_Bytes_Sorted_Hash {
     return Internal_Merkle_Library_Sorted_Hash.verify_size(root, size, element_root);
   }
 
-  // Note: calldata here since only new data is via memory
   function use_one(
     uint256 index,
-    bytes calldata element,
+    bytes memory element,
     bytes32[] calldata proof
   ) public {
-    require(Internal_Merkle_Library_Sorted_Hash.element_exists(root, index, element, proof), "INVALID_ELEMENT");
+    require(Internal_Merkle_Library_Sorted_Hash.element_exists_m(root, index, element, proof), "INVALID_ELEMENT");
 
     emit Some_Data(keccak256(abi.encodePacked(bytes1(0x01), element)));
   }
 
-  // Note: calldata here since only new data is via memory
-  function use_many(bytes[] calldata elements, bytes32[] calldata proof) public {
-    require(Internal_Merkle_Library_Sorted_Hash.elements_exist(root, elements, proof), "INVALID_ELEMENTS");
+  function use_many(bytes[] memory elements, bytes32[] calldata proof) public {
+    require(Internal_Merkle_Library_Sorted_Hash.elements_exist_m(root, elements, proof), "INVALID_ELEMENTS");
 
     uint256 using_element_count = elements.length;
     bytes32 some_data = 0x0000000000000000000000000000000000000000000000000000000000000001;
