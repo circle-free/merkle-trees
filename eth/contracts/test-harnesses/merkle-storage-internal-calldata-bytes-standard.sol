@@ -39,13 +39,13 @@ contract Merkle_Storage_Using_Internal_Lib_Calldata_Bytes_Standard {
     bytes calldata element,
     bytes32[] calldata proof
   ) external {
-    require(Internal_Merkle_Library.element_exists(root, index, element, proof), "INVALID_ELEMENT");
+    require(Internal_Merkle_Library.element_exists_c(root, index, element, proof), "INVALID_ELEMENT");
 
     emit Some_Data(keccak256(abi.encodePacked(bytes1(0x01), element)));
   }
 
   function use_many(bytes[] calldata elements, bytes32[] calldata proof) external {
-    require(Internal_Merkle_Library.elements_exist(root, elements, proof), "INVALID_ELEMENTS");
+    require(Internal_Merkle_Library.elements_exist_c(root, elements, proof), "INVALID_ELEMENTS");
 
     uint256 using_element_count = elements.length;
     bytes32 some_data = 0x0000000000000000000000000000000000000000000000000000000000000001;

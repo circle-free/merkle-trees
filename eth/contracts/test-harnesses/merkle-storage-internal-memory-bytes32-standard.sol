@@ -47,9 +47,8 @@ contract Merkle_Storage_Using_Internal_Lib_Memory_Bytes32_Standard {
     );
   }
 
-  // Note: calldata here since only new data is via memory
-  function use_many(bytes32[] calldata elements, bytes32[] calldata proof) public {
-    require(Internal_Merkle_Library.elements_exist(root, elements, proof), "INVALID_ELEMENTS");
+  function use_many(bytes32[] memory elements, bytes32[] calldata proof) public {
+    require(Internal_Merkle_Library.elements_exist_m(root, elements, proof), "INVALID_ELEMENTS");
 
     uint256 using_element_count = elements.length;
     bytes32 some_data = 0x0000000000000000000000000000000000000000000000000000000000000001;
