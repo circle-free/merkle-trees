@@ -2,7 +2,6 @@
 
 const crypto = require('crypto');
 const { Keccak } = require('sha3');
-const { xor } = require('bitwise-buffer');
 
 const leftPad = (num, size, char = '0') => {
   let s = num + '';
@@ -53,12 +52,6 @@ const shuffle = (array) => {
   return array;
 };
 
-const swap = (array, i, j) => {
-  array[i] = xor(array[i], array[j]);
-  array[j] = xor(array[j], array[i]);
-  array[i] = xor(array[i], array[j]);
-};
-
 const randomNumberGenerator = (a) => {
   return function () {
     var t = (a += 0x6d2b79f5);
@@ -72,7 +65,6 @@ module.exports = {
   generateRandomElement,
   generateElements,
   shuffle,
-  swap,
   randomNumberGenerator,
   to32ByteBuffer,
 };

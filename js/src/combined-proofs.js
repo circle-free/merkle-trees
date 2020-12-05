@@ -3,9 +3,8 @@
 // NOTE: indices must be in ascending order
 
 const assert = require('assert');
-const { leftShift, and, or } = require('bitwise-buffer');
 
-const { hashNode, bitCount32, from32ByteBuffer } = require('./utils');
+const { hashNode, bitCount32, from32ByteBuffer, bufferToBigInt } = require('./utils');
 const { generate: generateMulti } = require('./flag-multi-proofs');
 const { generate: generateSingle } = require('./single-proofs');
 
@@ -126,9 +125,9 @@ const getRootBooleansFromMulti = ({ leafs, elementCount, flags, orders, skips, d
 const getRootBitsFromMulti = ({ leafs, compactProof }, options = {}) => {
   const { hashFunction = hashNode, sortedHash = true } = options;
   const elementCount = from32ByteBuffer(compactProof[0]);
-  const flags = compactProof[1];
-  const skips = compactProof[2];
-  const orders = sortedHash ? undefined : compactProof[3];
+  const flags = bufferToBigInt(compactProof[1]);
+  const skips = bufferToBigInt(compactProof[2]);
+  const orders = sortedHash ? undefined : bufferToBigInt(compactProof[3]);
   const decommitments = compactProof.slice(sortedHash ? 3 : 4);
   const leafCount = leafs.length;
   const hashes = leafs.map((leaf) => leaf).reverse();
@@ -136,7 +135,7 @@ const getRootBitsFromMulti = ({ leafs, compactProof }, options = {}) => {
   let readIndex = 0;
   let writeIndex = 0;
   let decommitmentIndex = 0;
-  let bitCheck = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
+  let bitCheck = 1n;
 
   let appendNodeIndex = elementCount;
   let readIndexOfAppendNode = 0;
@@ -145,9 +144,9 @@ const getRootBitsFromMulti = ({ leafs, compactProof }, options = {}) => {
   let appendHash;
 
   while (true) {
-    const flag = and(flags, bitCheck).equals(bitCheck);
+    const flag = flags & bitCheck;
 
-    if (and(skips, bitCheck).equals(bitCheck)) {
+    if (skips & bitCheck) {
       if (flag) {
         const root = hashes[(writeIndex === 0 ? leafCount : writeIndex) - 1];
 
@@ -172,7 +171,7 @@ const getRootBitsFromMulti = ({ leafs, compactProof }, options = {}) => {
 
       readIndex %= leafCount;
       writeIndex %= leafCount;
-      bitCheck = leftShift(bitCheck, 1);
+      bitCheck <<= 1n;
       continue;
     }
 
@@ -193,12 +192,12 @@ const getRootBitsFromMulti = ({ leafs, compactProof }, options = {}) => {
     readIndex %= leafCount;
     const left = hashes[readIndex++];
 
-    const order = orders && and(orders, bitCheck).equals(bitCheck);
+    const order = orders && orders & bitCheck;
     hashes[writeIndex++] = order ? hashFunction(left, right) : hashFunction(right, left);
 
     readIndex %= leafCount;
     writeIndex %= leafCount;
-    bitCheck = leftShift(bitCheck, 1);
+    bitCheck <<= 1n;
   }
 };
 
@@ -367,9 +366,9 @@ const getNewRootBooleansFromMulti = (
 const getNewRootBitsFromMulti = ({ leafs, updateLeafs, compactProof }, options = {}) => {
   const { hashFunction = hashNode, sortedHash = true } = options;
   const elementCount = from32ByteBuffer(compactProof[0]);
-  const flags = compactProof[1];
-  const skips = compactProof[2];
-  const orders = sortedHash ? undefined : compactProof[3];
+  const flags = bufferToBigInt(compactProof[1]);
+  const skips = bufferToBigInt(compactProof[2]);
+  const orders = sortedHash ? undefined : bufferToBigInt(compactProof[3]);
   const decommitments = compactProof.slice(sortedHash ? 3 : 4);
   const leafCount = leafs.length;
   const hashes = leafs.map((leaf) => leaf).reverse();
@@ -378,7 +377,7 @@ const getNewRootBitsFromMulti = ({ leafs, updateLeafs, compactProof }, options =
   let readIndex = 0;
   let writeIndex = 0;
   let decommitmentIndex = 0;
-  let bitCheck = Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex');
+  let bitCheck = 1n;
   let appendNodeIndex = elementCount;
   let readIndexOfAppendNode = 0;
   let appendDecommitmentIndex = bitCount32(elementCount);
@@ -386,9 +385,9 @@ const getNewRootBitsFromMulti = ({ leafs, updateLeafs, compactProof }, options =
   let hash;
 
   while (true) {
-    const flag = and(flags, bitCheck).equals(bitCheck);
+    const flag = flags & bitCheck;
 
-    if (and(skips, bitCheck).equals(bitCheck)) {
+    if (skips & bitCheck) {
       if (flag) {
         const rootIndex = (writeIndex === 0 ? leafCount : writeIndex) - 1;
         const oldRoot = hashes[rootIndex];
@@ -417,7 +416,7 @@ const getNewRootBitsFromMulti = ({ leafs, updateLeafs, compactProof }, options =
 
       readIndex %= leafCount;
       writeIndex %= leafCount;
-      bitCheck = leftShift(bitCheck, 1);
+      bitCheck <<= 1n;
       continue;
     }
 
@@ -443,13 +442,13 @@ const getNewRootBitsFromMulti = ({ leafs, updateLeafs, compactProof }, options =
     const left = hashes[readIndex];
     const newLeft = newHashes[readIndex++];
 
-    const order = orders && and(orders, bitCheck).equals(bitCheck);
+    const order = orders && orders & bitCheck;
     hashes[writeIndex] = order ? hashFunction(left, right) : hashFunction(right, left);
     newHashes[writeIndex++] = order ? hashFunction(newLeft, newRight) : hashFunction(newRight, newLeft);
 
     readIndex %= leafCount;
     writeIndex %= leafCount;
-    bitCheck = leftShift(bitCheck, 1);
+    bitCheck <<= 1n;
   }
 };
 

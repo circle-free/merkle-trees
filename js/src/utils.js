@@ -1,6 +1,5 @@
 'use strict';
 const { Keccak } = require('sha3');
-const { leftShift, or } = require('bitwise-buffer');
 const assert = require('assert');
 
 const leftPad = (num, size, char = '0') => {
@@ -21,6 +20,8 @@ const bitCount32 = (n) => {
 
   return (((m + (m >>> 4)) & 0xf0f0f0f) * 0x1010101) >>> 24;
 };
+
+const prefix = (value) => (value.startsWith('0x') ? value : '0x' + value);
 
 // NOTE: arguments must already be buffer, preferably 32 bytes
 const hash = (buffer) => new Keccak(256).update(buffer).digest();
@@ -48,13 +49,19 @@ const findLastIndex = (array, predicate) => {
   return -1;
 };
 
-const to32ByteBoolBuffer = (booleans) =>
-  booleans.length < 257
-    ? booleans.reduce(
-        (booleanBuffer, bool, i) => or(booleanBuffer, leftShift(to32ByteBuffer(bool ? '1' : '0'), i)),
-        Buffer.alloc(32)
-      )
-    : null;
+const to32ByteBoolBuffer = (booleans) => {
+  if (booleans.length > 256) return null;
+
+  const value = booleans.reduce((value, bool, i) => value | ((bool ? 1n : 0n) << BigInt(i)), 0n);
+
+  return Buffer.from(leftPad(value.toString(16), 64), 'hex');
+};
+
+const toBigIntBoolSet = (booleans) => {
+  if (booleans.length > 256) return null;
+
+  return booleans.reduce((value, bool, i) => value | ((bool ? 1n : 0n) << BigInt(i)), 0n);
+};
 
 const roundUpToPowerOf2 = (number) => {
   if (bitCount32(number) === 1) return number;
@@ -68,16 +75,24 @@ const roundUpToPowerOf2 = (number) => {
   return number + 1;
 };
 
+const bigIntTo32ByteBuffer = (value) => Buffer.from(leftPad(value.toString(16), 64), 'hex');
+
+const bufferToBigInt = (buffer) => BigInt('0x' + buffer.toString('hex'));
+
 module.exports = {
   leftPad,
   to32ByteBuffer,
   from32ByteBuffer,
   to32ByteBoolBuffer,
+  toBigIntBoolSet,
   bitCount32,
+  prefix,
   hash,
   hashNode,
   sortHashNode,
   getHashFunction,
   findLastIndex,
   roundUpToPowerOf2,
+  bigIntTo32ByteBuffer,
+  bufferToBigInt,
 };
