@@ -1,7 +1,6 @@
 'use strict';
 
 const crypto = require('crypto');
-const { xor } = require('bitwise-buffer');
 const { hashNode, to32ByteBuffer } = require('../../src/utils');
 
 const generateRandomElement = () => {
@@ -41,15 +40,8 @@ const shuffle = (array) => {
   return array;
 };
 
-const swap = (array, i, j) => {
-  array[i] = xor(array[i], array[j]);
-  array[j] = xor(array[j], array[i]);
-  array[i] = xor(array[i], array[j]);
-};
-
 module.exports = {
   generateRandomElement,
   generateElements,
   shuffle,
-  swap,
 };

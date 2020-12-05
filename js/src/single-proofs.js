@@ -1,6 +1,5 @@
 'use strict';
 
-const { assert } = require('chai');
 const { getBalancedLeafCount } = require('./common');
 const { hashNode, to32ByteBuffer, from32ByteBuffer } = require('./utils');
 
