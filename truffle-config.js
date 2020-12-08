@@ -95,7 +95,7 @@ module.exports = {
          enabled: true,
          runs: 999999
        },
-       evmVersion: "petersburg"
+       evmVersion: "istanbul"
       }
     },
   },

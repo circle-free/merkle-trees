@@ -200,12 +200,12 @@ const testUpdateManyAndAppendMany = async (indices, updateSeed, appendSize, appe
   expect(receipt.gasUsed).to.equal(expectedGas);
 };
 
-describe.skip('Simple Storage', async (accounts) => {
+describe.skip('Simple Storage', async () => {
   after(() => {
     fs.writeFileSync('./eth/tests/fixtures/simple-gas-costs.json', JSON.stringify(gasCosts, null, ' ').concat('\n'));
   });
 
-  describe('Starting with 200 elements', async (accounts) => {
+  describe('Starting with 200 elements', async () => {
     beforeEach(async () => {
       contractInstance = await Simple_Storage.new();
       const seed = 'ff';
