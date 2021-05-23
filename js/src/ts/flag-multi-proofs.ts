@@ -1,4 +1,4 @@
-import { defaultProofOptions, defaultTreeOptions, proofOptions, treeOptions } from './common'
+import { defaultProofOptions, defaultTreeOptions, getNewRootParams, getRootParams, proofOptions, treeOptions } from './common'
 import {
   to32ByteBuffer,
   from32ByteBuffer,
@@ -181,10 +181,10 @@ const getRootBits = (leafs: Array<Buffer>, compactProof: Array<Buffer>, options:
   }
 }
 
-export const getRoot = (leafs: Array<Buffer>, compactProof: Array<Buffer> = [], elementCount: number = 0, flags: Array<1 | 0> = [], skips: Array<1 | 0> = [], orders: Array<1 | 0> = [], decommitments: Array<Buffer> = [], options: treeOptions = defaultTreeOptions): { root: Buffer, elementCount: number } => {
-  return compactProof.length > 0
-    ? getRootBits(leafs, compactProof, options)
-    : getRootBooleans(leafs, elementCount, flags, skips, orders, decommitments, options)
+export const getRoot = (params: getRootParams, options: treeOptions = defaultTreeOptions): { root: Buffer, elementCount: number } => {
+  return params.compactProof.length > 0
+    ? getRootBits(params.leafs, params.compactProof, options)
+    : getRootBooleans(params.leafs, params.elementCount, params.flags, params.skips, params.orders, params.decommitments, options)
 }
 
 // This is identical to the above getRootBooleans algorithm, differing only in that the
@@ -290,10 +290,10 @@ const getNewRootBits = (leafs: Array<Buffer>, updateLeafs: Array<Buffer>, compac
   }
 }
 
-export const getNewRoot = (leafs: Array<Buffer>, updatedLeafs: Array<Buffer>, compactProof: Array<Buffer> = [], elementCount: number = 0, flags: Array<1 | 0> = [], skips: Array<1 | 0> = [], orders: Array<1 | 0> = [], decommitments: Array<Buffer> = [], options: treeOptions = defaultTreeOptions): { root: Buffer, newRoot: Buffer, elementCount: number } => {
-  return compactProof.length > 0
-    ? getNewRootBits(leafs, updatedLeafs, compactProof, options)
-    : getNewRootBooleans(leafs, updatedLeafs, elementCount, flags, skips, orders, decommitments, options)
+export const getNewRoot = (params: getNewRootParams, options: treeOptions = defaultTreeOptions): { root: Buffer, newRoot: Buffer, elementCount: number } => {
+  return params.compactProof.length > 0
+    ? getNewRootBits(params.leafs, params.updateLeafs, params.compactProof, options)
+    : getNewRootBooleans(params.leafs, params.updateLeafs, params.elementCount, params.flags, params.skips, params.orders, params.decommitments, options)
 }
 
 // Infers the indices of a multi proof by back-calculating the the bits of each element's

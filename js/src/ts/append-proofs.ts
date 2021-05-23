@@ -1,4 +1,4 @@
-import { defaultProofOptions, defaultTreeOptions, proofOptions, treeOptions } from './common'
+import { defaultProofOptions, defaultTreeOptions, getNewRootParams, getRootParams, proofOptions, treeOptions } from './common'
 import { bitCount32, to32ByteBuffer, from32ByteBuffer } from './utils'
 
 // This is the SingleProof.generate algorithm, using the elementCount as index,
@@ -35,20 +35,20 @@ export const generate = (tree: Array<Buffer>, elementCount: number, options: pro
 // root that can be built from the decommitments, hashed from "right" to "left".
 // Note, it is implied that there is nothing to the right of the "right-most"
 // decommitment, explaining the departure from the SingleProof.getRoot algorithm.
-export const getRoot = (compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, options: treeOptions = defaultTreeOptions): { root: Buffer, elementCount: number } => {
-  if (compactProof.length > 0) {
-    elementCount = from32ByteBuffer(compactProof[0])
-    decommitments = compactProof.slice(1)
+export const getRoot = (params: getRootParams, options: treeOptions = defaultTreeOptions): { root: Buffer, elementCount: number } => {
+  if (params.compactProof.length > 0) {
+    params.elementCount = from32ByteBuffer(params.compactProof[0])
+    params.decommitments = params.compactProof.slice(1)
   }
 
-  let index = bitCount32(elementCount)
-  let hash = decommitments[--index]
+  let index = bitCount32(params.elementCount)
+  let hash = params.decommitments[--index]
 
   while (index > 0) {
-    hash = options.hashFunction(decommitments[--index], hash)
+    hash = options.hashFunction(params.decommitments[--index], hash)
   }
 
-  return { root: hash, elementCount }
+  return { root: hash, elementCount: params.elementCount }
 }
 
 // This is identical to the above getRoot algorithm, differing only in that the
@@ -120,10 +120,10 @@ const getNewRootMulti = (appendLeafs: Array<Buffer>, compactProof: Array<Buffer>
   return { root: hash, newRoot: appendHashes[0], elementCount }
 }
 
-export const getNewRoot = (appendLeafs: Array<Buffer> | Buffer, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, options: treeOptions = defaultTreeOptions): { root: Buffer, newRoot: Buffer, elementCount: number } => {
-  return appendLeafs instanceof Buffer
-    ? getNewRootSingle(appendLeafs, compactProof, elementCount, decommitments, options)
-    : getNewRootMulti(appendLeafs, compactProof, elementCount, decommitments, options)
+export const getNewRoot = (params: getNewRootParams, options: treeOptions = defaultTreeOptions): { root: Buffer, newRoot: Buffer, elementCount: number } => {
+  return params.appendLeaf?.length > 0
+    ? getNewRootSingle(params.appendLeaf, params.compactProof, params.elementCount, params.decommitments, options)
+    : getNewRootMulti(params.appendLeafs, params.compactProof, params.elementCount, params.decommitments, options)
 }
 
 // This is identical to getNewRootSingle, but it does not compute the old root.

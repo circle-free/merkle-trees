@@ -38,6 +38,26 @@ export const defaultTreeOptions: treeOptions = {
   hashFunction: hashNode
 }
 
+export interface getRootParams {
+  elementCount?: number,
+  index?: number,
+  leaf?: Buffer,
+  flags?: Array<1 | 0>,
+  orders?: Array<1 | 0>,
+  skips?: Array<1 | 0>,
+  indices?: Array<number>,
+  leafs?: Array<Buffer>,
+  compactProof?: Array<Buffer>,
+  decommitments?: Array<Buffer>,
+}
+
+export interface getNewRootParams extends getRootParams {
+  appendLeaf?: Buffer,
+  appendLeafs?: Array<Buffer>,
+  updateLeaf?: Buffer
+  updateLeafs?: Array<Buffer>,
+}
+
 export const buildTree = (leafs: Array<Buffer>, options: treeOptions = defaultTreeOptions): { tree: Array<Buffer>, depth: number } => {
   const depth = getDepth(leafs.length)
   const balancedLeafCount = getBalancedLeafCount(leafs.length)

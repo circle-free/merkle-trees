@@ -49,7 +49,7 @@ export class MerkleTree {
     const hashFunction = getHashFunction(options.sortedHash)
     const leaf = hashNode(prefixBuffer, element)
     const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
-    const { root: recoveredRoot, elementCount: recoveredElementCount } = SingleProofs.getRoot(index, leaf, compactProof, elementCount, decommitments, opts)
+    const { root: recoveredRoot, elementCount: recoveredElementCount } = SingleProofs.getRoot({ index, leaf, compactProof, elementCount, decommitments }, opts)
 
     return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot)
   }
@@ -60,7 +60,7 @@ export class MerkleTree {
     const leaf = hashNode(prefixBuffer, element)
     const updateLeaf = hashNode(prefixBuffer, updateElement)
     const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
-    const { root: recoveredRoot, newRoot, elementCount: recoveredElementCount } = SingleProofs.getNewRoot(index, leaf, updateLeaf, compactProof, elementCount, decommitments, opts)
+    const { root: recoveredRoot, newRoot, elementCount: recoveredElementCount } = SingleProofs.getNewRoot({ index, leaf, updateLeaf, compactProof, elementCount, decommitments }, opts)
 
     if (!MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot)) throw new Error('Invalid Proof.')
     return { root: MerkleTree.computeMixedRoot(elementCount, newRoot) }
@@ -72,8 +72,8 @@ export class MerkleTree {
     const leafs = elements.map((element) => hashNode(prefixBuffer, element))
     const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
     const { root: recoveredRoot, elementCount: recoveredElementCount } = indices.length > 0
-      ? MultiIndexedProofs.getRoot(indices, leafs, compactProof, elementCount, decommitments, opts)
-      : MultiFlagProofs.getRoot(leafs, compactProof, elementCount, flags, skips, orders, decommitments, opts)
+      ? MultiIndexedProofs.getRoot({ indices, leafs, compactProof, elementCount, decommitments }, opts)
+      : MultiFlagProofs.getRoot({ leafs, compactProof, elementCount, flags, skips, orders, decommitments }, opts)
     return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot)
   }
 
@@ -88,8 +88,8 @@ export class MerkleTree {
     const updateLeafs = updateElements.map((element) => hashNode(prefixBuffer, element))
     const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
     const { root: recoveredRoot, newRoot, elementCount: recoveredElementCount } = indices
-      ? MultiIndexedProofs.getNewRoot(indices, leafs, updateLeafs, compactProof, elementCount, decommitments, opts)
-      : MultiFlagProofs.getNewRoot(leafs, updateLeafs, compactProof, elementCount, flags, skips, orders, decommitments, opts)
+      ? MultiIndexedProofs.getNewRoot({ indices, leafs, updateLeafs, compactProof, elementCount, decommitments }, opts)
+      : MultiFlagProofs.getNewRoot({ leafs, updateLeafs, compactProof, elementCount, flags, skips, orders, decommitments }, opts)
 
     if (!MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot)) throw new Error('Invalid Proof.')
 
@@ -102,7 +102,7 @@ export class MerkleTree {
 
     const hashFunction = getHashFunction(options.sortedHash)
     const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
-    const { root: recoveredRoot, elementCount: recoveredElementCount } = AppendProofs.getRoot(compactProof, elementCount, decommitments, opts)
+    const { root: recoveredRoot, elementCount: recoveredElementCount } = AppendProofs.getRoot({ compactProof, elementCount, decommitments }, opts)
 
     return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot)
   }
@@ -120,8 +120,8 @@ export class MerkleTree {
     const hashFunction = getHashFunction(options.sortedHash)
     const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
     const { root: recoveredRoot, newRoot, elementCount: recoveredElementCount } = appendElement?.length > 0
-      ? AppendProofs.getNewRoot(hashNode(prefixBuffer, appendElement), compactProof, elementCount, decommitments, opts)
-      : AppendProofs.getNewRoot(appendElements.map((element) => hashNode(prefixBuffer, element)), compactProof, elementCount, decommitments, opts)
+      ? AppendProofs.getNewRoot({ appendLeaf: hashNode(prefixBuffer, appendElement), compactProof, elementCount, decommitments }, opts)
+      : AppendProofs.getNewRoot({ appendLeafs: appendElements.map((element) => hashNode(prefixBuffer, element)), compactProof, elementCount, decommitments }, opts)
     const newElementCount = elementCount + (appendElements?.length ?? 1)
 
     if (!MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot)) throw new Error('Invalid Proof.')
@@ -143,7 +143,7 @@ export class MerkleTree {
 
     const hashFunction = getHashFunction(options.sortedHash)
     const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
-    const { root: recoveredRoot, elementCount: recoveredElementCount, appendDecommitments } = CombinedProofs.getRoot(leafs, leaf, index, compactProof, elementCount, flags, orders, skips, decommitments, opts)
+    const { root: recoveredRoot, elementCount: recoveredElementCount, appendDecommitments } = CombinedProofs.getRoot({ leafs, leaf, index, compactProof, elementCount, flags, orders, skips, decommitments }, opts)
 
     const newRoot = appendElement instanceof Buffer
       ? AppendProofs.appendSingle(hashNode(prefixBuffer, appendElement), elementCount, decommitments, opts)
@@ -165,7 +165,7 @@ export class MerkleTree {
     const leafs = elements.map((e) => hashNode(prefixBuffer, e))
     const opts = Object.assign({ hashFunction }, options)
 
-    const { root: recoveredRoot, elementCount: recoveredElementCount } = CombinedProofs.getRoot(leafs, leaf, index, compactProof, elementCount, flags, orders, skips, decommitments, opts)
+    const { root: recoveredRoot, elementCount: recoveredElementCount } = CombinedProofs.getRoot({ leafs, leaf, index, compactProof, elementCount, flags, orders, skips, decommitments }, opts)
 
     return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot)
   }
@@ -186,7 +186,7 @@ export class MerkleTree {
     const updateLeafs = updateElements.map((element) => hashNode(prefixBuffer, element))
 
     const opts = Object.assign({ hashFunction }, options)
-    const { root: recoveredRoot, elementCount: recoveredElementCount, appendDecommitments } = CombinedProofs.getNewRoot(leafs, updateLeafs, elementCount, flags, skips, orders, decommitments, compactProof, index, leaf, updateLeaf, opts)
+    const { root: recoveredRoot, elementCount: recoveredElementCount, appendDecommitments } = CombinedProofs.getNewRoot({ leafs, updateLeafs, elementCount, flags, skips, orders, decommitments, compactProof, index, leaf, updateLeaf }, opts)
 
     const newRoot = appendElement?.length > 0
       ? AppendProofs.appendSingle(hashNode(prefixBuffer, appendElement), elementCount, decommitments, opts)
@@ -223,7 +223,7 @@ export class MerkleTree {
     const hashFunction = getHashFunction(options.sortedHash)
     const opts = Object.assign({ hashFunction }, options)
     const params = { elementCount, decommitments }
-    const { root: recoveredRoot } = AppendProofs.getRoot(compactProof, elementCount, decommitments, opts)
+    const { root: recoveredRoot } = AppendProofs.getRoot({ compactProof, elementCount, decommitments }, opts)
 
     return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot)
   }

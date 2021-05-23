@@ -1,4 +1,4 @@
-import { defaultProofOptions, defaultTreeOptions, proofOptions, treeOptions } from './common'
+import { defaultProofOptions, defaultTreeOptions, getNewRootParams, getRootParams, proofOptions, treeOptions } from './common'
 import { to32ByteBuffer, from32ByteBuffer, roundUpToPowerOf2 } from './utils'
 
 // Generates a set of decommitments to prove the existence of leaves at a given indices.
@@ -47,24 +47,24 @@ export const generate = (tree: Array<Buffer>, elementCount: number, indices: Arr
 // Compute the root given a set of leafs, their indices, and a set of decommitments
 // Uses a circular queue to accumulate the parent nodes and another circular to track
 // the serialized tree indices of those nodes.
-export const getRoot = (indices: Array<number>, leafs: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, options: treeOptions = defaultTreeOptions): { root: Buffer, elementCount: number } => {
-  if (compactProof.length > 0) {
-    elementCount = from32ByteBuffer(compactProof[0])
-    decommitments = compactProof.slice(1)
+export const getRoot = (params: getRootParams, options: treeOptions = defaultTreeOptions): { root: Buffer, elementCount: number } => {
+  if (params.compactProof.length > 0) {
+    params.elementCount = from32ByteBuffer(params.compactProof[0])
+    params.decommitments = params.compactProof.slice(1)
   }
 
-  const balancedLeafCount = roundUpToPowerOf2(elementCount)
+  const balancedLeafCount = roundUpToPowerOf2(params.elementCount)
 
   // Keep verification minimal by using circular hashes queue with separate read and write heads
-  const hashes = leafs.map((leaf) => leaf).reverse()
-  const treeIndices = indices.map((index) => balancedLeafCount + index).reverse()
-  const indexCount = indices.length
+  const hashes = params.leafs.map((leaf) => leaf).reverse()
+  const treeIndices = params.indices.map((index) => balancedLeafCount + index).reverse()
+  const indexCount = params.indices.length
 
   let readIndex = 0
   let writeIndex = 0
   let decommitmentIndex = 0
-  let upperBound = balancedLeafCount + elementCount - 1
-  let lowestTreeIndex = treeIndices[indices.length - 1]
+  let upperBound = balancedLeafCount + params.elementCount - 1
+  let lowestTreeIndex = treeIndices[params.indices.length - 1]
   let nodeIndex
   let nextNodeIndex
 
@@ -75,7 +75,7 @@ export const getRoot = (indices: Array<number>, leafs: Array<Buffer>, compactPro
       // Given the circular nature of writeIndex, get the last writeIndex.
       const rootIndex = (writeIndex === 0 ? indexCount : writeIndex) - 1
 
-      return { root: hashes[rootIndex], elementCount }
+      return { root: hashes[rootIndex], elementCount: params.elementCount }
     }
 
     const indexIsOdd = nodeIndex & 1
@@ -90,9 +90,9 @@ export const getRoot = (indices: Array<number>, leafs: Array<Buffer>, compactPro
       // The next node is a sibling of the current one
       const nextIsPair = nextNodeIndex === nodeIndex - 1
 
-      const right = indexIsOdd ? hashes[readIndex++] : decommitments[decommitmentIndex++]
+      const right = indexIsOdd ? hashes[readIndex++] : params.decommitments[decommitmentIndex++]
       readIndex %= indexCount
-      const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : hashes[readIndex++]
+      const left = indexIsOdd && !nextIsPair ? params.decommitments[decommitmentIndex++] : hashes[readIndex++]
 
       treeIndices[writeIndex] = nodeIndex >>> 1
       hashes[writeIndex++] = options.hashFunction(left, right)
@@ -111,23 +111,23 @@ export const getRoot = (indices: Array<number>, leafs: Array<Buffer>, compactPro
 // Compute the existing root given a set of leafs, their indices, and a set of decommitments
 // and computes a new root, along the way, given new leafs to take their place.
 // See getRoot for relevant inline comments.
-export const getNewRoot = (indices: Array<number>, leafs: Array<Buffer>, updateLeafs: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, options: treeOptions = defaultTreeOptions): { root: Buffer, newRoot: Buffer, elementCount: number } => {
-  if (compactProof.length > 0) {
-    elementCount = from32ByteBuffer(compactProof[0])
-    decommitments = compactProof.slice(1)
+export const getNewRoot = (params: getNewRootParams, options: treeOptions = defaultTreeOptions): { root: Buffer, newRoot: Buffer, elementCount: number } => {
+  if (params.compactProof.length > 0) {
+    params.elementCount = from32ByteBuffer(params.compactProof[0])
+    params.decommitments = params.compactProof.slice(1)
   }
 
-  const balancedLeafCount = roundUpToPowerOf2(elementCount)
-  const hashes = leafs.map((leaf) => leaf).reverse()
-  const updateHashes = updateLeafs.map((leaf) => leaf).reverse()
-  const treeIndices = indices.map((index) => balancedLeafCount + index).reverse()
-  const indexCount = indices.length
+  const balancedLeafCount = roundUpToPowerOf2(params.elementCount)
+  const hashes = params.leafs.map((leaf) => leaf).reverse()
+  const updateHashes = params.updateLeafs.map((leaf) => leaf).reverse()
+  const treeIndices = params.indices.map((index) => balancedLeafCount + index).reverse()
+  const indexCount = params.indices.length
 
   let readIndex = 0
   let writeIndex = 0
   let decommitmentIndex = 0
-  let upperBound = balancedLeafCount + elementCount - 1
-  let lowestTreeIndex = treeIndices[indices.length - 1]
+  let upperBound = balancedLeafCount + params.elementCount - 1
+  let lowestTreeIndex = treeIndices[params.indices.length - 1]
   let nodeIndex
   let nextNodeIndex
 
@@ -137,7 +137,7 @@ export const getNewRoot = (indices: Array<number>, leafs: Array<Buffer>, updateL
     if (nodeIndex === 1) {
       const rootIndex = (writeIndex === 0 ? indexCount : writeIndex) - 1
 
-      return { root: hashes[rootIndex], newRoot: updateHashes[rootIndex], elementCount }
+      return { root: hashes[rootIndex], newRoot: updateHashes[rootIndex], elementCount: params.elementCount }
     }
 
     const indexIsOdd = nodeIndex & 1
@@ -151,11 +151,11 @@ export const getNewRoot = (indices: Array<number>, leafs: Array<Buffer>, updateL
       nextNodeIndex = treeIndices[nextReadIndex]
       const nextIsPair = nextNodeIndex === nodeIndex - 1
 
-      const right = indexIsOdd ? hashes[readIndex] : decommitments[decommitmentIndex]
-      const newRight = indexIsOdd ? updateHashes[readIndex++] : decommitments[decommitmentIndex++]
+      const right = indexIsOdd ? hashes[readIndex] : params.decommitments[decommitmentIndex]
+      const newRight = indexIsOdd ? updateHashes[readIndex++] : params.decommitments[decommitmentIndex++]
       readIndex %= indexCount
-      const left = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex] : hashes[readIndex]
-      const newLeft = indexIsOdd && !nextIsPair ? decommitments[decommitmentIndex++] : updateHashes[readIndex++]
+      const left = indexIsOdd && !nextIsPair ? params.decommitments[decommitmentIndex] : hashes[readIndex]
+      const newLeft = indexIsOdd && !nextIsPair ? params.decommitments[decommitmentIndex++] : updateHashes[readIndex++]
 
       treeIndices[writeIndex] = nodeIndex >>> 1
       hashes[writeIndex] = options.hashFunction(left, right)

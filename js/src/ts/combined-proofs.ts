@@ -1,7 +1,7 @@
 import { bitCount32, from32ByteBuffer, bufferToBigInt } from './utils'
 import { generate as generateMulti } from './flag-multi-proofs'
 import { generate as generateSingle } from './single-proofs'
-import { defaultProofOptions, defaultTreeOptions, proofOptions, treeOptions } from './common'
+import { defaultProofOptions, defaultTreeOptions, getNewRootParams, getRootParams, proofOptions, treeOptions } from './common'
 
 export const generate = (tree: Array<Buffer>, elementCount: number, indices?: Array<number>, index?: number, options: proofOptions = defaultProofOptions): { compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number } => {
   return index == null
@@ -254,12 +254,12 @@ const getRootFromSingle = (index: number, leaf: Buffer, compactProof: Array<Buff
   return { root: hash, elementCount, appendDecommitments }
 }
 
-export const getRoot = (leafs?: Array<Buffer>, leaf?: Buffer, index?: number, compactProof?: Array<Buffer>, elementCount?: number, flags?: Array<1 | 0>, orders?: Array<1 | 0>, skips?: Array<1 | 0>, decommitments?: Array<Buffer>, options: treeOptions = defaultTreeOptions): { root: Buffer, elementCount: number, appendDecommitments: Array<Buffer> } => {
-  return leaf
-    ? getRootFromSingle(index, leaf, compactProof, elementCount, decommitments, options)
-    : compactProof.length > 0
-      ? getRootBitsFromMulti(leafs, compactProof, options)
-      : getRootBooleansFromMulti(leafs, elementCount, flags, orders, skips, decommitments, options)
+export const getRoot = (params: getRootParams, options: treeOptions = defaultTreeOptions): { root: Buffer, elementCount: number, appendDecommitments: Array<Buffer> } => {
+  return params.leaf instanceof Buffer
+    ? getRootFromSingle(params.index, params.leaf, params.compactProof, params.elementCount, params.decommitments, options)
+    : params.compactProof.length > 0
+      ? getRootBitsFromMulti(params.leafs, params.compactProof, options)
+      : getRootBooleansFromMulti(params.leafs, params.elementCount, params.flags, params.orders, params.skips, params.decommitments, options)
 }
 
 // This is identical to the above getRootBooleans followed by the AppendProof.getNewRootMulti.
@@ -503,13 +503,12 @@ const getNewRootFromSingle = (index: number, leaf: Buffer, updateLeaf: Buffer, c
   return { root: hash, newRoot: updateHash, elementCount, appendDecommitments }
 }
 
-export const getNewRoot = (
-  leafs?: Array<Buffer>, updateLeafs?: Array<Buffer>, elementCount?: number, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, decommitments?: Array<Buffer>, compactProof?: Array<Buffer>, index?: number, leaf?: Buffer, updateLeaf?: Buffer, options: treeOptions = defaultTreeOptions) => {
-  return leaf
-    ? getNewRootFromSingle(index, leaf, updateLeaf, compactProof, elementCount, decommitments, options)
-    : compactProof.length > 0
-      ? getNewRootBitsFromMulti(leafs, updateLeafs, compactProof, options)
-      : getNewRootBooleansFromMulti(leafs, updateLeafs, elementCount, flags, skips, orders, decommitments, options)
+export const getNewRoot = (params: getNewRootParams, options: treeOptions = defaultTreeOptions) => {
+  return params.leaf
+    ? getNewRootFromSingle(params.index, params.leaf, params.updateLeaf, params.compactProof, params.elementCount, params.decommitments, options)
+    : params.compactProof.length > 0
+      ? getNewRootBitsFromMulti(params.leafs, params.updateLeafs, params.compactProof, options)
+      : getNewRootBooleansFromMulti(params.leafs, params.updateLeafs, params.elementCount, params.flags, params.skips, params.orders, params.decommitments, options)
 }
 
 // This returns the minimum index that must be in the proof, to result in a proof that will be
