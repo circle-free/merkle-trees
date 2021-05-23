@@ -20,67 +20,67 @@ export class PartialMerkleTree extends MerkleTree {
     this._tree[0] = MerkleTree.computeMixedRoot(elements.length, tree[1])
   }
 
-  static fromSingleProof(index: number, element: Buffer, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
+  static fromSingleProof(proof: Common.proof, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
-    const leaf = hashNode(prefixBuffer, element)
+    const leaf = hashNode(prefixBuffer, proof.element)
     const opts = Object.assign({ hashFunction }, options)
-    const { tree, elementCount: recoveredElementCount } = SingleProofs.getPartialTree(index, leaf, compactProof, elementCount, decommitments, opts)
+    const { tree, elementCount: recoveredElementCount } = SingleProofs.getPartialTree(proof.index, leaf, proof.compactProof, proof.elementCount, proof.decommitments, opts)
 
     const partialElements = Array(recoveredElementCount).fill(null)
-    partialElements[index] = element
+    partialElements[proof.index] = proof.element
 
     return new PartialMerkleTree(partialElements, tree, options)
   }
 
-  static fromSingleUpdateProof(index: number, updateElement: Buffer, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
-    return PartialMerkleTree.fromSingleProof(index, updateElement, elementCount, compactProof, decommitments, options)
+  static fromSingleUpdateProof(proof: Common.updateProof, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
+    return PartialMerkleTree.fromSingleProof({ index: proof.index, element: proof.updateElement, elementCount: proof.elementCount, compactProof: proof.compactProof, decommitments: proof.decommitments }, options)
   }
 
-  static fromMultiProof(indices: Array<number>, elements: Array<Buffer>, leafCount: number, elementCount?: number, compactProof?: Array<Buffer>, decommitments?: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
-    if (indices.length <= 0 && options.sortedHash) throw new Error('Cannot build sorted-hash Partial Tree from existence-only multi-proof.')
+  static fromMultiProof(proof: Common.proof, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
+    if (proof.indices.length <= 0 && options.sortedHash) throw new Error('Cannot build sorted-hash Partial Tree from existence-only multi-proof.')
 
-    indices = indices ?? super.getMultiProofIndices({ elementCount: leafCount, compactProof, flags, skips, orders })
-    compactProof = !indices && compactProof
-      ? [compactProof[0]].concat(compactProof.slice(4))
-      : compactProof
+    proof.indices = proof.indices ?? super.getMultiProofIndices({ elementCount: proof.elementCount, compactProof: proof.compactProof, flags: proof.flags, skips: proof.skips, orders: proof.orders })
+    proof.compactProof = !proof.indices && proof.compactProof
+      ? [proof.compactProof[0]].concat(proof.compactProof.slice(4))
+      : proof.compactProof
 
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
-    const leafs = elements.map((element) => hashNode(prefixBuffer, element))
+    const leafs = proof.elements.map((element) => hashNode(prefixBuffer, element))
     const opts = Object.assign({ hashFunction }, options)
-    const { tree, elementCount: recoveredElementCount } = MultiIndexedProofs.getPartialTree(indices, leafs, compactProof, elementCount, decommitments, opts)
+    const { tree, elementCount: recoveredElementCount } = MultiIndexedProofs.getPartialTree(proof.indices, leafs, proof.compactProof, proof.elementCount, proof.decommitments, opts)
 
     const partialElements = Array(recoveredElementCount).fill(null)
-    indices.forEach((index, i) => (partialElements[index] = elements[i]))
+    proof.indices.forEach((index, i) => (partialElements[index] = proof.elements[i]))
 
     return new PartialMerkleTree(partialElements, tree, options)
   }
 
-  static fromMultiUpdateProof(indices: Array<number>, updateElements: Array<Buffer>, leafCount: number, elementCount?: number, compactProof?: Array<Buffer>, decommitments?: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
-    return PartialMerkleTree.fromMultiProof(indices, updateElements, leafCount, elementCount, compactProof, decommitments, flags, skips, orders, options)
+  static fromMultiUpdateProof(proof: Common.updateProof, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
+    return PartialMerkleTree.fromMultiProof({ indices: proof.indices, elements: proof.updateElements, elementCount: proof.elementCount, compactProof: proof.compactProof, decommitments: proof.decommitments, flags: proof.flags, skips: proof.skips, orders: proof.orders }, options)
   }
 
-  static fromAppendProof(decommitments: Array<Buffer>, compactProof: Array<Buffer>, appendElement: Buffer, appendElements: Array<Buffer>, elementCount?: number, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
-    if (!appendElement && !appendElements) throw new Error('Append elements required.')
+  static fromAppendProof(proof: Common.appendProof, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
+    if (!proof.appendElement && !proof.appendElements) throw new Error('Append elements required.')
 
-    const index = elementCount ?? from32ByteBuffer(compactProof[0])
-    const element = appendElement ?? appendElements[0]
+    const index = proof.elementCount ?? from32ByteBuffer(proof.compactProof[0])
+    const element = proof.appendElement ?? proof.appendElements[0]
 
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
     const leaf = hashNode(prefixBuffer, element)
 
-    if (compactProof) {
-      compactProof[0] = to32ByteBuffer(index + 1)
+    if (proof.compactProof) {
+      proof.compactProof[0] = to32ByteBuffer(index + 1)
     }
 
     const opts = Object.assign({ hashFunction }, options)
-    const { tree } = SingleProofs.getPartialTree(index, leaf, compactProof, elementCount, decommitments, opts)
+    const { tree } = SingleProofs.getPartialTree(index, leaf, proof.compactProof, proof.elementCount, proof.decommitments, opts)
 
     const partialElements = Array(index)
       .fill(null)
-      .concat(appendElement ?? appendElements)
+      .concat(proof.appendElement ?? proof.appendElements)
 
     const leafs = partialElements.map((element) => element && hashNode(prefixBuffer, element))
     const newTree = Common.getGrownTree(tree, leafs, opts)
@@ -250,10 +250,12 @@ export class PartialMerkleTree extends MerkleTree {
     }, true)
   }
 
-  check(indices: Array<number>, elements: Array<Buffer>): Array<boolean> {
+  check(indices: Array<number> | number, elements: Array<Buffer> | Buffer): Array<boolean> {
     if (this._elements.length <= 0) throw new Error('Tree has no known elements.')
 
     if (!Array.isArray(indices) && !Array.isArray(elements)) return this.check([indices], [elements])
+    else if (!Array.isArray(elements)) return this.check(indices, [elements])
+    else if (!Array.isArray(indices)) return this.check([indices], elements)
 
     indices.forEach((index) => {
       if (index < 0 || index >= this._elements.length) throw new Error('Index out of range.')
