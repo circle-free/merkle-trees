@@ -26,7 +26,7 @@ export class PartialMerkleTree extends MerkleTree {
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
     const leaf = hashNode(prefixBuffer, proof.element)
-    const opts = Object.assign({ hashFunction }, options)
+    const opts = Object.assign({}, Common.defaultTreeOptions, { hashFunction }, options)
     const { tree, elementCount: recoveredElementCount } = SingleProofs.getPartialTree(proof.index, leaf, proof.compactProof, proof.elementCount, proof.decommitments, opts)
 
     const partialElements = Array(recoveredElementCount).fill(null)
@@ -52,7 +52,7 @@ export class PartialMerkleTree extends MerkleTree {
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
     const leafs = proof.elements.map((element) => hashNode(prefixBuffer, element))
-    const opts = Object.assign({ hashFunction }, options)
+    const opts = Object.assign({}, Common.defaultTreeOptions, { hashFunction }, options)
     const { tree, elementCount: recoveredElementCount } = MultiIndexedProofs.getPartialTree(proof.indices, leafs, proof.compactProof, proof.elementCount, proof.decommitments, opts)
 
     const partialElements = Array(recoveredElementCount).fill(null)
@@ -81,7 +81,7 @@ export class PartialMerkleTree extends MerkleTree {
       proof.compactProof[0] = to32ByteBuffer(index + 1)
     }
 
-    const opts = Object.assign({ hashFunction }, options)
+    const opts = Object.assign({}, Common.defaultTreeOptions, { hashFunction }, options)
     const { tree } = SingleProofs.getPartialTree(index, leaf, proof.compactProof, proof.elementCount, proof.decommitments, opts)
 
     const partialElements = Array(index)
@@ -305,18 +305,18 @@ export class PartialMerkleTree extends MerkleTree {
 
     const leafs = newElements.map((element) => element && hashNode(this._elementPrefix, element))
     const hashFunction = getHashFunction(this._sortedHash)
-    const treeOpts = Object.assign({
+    const treeOpts = Object.assign({}, Common.defaultTreeOptions, {
       sortedHash: this._sortedHash,
       unbalanced: this._unbalanced,
       hashFunction: hashFunction
-    }, Common.defaultTreeOptions)
+    })
     const newTree = Common.getUpdatedTree(this._tree, leafs, treeOpts)
 
-    const proofOpts = Object.assign({
+    const proofOpts = Object.assign({}, Common.defaultProofOptions, {
       sortedHash: this._sortedHash,
       unbalanced: this._unbalanced,
       elementPrefix: this._elementPrefix,
-    }, Common.defaultProofOptions)
+    })
     return new PartialMerkleTree(newElements, newTree, proofOpts)
   }
 
@@ -328,18 +328,18 @@ export class PartialMerkleTree extends MerkleTree {
     const leafs = newElements.map((element) => element && hashNode(this._elementPrefix, element))
     const hashFunction = getHashFunction(this._sortedHash)
 
-    const treeOpts = Object.assign({
+    const treeOpts = Object.assign({}, Common.defaultTreeOptions, {
       sortedHash: this._sortedHash,
       unbalanced: this._unbalanced,
       hashFunction: hashFunction
-    }, Common.defaultTreeOptions)
+    })
     const newTree = Common.getGrownTree(this._tree, leafs, treeOpts)
 
-    const proofOpts = Object.assign({
+    const proofOpts = Object.assign({}, Common.defaultProofOptions, {
       sortedHash: this._sortedHash,
       unbalanced: this._unbalanced,
       elementPrefix: this._elementPrefix,
-    }, Common.defaultProofOptions)
+    })
     return new PartialMerkleTree(newElements, newTree, proofOpts)
   }
 }

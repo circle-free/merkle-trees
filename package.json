@@ -17,7 +17,7 @@
     "test": "mocha 'js/tests' && truffle test",
     "test-eth": "truffle test",
     "test-js": "mocha 'js/tests'",
-    "test-ts": "mocha -g 'should build a balanced sorted-hash 8-element Merkle Tree' -r ts-node/register js/src/ts/tests/**/*.test.ts",
+    "test-ts": "mocha js/src/ts/tests/**/merkle.test.ts",
     "ganache": "ganache-cli",
     "lint-eth": "solhint 'eth/contracts/**/*.sol'",
     "prettier": "prettier --write 'eth/contracts/**/*.sol' 'eth/tests/**/*.js' 'js/src/**/*.js' 'js/tests/**/*.js'",
@@ -48,6 +48,10 @@
     "truffle": "^5.1.49",
     "ts-node": "^9.1.1",
     "typescript": "^4.2.4"
+  },
+  "mocha":{
+    "require": "ts-node/register",
+    "grep": ""
   },
   "engines": {
     "node": ">=14.0.0"

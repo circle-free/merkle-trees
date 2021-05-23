@@ -19,13 +19,13 @@ export const testSingleProofGeneration = (elementCount: number, seed: string, in
 
   if (options.compact) {
     expect(proof.compactProof.length).to.equal(expected.compactProof.length)
-    proof.compactProof.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.compactProof[i]))
+    proof.compactProof.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.compactProof[i].toString()))
     return
   }
 
   expect(proof.elementCount).to.equal(elementCount)
   expect(proof.decommitments.length).to.equal(expected.decommitments.length)
-  proof.decommitments.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.decommitments[i]))
+  proof.decommitments.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.decommitments[i].toString()))
 }
 
 export const compareSingleProofs = (elementCount: number, index: number, optionsA: proofOptions = defaultProofOptions, optionsB: proofOptions = defaultProofOptions) => {
@@ -63,7 +63,7 @@ export const testMultiProofGeneration = (elementCount: number, seed: string, ind
 
   if (options.compact) {
     expect(proof.compactProof.length).to.equal(expected.compactProof.length)
-    proof.compactProof.forEach((p, i) => expect(p.toString('hex')).to.equal(expected.compactProof[i]))
+    proof.compactProof.forEach((p, i) => expect(p.toString('hex')).to.equal(expected.compactProof[i].toString()))
     return
   }
 
@@ -81,7 +81,7 @@ export const testMultiProofGeneration = (elementCount: number, seed: string, ind
 
   expect(proof.elementCount).to.equal(elementCount)
   expect(proof.decommitments.length).to.equal(expected.decommitments.length)
-  proof.decommitments.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.decommitments[i]))
+  proof.decommitments.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.decommitments[i].toString()))
 }
 
 export const compareMultiProofs = (elementCount: number, indices: Array<number>, optionsA: proofOptions = defaultProofOptions, optionsB: proofOptions = defaultProofOptions) => {
