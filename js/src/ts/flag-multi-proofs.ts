@@ -438,8 +438,8 @@ const getIndicesWithBits = (
   }
 }
 
-export const getIndices = (leafCount: number, compactProof: Array<Buffer> = [], flags: Array<1 | 0> = [], skips: Array<1 | 0> = [], orders: Array<1 | 0> = []): { indices: Array<number> } => {
-  return compactProof.length > 0
-    ? getIndicesWithBits(leafCount, compactProof)
-    : getIndicesWithBooleans(leafCount, flags, skips, orders)
+export const getIndices = (proof: proof): { indices: Array<number> } => {
+  return proof.compactProof.length > 0
+    ? getIndicesWithBits(proof.elements?.length, proof.compactProof)
+    : getIndicesWithBooleans(proof.elements?.length, proof.flags, proof.skips, proof.orders)
 }

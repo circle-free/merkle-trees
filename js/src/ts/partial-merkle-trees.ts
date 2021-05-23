@@ -40,7 +40,7 @@ export class PartialMerkleTree extends MerkleTree {
   static fromMultiProof(indices: Array<number>, elements: Array<Buffer>, leafCount: number, elementCount?: number, compactProof?: Array<Buffer>, decommitments?: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
     if (indices.length <= 0 && options.sortedHash) throw new Error('Cannot build sorted-hash Partial Tree from existence-only multi-proof.')
 
-    indices = indices ?? super.getMultiProofIndices(leafCount, compactProof, flags, skips, orders)
+    indices = indices ?? super.getMultiProofIndices({ elementCount: leafCount, compactProof, flags, skips, orders })
     compactProof = !indices && compactProof
       ? [compactProof[0]].concat(compactProof.slice(4))
       : compactProof
@@ -188,7 +188,7 @@ export class PartialMerkleTree extends MerkleTree {
     return super.generateCombinedProof(indices, options)
   }
 
-  generateUpdateAppendProof(indices: Array<number>, updateElements: Array<Buffer>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): Common.updateAndAppendProof {
+  generatePartialUpdateAppendProof(indices: Array<number>, updateElements: Array<Buffer>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): Common.updateAndAppendProof {
     if (this._elements.length <= 0) throw new Error('Tree has no known elements.')
 
     if (!Array.isArray(indices)) {
@@ -201,10 +201,10 @@ export class PartialMerkleTree extends MerkleTree {
       })
     }
 
-    return super.generateUpdateAppendProof(indices, updateElements, appendElements, options)
+    return super.generateUpdateAppendProof({ indices, updateElements, appendElements }, options)
   }
 
-  generateUseAppendProof(indices: Array<number>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): Common.appendProof {
+  generatePartialUseAppendProof(indices: Array<number>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): Common.appendProof {
     if (this._elements.length <= 0) throw new Error('Tree has no known elements.')
 
     if (!Array.isArray(indices)) {
@@ -217,19 +217,19 @@ export class PartialMerkleTree extends MerkleTree {
       })
     }
 
-    return super.generateUseAppendProof(indices, appendElements, options)
+    return super.generateUseAppendProof({ indices, appendElements }, options)
   }
 
   updatePartialAndAppend(indices: Array<number>, updateElements: Array<Buffer>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.updateAndAppendProof, newPartialTree: PartialMerkleTree } {
     return {
-      proof: this.generateUpdateAppendProof(indices, updateElements, appendElements, options),
+      proof: this.generateUpdateAppendProof({ indices, updateElements, appendElements }, options),
       newPartialTree: this.set(indices, updateElements).append(appendElements),
     }
   }
 
   usePartialAndAppend(indices: Array<number>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.appendProof, newPartialTree: PartialMerkleTree } {
     return {
-      proof: this.generateUseAppendProof(indices, appendElements, options),
+      proof: this.generateUseAppendProof({ indices, appendElements }, options),
       newPartialTree: this.append(appendElements),
     }
   }

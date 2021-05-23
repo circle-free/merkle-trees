@@ -1,9 +1,14 @@
 import { expect } from 'chai'
 import { generateElements } from './index'
 import { MerkleTree } from '../../index'
-import { defaultProofOptions, proofOptions } from '../../common'
+import { defaultProofOptions, proof, proofOptions, updateAndAppendProof } from '../../common'
 
-const testSingleProofGeneration = (elementCount, seed, index, expected, options: proofOptions = defaultProofOptions) => {
+
+export interface expectedProof extends updateAndAppendProof {
+  minimumIndex: number
+}
+
+export const testSingleProofGeneration = (elementCount: number, seed: string, index: number, expected: expectedProof, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed })
   const merkleTree = new MerkleTree(elements, options)
   const proof = merkleTree.generateSingleProof(index, options)
@@ -23,7 +28,7 @@ const testSingleProofGeneration = (elementCount, seed, index, expected, options:
   proof.decommitments.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.decommitments[i]))
 }
 
-const compareSingleProofs = (elementCount, index, optionsA: proofOptions = defaultProofOptions, optionsB: proofOptions = defaultProofOptions) => {
+export const compareSingleProofs = (elementCount: number, index: number, optionsA: proofOptions = defaultProofOptions, optionsB: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const treeA = new MerkleTree(elements, optionsA)
   const proofA = treeA.generateSingleProof(index)
@@ -38,7 +43,7 @@ const compareSingleProofs = (elementCount, index, optionsA: proofOptions = defau
   proofA.decommitments.forEach((d, i) => expect(d.equals(proofB.decommitments[i])).to.be.true)
 }
 
-const testSingleProofVerification = (elementCount, index, options: proofOptions = defaultProofOptions) => {
+export const testSingleProofVerification = (elementCount: number, index: number, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const proof = merkleTree.generateSingleProof(index, options)
@@ -47,7 +52,7 @@ const testSingleProofVerification = (elementCount, index, options: proofOptions 
   expect(proofValid).to.be.true
 }
 
-const testMultiProofGeneration = (elementCount, seed, indices, expected, options: proofOptions = defaultProofOptions) => {
+export const testMultiProofGeneration = (elementCount: number, seed: string, indices: Array<number>, expected: expectedProof, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed })
   const merkleTree = new MerkleTree(elements, options)
   const proof = merkleTree.generateMultiProof(indices, options)
@@ -79,7 +84,7 @@ const testMultiProofGeneration = (elementCount, seed, indices, expected, options
   proof.decommitments.forEach((d, i) => expect(d.toString('hex')).to.equal(expected.decommitments[i]))
 }
 
-const compareMultiProofs = (elementCount, indices, optionsA = {}, optionsB = {}) => {
+export const compareMultiProofs = (elementCount: number, indices: Array<number>, optionsA: proofOptions = defaultProofOptions, optionsB: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const treeA = new MerkleTree(elements, optionsA)
   const proofA = treeA.generateMultiProof(indices, optionsA)
@@ -108,7 +113,7 @@ const compareMultiProofs = (elementCount, indices, optionsA = {}, optionsB = {})
   expect(proofA.skips).to.deep.equal(proofB.skips)
 }
 
-const testMultiProofVerification = (elementCount, indices, options: proofOptions = defaultProofOptions) => {
+export const testMultiProofVerification = (elementCount: number, indices: Array<number>, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const proof = merkleTree.generateMultiProof(indices, options)
@@ -117,15 +122,15 @@ const testMultiProofVerification = (elementCount, indices, options: proofOptions
   expect(proofValid).to.be.true
 }
 
-const testMultiProofIndicesInferring = (elementCount, indices, options: proofOptions = defaultProofOptions) => {
+export const testMultiProofIndicesInferring = (elementCount: number, indices: Array<number>, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const proof = merkleTree.generateMultiProof(indices, options)
-  const inferredIndices = MerkleTree.getMultiProofIndices(proof, options)
+  const inferredIndices = MerkleTree.getMultiProofIndices(proof)
 
   expect(inferredIndices).to.deep.equal(indices)
 }
-const testAppendProofGeneration = (elementCount, seed, expected, options: proofOptions = defaultProofOptions) => {
+export const testAppendProofGeneration = (elementCount: number, seed: string, expected: expectedProof, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed })
   const merkleTree = new MerkleTree(elements, options)
   const proof = merkleTree.generateAppendProof(options)
@@ -143,7 +148,7 @@ const testAppendProofGeneration = (elementCount, seed, expected, options: proofO
   expect(proof.decommitments.length).to.equal(expected.decommitments.length)
 }
 
-const testAppendProofVerification = (elementCount, options: proofOptions = defaultProofOptions) => {
+export const testAppendProofVerification = (elementCount: number, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const proof = merkleTree.generateAppendProof(options)
@@ -151,7 +156,8 @@ const testAppendProofVerification = (elementCount, options: proofOptions = defau
 
   expect(proofValid).to.be.true
 }
-const testCombinedProofMinimumIndex = (elementCount, expected, options: proofOptions = defaultProofOptions) => {
+
+export const testCombinedProofMinimumIndex = (elementCount: number, expected: expectedProof, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount)
   const merkleTree = new MerkleTree(elements, options)
   const minimumIndex = merkleTree.minimumCombinedProofIndex
@@ -159,18 +165,18 @@ const testCombinedProofMinimumIndex = (elementCount, expected, options: proofOpt
   expect(minimumIndex).to.equal(expected.minimumIndex)
 }
 
-const testSingleUpdateSingleAppendProofGeneration = (elementCount, seed, index, options: proofOptions = defaultProofOptions) => {
+export const testSingleUpdateSingleAppendProofGeneration = (elementCount: number, seed: string, index: number, options: proofOptions = defaultProofOptions) => {
   const originalElements = generateElements(elementCount, { seed })
   const merkleTree = new MerkleTree(originalElements, options)
-  const uElement = generateElements(1, { seed: '11' })[0]
-  const aElement = generateElements(1, { seed: '22' })[0]
-  const combinedProof = merkleTree.generateUpdateAppendProof(index, uElement, aElement, options)
-  const { element, updateElement, appendElement } = combinedProof
+  const updateElement = generateElements(1, { seed: '11' })[0]
+  const appendElement = generateElements(1, { seed: '22' })[0]
+  const combinedProof = merkleTree.generateUpdateAppendProof({ index, updateElement, appendElement }, options)
+  const { element, updateElement: rUpdateElement, appendElement: rAppendElement } = combinedProof
   const singleProof = merkleTree.generateSingleProof(index, options)
 
   expect(element.equals(originalElements[index])).to.be.true
-  expect(updateElement.equals(uElement)).to.be.true
-  expect(appendElement.equals(aElement)).to.be.true
+  expect(updateElement.equals(rUpdateElement)).to.be.true
+  expect(appendElement.equals(rAppendElement)).to.be.true
 
   if (options.compact) {
     combinedProof.compactProof.forEach((p, i) => expect(p.equals(singleProof.compactProof[i])).to.be.true)
@@ -183,21 +189,21 @@ const testSingleUpdateSingleAppendProofGeneration = (elementCount, seed, index, 
   expect(combinedProof.decommitments.length).to.equal(singleProof.decommitments.length)
 }
 
-const testMultiUpdateMultiAppendProofGeneration = (elementCount, seed, updateIndices, appendSize, options: proofOptions = defaultProofOptions) => {
+export const testMultiUpdateMultiAppendProofGeneration = (elementCount: number, seed: string, indices: Array<number>, appendSize: number, options: proofOptions = defaultProofOptions) => {
   const originalElements = generateElements(elementCount, { seed })
   const merkleTree = new MerkleTree(originalElements, options)
-  const uElements = generateElements(updateIndices.length, { seed: '11' })
-  const aElements = generateElements(appendSize, { seed: '22' })
-  const combinedProof = merkleTree.generateUpdateAppendProof(updateIndices, uElements, aElements, options)
-  const { elements, updateElements, appendElements } = combinedProof
-  const multiProof = merkleTree.generateMultiProof(updateIndices, options)
+  const updateElements = generateElements(indices.length, { seed: '11' })
+  const appendElements = generateElements(appendSize, { seed: '22' })
+  const combinedProof = merkleTree.generateUpdateAppendProof({ indices, updateElements, appendElements }, options)
+  const { elements, updateElements: rUpdateElements, appendElements: rAppendElements } = combinedProof
+  const multiProof = merkleTree.generateMultiProof(indices, options)
 
-  elements.forEach((e, i) => expect(e.equals(originalElements[updateIndices[i]])).to.be.true)
-  expect(elements.length).to.equal(updateIndices.length)
-  updateElements.forEach((e, i) => expect(e.equals(uElements[i])).to.be.true)
-  expect(updateElements.length).to.equal(uElements.length)
-  appendElements.forEach((e, i) => expect(e.equals(aElements[i])).to.be.true)
-  expect(appendElements.length).to.equal(aElements.length)
+  elements.forEach((e, i) => expect(e.equals(originalElements[indices[i]])).to.be.true)
+  expect(elements.length).to.equal(indices.length)
+  rUpdateElements.forEach((e, i) => expect(e.equals(updateElements[i])).to.be.true)
+  expect(rUpdateElements.length).to.equal(updateElements.length)
+  rAppendElements.forEach((e, i) => expect(e.equals(appendElements[i])).to.be.true)
+  expect(rAppendElements.length).to.equal(appendElements.length)
 
   if (options.compact) {
     combinedProof.compactProof.forEach((p, i) => expect(p.equals(multiProof.compactProof[i])).to.be.true)
@@ -216,7 +222,7 @@ const testMultiUpdateMultiAppendProofGeneration = (elementCount, seed, updateInd
   expect(combinedProof.skips).to.deep.equal(multiProof.skips)
 }
 
-const testCombinedProofVerification = (elementCount, indices, options: proofOptions = defaultProofOptions) => {
+export const testCombinedProofVerification = (elementCount: number, indices: Array<number>, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const proof = merkleTree.generateCombinedProof(indices, options)
@@ -224,16 +230,17 @@ const testCombinedProofVerification = (elementCount, indices, options: proofOpti
 
   expect(proofValid).to.be.true
 }
-const testSingleUseSingleAppendProofGeneration = (elementCount, seed, index, options: proofOptions = defaultProofOptions) => {
+
+export const testSingleUseSingleAppendProofGeneration = (elementCount: number, seed: string, index: number, options: proofOptions = defaultProofOptions) => {
   const originalElements = generateElements(elementCount, { seed })
   const merkleTree = new MerkleTree(originalElements, options)
-  const aElement = generateElements(1, { seed: '22' })[0]
-  const combinedProof = merkleTree.generateUseAppendProof(index, aElement, options)
-  const { element, appendElement } = combinedProof
+  const appendElement = generateElements(1, { seed: '22' })[0]
+  const combinedProof = merkleTree.generateUseAppendProof({ index, appendElement }, options)
+  const { element, appendElement: rAppendElement } = combinedProof
   const singleProof = merkleTree.generateSingleProof(index, options)
 
   expect(element.equals(originalElements[index])).to.be.true
-  expect(appendElement.equals(aElement)).to.be.true
+  expect(appendElement.equals(rAppendElement)).to.be.true
 
   if (options.compact) {
     combinedProof.compactProof.forEach((p, i) => expect(p.equals(singleProof.compactProof[i])).to.be.true)
@@ -245,18 +252,19 @@ const testSingleUseSingleAppendProofGeneration = (elementCount, seed, index, opt
   combinedProof.decommitments.forEach((d, i) => expect(d.equals(singleProof.decommitments[i])).to.be.true)
   expect(combinedProof.decommitments.length).to.equal(singleProof.decommitments.length)
 }
-const testMultiUseMultiAppendProofGeneration = (elementCount, seed, indices, appendSize, options: proofOptions = defaultProofOptions) => {
+
+export const testMultiUseMultiAppendProofGeneration = (elementCount: number, seed: string, indices: Array<number>, appendSize: number, options: proofOptions = defaultProofOptions) => {
   const originalElements = generateElements(elementCount, { seed })
   const merkleTree = new MerkleTree(originalElements, options)
-  const aElements = generateElements(appendSize, { seed: '22' })
-  const combinedProof = merkleTree.generateUseAppendProof(indices, aElements, options)
-  const { elements, appendElements } = combinedProof
+  const appendElements = generateElements(appendSize, { seed: '22' })
+  const combinedProof = merkleTree.generateUseAppendProof({ indices, appendElements }, options)
+  const { elements, appendElements: rAppendElements } = combinedProof
   const multiProof = merkleTree.generateMultiProof(indices, options)
 
   elements.forEach((e, i) => expect(e.equals(originalElements[indices[i]])).to.be.true)
   expect(elements.length).to.equal(indices.length)
-  appendElements.forEach((e, i) => expect(e.equals(aElements[i])).to.be.true)
-  expect(appendElements.length).to.equal(aElements.length)
+  rAppendElements.forEach((e, i) => expect(e.equals(appendElements[i])).to.be.true)
+  expect(rAppendElements.length).to.equal(appendElements.length)
 
   if (options.compact) {
     combinedProof.compactProof.forEach((p, i) => expect(p.equals(multiProof.compactProof[i])).to.be.true)
@@ -274,7 +282,8 @@ const testMultiUseMultiAppendProofGeneration = (elementCount, seed, indices, app
   expect(combinedProof.flags).to.deep.equal(multiProof.flags)
   expect(combinedProof.skips).to.deep.equal(multiProof.skips)
 }
-const testSizeProofGeneration = (elementCount, seed, expected, options: proofOptions = defaultProofOptions) => {
+
+export const testSizeProofGeneration = (elementCount: number, seed: string, expected: expectedProof, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed })
   const merkleTree = new MerkleTree(elements, options)
   const proof = merkleTree.generateSizeProof(options)
@@ -283,7 +292,7 @@ const testSizeProofGeneration = (elementCount, seed, expected, options: proofOpt
   expect(proof.elementCount).to.equal(elementCount)
 
   if (options.simple) {
-    expect(proof.elementRoot.toString('hex')).to.equal(expected.elementRoot)
+    expect(proof.element.toString('hex')).to.equal(expected.element)
     return
   }
 
@@ -297,7 +306,7 @@ const testSizeProofGeneration = (elementCount, seed, expected, options: proofOpt
   expect(proof.decommitments.length).to.equal(expected.decommitments.length)
 }
 
-const testSizeProofVerification = (elementCount, options: proofOptions = defaultProofOptions) => {
+export const testSizeProofVerification = (elementCount: number, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const proof = merkleTree.generateSizeProof(options)

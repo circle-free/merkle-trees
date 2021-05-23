@@ -6,7 +6,7 @@ export const generateRandomElement = (): Buffer => {
 }
 
 export interface elementOptions {
-  seed: string,
+  seed?: string,
   random?: boolean,
   size?: number
 }
@@ -17,7 +17,7 @@ export const defaultElementOptions = {
   size: 32,
 }
 
-export const generateElements = (elementCount: number, options: elementOptions): Array<Buffer> => {
+export const generateElements = (elementCount: number, options?: elementOptions): Array<Buffer> => {
   const { seed, random = false, size = 32 } = Object.assign(defaultElementOptions, options)
   const elements = []
   let seedBuffer = seed ? Buffer.from(seed, 'hex') : null
