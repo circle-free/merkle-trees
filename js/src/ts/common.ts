@@ -1,12 +1,12 @@
 import { roundUpToPowerOf2, hashNode } from "./utils"
 
 export interface proofOptions {
-  compact: boolean,
-  simple: boolean,
-  indexed: boolean,
-  unbalanced: boolean,
-  sortedHash: Buffer,
-  elementPrefix: string
+  compact?: boolean,
+  simple?: boolean,
+  indexed?: boolean,
+  unbalanced?: boolean,
+  sortedHash?: boolean,
+  elementPrefix?: string
 }
 
 export const defaultProofOptions: proofOptions = {
@@ -14,19 +14,19 @@ export const defaultProofOptions: proofOptions = {
   simple: false,
   indexed: false,
   unbalanced: true,
-  sortedHash: Buffer.from('0x00'),
+  sortedHash: false,
   elementPrefix: '00'
 }
 
 export interface treeOptions {
-  unbalanced: boolean,
-  sortedHash: Buffer,
-  hashFunction: (left: Buffer, right: Buffer) => Buffer
+  unbalanced?: boolean,
+  sortedHash?: boolean,
+  hashFunction?: (left: Buffer, right: Buffer) => Buffer
 }
 
 export const defaultTreeOptions: treeOptions = {
   unbalanced: true,
-  sortedHash: Buffer.from('0x00'),
+  sortedHash: false,
   hashFunction: hashNode
 }
 

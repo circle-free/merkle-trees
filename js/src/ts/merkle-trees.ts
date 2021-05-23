@@ -10,7 +10,7 @@ import { CommonOptions } from 'child_process'
 export class MerkleTree {
   _unbalanced: boolean
   _depth: number
-  _sortedHash: Buffer
+  _sortedHash: boolean
   _elementPrefix: Buffer
   _elements: Array<Buffer>
   _tree: Array<Buffer>

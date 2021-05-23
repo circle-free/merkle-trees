@@ -3,9 +3,13 @@ import { defaultElementOptions, elementOptions, generateElements } from './index
 import { MerkleTree } from '../../index'
 import { defaultProofOptions, defaultTreeOptions, proofOptions, treeOptions } from '../../common'
 
-export interface expectedTree extends MerkleTree { }
+export interface expectedTree {
+  root?: string,
+  elementRoot?: string,
+  depth?: number
+}
 
-const testBuildTree = (elementCount: number, seed: string, expected: expectedTree, treeOptions: proofOptions = defaultProofOptions, elementOptions: elementOptions = defaultElementOptions) => {
+export const testBuildTree = (elementCount: number, seed: string, expected: expectedTree, treeOptions: proofOptions = defaultProofOptions, elementOptions: elementOptions = defaultElementOptions) => {
   const elements = generateElements(elementCount, { seed, size: elementOptions.size })
   const merkleTree = new MerkleTree(elements, treeOptions)
 
@@ -16,7 +20,7 @@ const testBuildTree = (elementCount: number, seed: string, expected: expectedTre
   expect(merkleTree.elements.length).to.equal(elements.length)
 }
 
-const compareTrees = (elementCount: number, optionsA: proofOptions, optionsB: proofOptions = defaultProofOptions) => {
+export const compareTrees = (elementCount: number, optionsA: proofOptions, optionsB: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const treeA = new MerkleTree(elements, optionsA)
   const treeB = new MerkleTree(elements, optionsB)
@@ -28,7 +32,7 @@ const compareTrees = (elementCount: number, optionsA: proofOptions, optionsB: pr
   expect(treeA.elements.length).to.equal(treeB.elements.length)
 }
 
-const testSingleUpdate = (elementCount: number, index: number, options: proofOptions = defaultProofOptions) => {
+export const testSingleUpdate = (elementCount: number, index: number, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const updateElement = generateElements(1, { seed: '11' })[0]
@@ -41,7 +45,7 @@ const testSingleUpdate = (elementCount: number, index: number, options: proofOpt
   expect(root.equals(freshMerkleTree.root)).to.be.true
 }
 
-const testConsecutiveSingleUpdate = (iterations: number, elementCount: number, options: proofOptions = defaultProofOptions, elementOptions: elementOptions = defaultElementOptions) => {
+export const testConsecutiveSingleUpdate = (iterations: number, elementCount: number, options: proofOptions = defaultProofOptions, elementOptions: elementOptions = defaultElementOptions) => {
   let elements = generateElements(elementCount, { seed: 'cc', size: elementOptions.size })
   let merkleTree = new MerkleTree(elements, options)
   let root = null
@@ -62,7 +66,7 @@ const testConsecutiveSingleUpdate = (iterations: number, elementCount: number, o
   expect(root.equals(finalMerkleTree.root)).to.be.true
 }
 
-const testMultiUpdate = (elementCount: number, indices: Array<number>, options: proofOptions = defaultProofOptions) => {
+export const testMultiUpdate = (elementCount: number, indices: Array<number>, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const updateElements = generateElements(indices.length, { seed: '11' })
@@ -81,7 +85,7 @@ const testMultiUpdate = (elementCount: number, indices: Array<number>, options: 
   expect(root.equals(freshMerkleTree.root)).to.be.true
 }
 
-const testConsecutiveMultiUpdate = (iterations: number, elementCount: number, updateSize: number, options: proofOptions = defaultProofOptions, elementOptions: elementOptions = defaultElementOptions) => {
+export const testConsecutiveMultiUpdate = (iterations: number, elementCount: number, updateSize: number, options: proofOptions = defaultProofOptions, elementOptions: elementOptions = defaultElementOptions) => {
   let elements = generateElements(elementCount, { seed: 'cc', size: elementOptions.size })
   let merkleTree = new MerkleTree(elements, options)
   let root = null
@@ -110,7 +114,7 @@ const testConsecutiveMultiUpdate = (iterations: number, elementCount: number, up
   expect(root.equals(finalMerkleTree.root)).to.be.true
 }
 
-const testSingleAppend = (elementCount: number, options: proofOptions = defaultProofOptions) => {
+export const testSingleAppend = (elementCount: number, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const appendElement = generateElements(1, { seed: '11' })[0]
@@ -125,7 +129,7 @@ const testSingleAppend = (elementCount: number, options: proofOptions = defaultP
   expect(newElementCount).to.equal(freshMerkleTree.elements.length)
 }
 
-const testConsecutiveSingleAppend = (iterations: number, elementCount: number, options: proofOptions = defaultProofOptions, elementOptions: elementOptions = defaultElementOptions) => {
+export const testConsecutiveSingleAppend = (iterations: number, elementCount: number, options: proofOptions = defaultProofOptions, elementOptions: elementOptions = defaultElementOptions) => {
   let elements = generateElements(elementCount, { seed: 'cc', size: elementOptions.size })
   let merkleTree = new MerkleTree(elements, options)
   let root = null
@@ -147,7 +151,7 @@ const testConsecutiveSingleAppend = (iterations: number, elementCount: number, o
   expect(root.equals(finalMerkleTree.root)).to.be.true
 }
 
-const testMultiAppend = (elementCount: number, appendSize: number, options: proofOptions = defaultProofOptions) => {
+export const testMultiAppend = (elementCount: number, appendSize: number, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const appendElements = generateElements(appendSize, { seed: '11' })
@@ -162,7 +166,7 @@ const testMultiAppend = (elementCount: number, appendSize: number, options: proo
   expect(newElementCount).to.equal(freshMerkleTree.elements.length)
 }
 
-const testConsecutiveMultiAppend = (iterations: number, elementCount: number, appendSize: number, options: proofOptions = defaultProofOptions, elementOptions: elementOptions = defaultElementOptions) => {
+export const testConsecutiveMultiAppend = (iterations: number, elementCount: number, appendSize: number, options: proofOptions = defaultProofOptions, elementOptions: elementOptions = defaultElementOptions) => {
   let elements = generateElements(elementCount, { seed: 'cc', size: elementOptions.size })
   let merkleTree = new MerkleTree(elements, options)
   let root = null
@@ -184,7 +188,7 @@ const testConsecutiveMultiAppend = (iterations: number, elementCount: number, ap
   expect(root.equals(finalMerkleTree.root)).to.be.true
 }
 
-const testSingleUpdateSingleAppend = (elementCount: number, index: number, options: proofOptions = defaultProofOptions) => {
+export const testSingleUpdateSingleAppend = (elementCount: number, index: number, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const updateElement = generateElements(1, { seed: '11' })[0]
@@ -201,7 +205,7 @@ const testSingleUpdateSingleAppend = (elementCount: number, index: number, optio
   expect(newElementCount).to.equal(freshMerkleTree.elements.length)
 }
 
-const testMultiUpdateMultiAppend = (elementCount: number, indices: Array<number>, appendSize: number, options: proofOptions = defaultProofOptions) => {
+export const testMultiUpdateMultiAppend = (elementCount: number, indices: Array<number>, appendSize: number, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const updateElements = generateElements(indices.length, { seed: '11' })
@@ -224,7 +228,7 @@ const testMultiUpdateMultiAppend = (elementCount: number, indices: Array<number>
   expect(newElementCount).to.equal(freshMerkleTree.elements.length)
 }
 
-const testConsecutiveSingleUpdateSingleAppend = (iterations: number, elementCount: number, options: proofOptions = defaultProofOptions) => {
+export const testConsecutiveSingleUpdateSingleAppend = (iterations: number, elementCount: number, options: proofOptions = defaultProofOptions) => {
   let elements = generateElements(elementCount, { seed: 'cc' })
   let merkleTree = new MerkleTree(elements, options)
   let root = null
@@ -251,7 +255,7 @@ const testConsecutiveSingleUpdateSingleAppend = (iterations: number, elementCoun
   expect(root.equals(finalMerkleTree.root)).to.be.true
 }
 
-const testConsecutiveMultiUpdateMultiAppend = (iterations: number, elementCount: number, updateSize: number, appendSize: number, options: proofOptions = defaultProofOptions) => {
+export const testConsecutiveMultiUpdateMultiAppend = (iterations: number, elementCount: number, updateSize: number, appendSize: number, options: proofOptions = defaultProofOptions) => {
   let elements = generateElements(elementCount, { seed: 'cc' })
   let merkleTree = new MerkleTree(elements, options)
   let root = null
@@ -287,7 +291,7 @@ const testConsecutiveMultiUpdateMultiAppend = (iterations: number, elementCount:
   expect(root.equals(finalMerkleTree.root)).to.be.true
 }
 
-const testSingleUseSingleAppend = (elementCount: number, index: number, options: proofOptions = defaultProofOptions) => {
+export const testSingleUseSingleAppend = (elementCount: number, index: number, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const appendElement = generateElements(1, { seed: '22' })[0]
@@ -302,7 +306,7 @@ const testSingleUseSingleAppend = (elementCount: number, index: number, options:
   expect(newElementCount).to.equal(freshMerkleTree.elements.length)
 }
 
-const testConsecutiveSingleUseSingleAppend = (iterations: number, elementCount: number, options: proofOptions = defaultProofOptions) => {
+export const testConsecutiveSingleUseSingleAppend = (iterations: number, elementCount: number, options: proofOptions = defaultProofOptions) => {
   let elements = generateElements(elementCount, { seed: 'cc' })
   let merkleTree = new MerkleTree(elements, options)
   let root = null
@@ -328,7 +332,7 @@ const testConsecutiveSingleUseSingleAppend = (iterations: number, elementCount: 
   expect(root.equals(finalMerkleTree.root)).to.be.true
 }
 
-const testMultiUseMultiAppend = (elementCount: number, indices: Array<number>, appendSize: number, options: proofOptions = defaultProofOptions) => {
+export const testMultiUseMultiAppend = (elementCount: number, indices: Array<number>, appendSize: number, options: proofOptions = defaultProofOptions) => {
   const elements = generateElements(elementCount, { seed: 'ff' })
   const merkleTree = new MerkleTree(elements, options)
   const aElements = generateElements(appendSize, { seed: '22' })
@@ -343,7 +347,7 @@ const testMultiUseMultiAppend = (elementCount: number, indices: Array<number>, a
   expect(newElementCount).to.equal(freshMerkleTree.elements.length)
 }
 
-const testConsecutiveMultiUseMultiAppend = (iterations: number, elementCount: number, useSize: number, appendSize: number, options: proofOptions = defaultProofOptions) => {
+export const testConsecutiveMultiUseMultiAppend = (iterations: number, elementCount: number, useSize: number, appendSize: number, options: proofOptions = defaultProofOptions) => {
   let elements = generateElements(elementCount, { seed: 'cc' })
   let merkleTree = new MerkleTree(elements, options)
   let root = null

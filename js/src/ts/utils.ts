@@ -31,7 +31,7 @@ export const sortHashNode = (left: Buffer, right: Buffer): Buffer => {
   throw new Error('Both buffers must exist to be sorted and hashed.')
 }
 
-export const getHashFunction = (sortedHash: Buffer): ((x: Buffer, y: Buffer) => Buffer) => {
+export const getHashFunction = (sortedHash: boolean): ((x: Buffer, y: Buffer) => Buffer) => {
   return (left, right: Buffer): Buffer => sortedHash ? sortHashNode(left, right) : hashNode(left, right)
 }
 

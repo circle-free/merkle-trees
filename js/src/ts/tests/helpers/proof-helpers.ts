@@ -5,7 +5,7 @@ import { defaultProofOptions, proof, proofOptions, updateAndAppendProof } from '
 
 
 export interface expectedProof extends updateAndAppendProof {
-  minimumIndex: number
+  minimumIndex?: number
 }
 
 export const testSingleProofGeneration = (elementCount: number, seed: string, index: number, expected: expectedProof, options: proofOptions = defaultProofOptions) => {
