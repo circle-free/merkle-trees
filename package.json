@@ -17,6 +17,7 @@
     "test": "mocha 'js/tests' && truffle test",
     "test-eth": "truffle test",
     "test-js": "mocha 'js/tests'",
+    "test-ts": "mocha js/src/ts/tests/**/merkle.test.ts",
     "ganache": "ganache-cli",
     "lint-eth": "solhint 'eth/contracts/**/*.sol'",
     "prettier": "prettier --write 'eth/contracts/**/*.sol' 'eth/tests/**/*.js' 'js/src/**/*.js' 'js/tests/**/*.js'",
@@ -35,13 +36,22 @@
     "sha3": "^2.1.3"
   },
   "devDependencies": {
+    "@types/chai": "^4.2.18",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "^15.6.0",
     "chai": "^4.2.0",
     "ganache-cli": "^6.12.0",
     "mocha": "^8.2.0",
     "prettier": "^2.1.2",
     "prettier-plugin-solidity": "^1.0.0-alpha.59",
     "solhint": "^3.2.2",
-    "truffle": "^5.1.49"
+    "truffle": "^5.1.49",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.4"
+  },
+  "mocha":{
+    "require": "ts-node/register",
+    "grep": ""
   },
   "engines": {
     "node": ">=14.0.0"
