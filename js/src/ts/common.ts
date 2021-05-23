@@ -38,17 +38,23 @@ export const defaultTreeOptions: treeOptions = {
   hashFunction: hashNode
 }
 
-export interface getRootParams {
-  elementCount?: number,
+export interface base {
   index?: number,
-  leaf?: Buffer,
+  indices?: Array<number>,
+
+  elementCount?: number,
+
+  compactProof?: Array<Buffer>,
+  decommitments?: Array<Buffer>,
+
   flags?: Array<1 | 0>,
   orders?: Array<1 | 0>,
   skips?: Array<1 | 0>,
-  indices?: Array<number>,
+}
+
+export interface getRootParams extends base {
+  leaf?: Buffer,
   leafs?: Array<Buffer>,
-  compactProof?: Array<Buffer>,
-  decommitments?: Array<Buffer>,
 }
 
 export interface getNewRootParams extends getRootParams {
@@ -58,22 +64,11 @@ export interface getNewRootParams extends getRootParams {
   updateLeafs?: Array<Buffer>,
 }
 
-export interface proof {
+export interface proof extends base {
   root?: Buffer,
 
   element?: Buffer,
   elements?: Array<Buffer>,
-  elementCount?: number,
-
-  index?: number,
-  indices?: Array<number>,
-
-  compactProof?: Array<Buffer>,
-  decommitments?: Array<Buffer>,
-
-  flags?: Array<1 | 0>,
-  orders?: Array<1 | 0>,
-  skips?: Array<1 | 0>,
 }
 
 export interface updateProof extends proof {
