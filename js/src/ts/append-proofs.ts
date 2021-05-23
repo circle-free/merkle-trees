@@ -1,4 +1,4 @@
-import { defaultProofOptions, defaultTreeOptions, getNewRootParams, getRootParams, proofOptions, treeOptions } from './common'
+import { defaultProofOptions, defaultTreeOptions, getNewRootParams, getRootParams, proof, proofOptions, treeOptions } from './common'
 import { bitCount32, to32ByteBuffer, from32ByteBuffer } from './utils'
 
 // This is the SingleProof.generate algorithm, using the elementCount as index,
@@ -6,7 +6,7 @@ import { bitCount32, to32ByteBuffer, from32ByteBuffer } from './utils'
 // "to the left" of the index, since all nodes "to the right" are non-existent.
 // Also, the left sub-tree's root (always defined as i=2 in the tree), is always
 // required, as every single append is "to the right" of it, by definition.
-export const generate = (tree: Array<Buffer>, elementCount: number, options: proofOptions = defaultProofOptions): { compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer> } => {
+export const generate = (tree: Array<Buffer>, elementCount: number, options: proofOptions = defaultProofOptions): proof => {
   const decommitments = Array<Buffer>()
   const leafCount = tree.length >>> 1
 

@@ -58,6 +58,42 @@ export interface getNewRootParams extends getRootParams {
   updateLeafs?: Array<Buffer>,
 }
 
+export interface proof {
+  root?: Buffer,
+
+  element?: Buffer,
+  elements?: Array<Buffer>,
+  elementCount?: number,
+
+  index?: number,
+  indices?: Array<number>,
+
+  compactProof?: Array<Buffer>,
+  decommitments?: Array<Buffer>,
+
+  flags?: Array<1 | 0>,
+  orders?: Array<1 | 0>,
+  skips?: Array<1 | 0>,
+}
+
+export interface updateProof extends proof {
+  updateElement?: Buffer,
+  updateElements?: Array<Buffer>,
+}
+
+export interface appendProof extends proof {
+  appendElement?: Buffer,
+  appendElements?: Array<Buffer>,
+}
+
+export interface updateAndAppendProof extends proof {
+  updateElement?: Buffer,
+  updateElements?: Array<Buffer>,
+  appendElement?: Buffer,
+  appendElements?: Array<Buffer>,
+}
+
+
 export const buildTree = (leafs: Array<Buffer>, options: treeOptions = defaultTreeOptions): { tree: Array<Buffer>, depth: number } => {
   const depth = getDepth(leafs.length)
   const balancedLeafCount = getBalancedLeafCount(leafs.length)
