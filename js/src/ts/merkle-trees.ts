@@ -14,7 +14,7 @@ export class MerkleTree {
   _elements: Array<Buffer>
   _tree: Array<Buffer>
 
-  constructor(elements: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions) {
+  constructor(elements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions) {
     this._elementPrefix = Buffer.from(options.elementPrefix, 'hex')
     this._sortedHash = options.sortedHash
     this._unbalanced = options.unbalanced
@@ -33,40 +33,44 @@ export class MerkleTree {
     const leafs = this._elements.map((element) => hashNode(this._elementPrefix, element))
 
     const hashFunction = getHashFunction(this._sortedHash)
-    const { tree, depth } = Common.buildTree(leafs, Object.assign({ hashFunction }, options))
+    const { tree, depth } = Common.buildTree(leafs, Object.assign({
+      hashFunction: hashFunction,
+      sortedHash: options.sortedHash,
+      unbalanced: options.unbalanced,
+    }, Common.defaultTreeOptions))
 
     this._tree = tree
     this._depth = depth
     this._tree[0] = MerkleTree.computeMixedRoot(this._elements.length, this._tree[1])
   }
 
-  static verifySingleProof(root: Buffer, element: Buffer, index: number, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): boolean {
+  static verifySingleProof(root: Buffer, element: Buffer, index: number, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): boolean {
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
     const leaf = hashNode(prefixBuffer, element)
-    const opts = Object.assign({ hashFunction }, options)
+    const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
     const { root: recoveredRoot, elementCount: recoveredElementCount } = SingleProofs.getRoot(index, leaf, compactProof, elementCount, decommitments, opts)
 
     return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot)
   }
 
-  static updateWithSingleProof(root: Buffer, element: Buffer, updateElement: Buffer, index: number, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): { root: Buffer } {
+  static updateWithSingleProof(root: Buffer, element: Buffer, updateElement: Buffer, index: number, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer } {
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
     const leaf = hashNode(prefixBuffer, element)
     const updateLeaf = hashNode(prefixBuffer, updateElement)
-    const opts = Object.assign({ hashFunction }, options)
+    const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
     const { root: recoveredRoot, newRoot, elementCount: recoveredElementCount } = SingleProofs.getNewRoot(index, leaf, updateLeaf, compactProof, elementCount, decommitments, opts)
 
     if (!MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot)) throw new Error('Invalid Proof.')
     return { root: MerkleTree.computeMixedRoot(elementCount, newRoot) }
   }
 
-  static verifyMultiProof(root: Buffer, elements: Array<Buffer>, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer>, indices?: Array<number>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, options: Common.treeOptions = Common.defaultTreeOptions): boolean {
+  static verifyMultiProof(root: Buffer, elements: Array<Buffer>, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer>, indices?: Array<number>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, options: Common.proofOptions = Common.defaultProofOptions): boolean {
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
     const leafs = elements.map((element) => hashNode(prefixBuffer, element))
-    const opts = Object.assign({ hashFunction }, options)
+    const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
     const { root: recoveredRoot, elementCount: recoveredElementCount } = indices.length > 0
       ? MultiIndexedProofs.getRoot(indices, leafs, compactProof, elementCount, decommitments, opts)
       : MultiFlagProofs.getRoot(leafs, compactProof, elementCount, flags, skips, orders, decommitments, opts)
@@ -77,12 +81,12 @@ export class MerkleTree {
     return MultiFlagProofs.getIndices(leafCount, compactProof, flags, skips, orders).indices
   }
 
-  static updateWithMultiProof(root: Buffer, elements: Array<Buffer>, updateElements: Array<Buffer>, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer>, indices?: Array<number>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, options: Common.treeOptions = Common.defaultTreeOptions): { root: Buffer } {
+  static updateWithMultiProof(root: Buffer, elements: Array<Buffer>, updateElements: Array<Buffer>, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer>, indices?: Array<number>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer } {
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
     const leafs = elements.map((element) => hashNode(prefixBuffer, element))
     const updateLeafs = updateElements.map((element) => hashNode(prefixBuffer, element))
-    const opts = Object.assign({ hashFunction }, options)
+    const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
     const { root: recoveredRoot, newRoot, elementCount: recoveredElementCount } = indices
       ? MultiIndexedProofs.getNewRoot(indices, leafs, updateLeafs, compactProof, elementCount, decommitments, opts)
       : MultiFlagProofs.getNewRoot(leafs, updateLeafs, compactProof, elementCount, flags, skips, orders, decommitments, opts)
@@ -92,19 +96,19 @@ export class MerkleTree {
     return { root: MerkleTree.computeMixedRoot(elementCount, newRoot) }
   }
 
-  static verifyAppendProof(root: Buffer, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): boolean {
-    if (!options.unbalanced) throw new Error('Append-Proofs not supported for balanced trees.')
+  static verifyAppendProof(root: Buffer, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): boolean {
+    // if (!options.unbalanced) throw new Error('Append-Proofs not supported for balanced trees.')
     if (root.equals(to32ByteBuffer(0))) return true
 
     const hashFunction = getHashFunction(options.sortedHash)
-    const opts = Object.assign({ hashFunction }, options)
+    const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
     const { root: recoveredRoot, elementCount: recoveredElementCount } = AppendProofs.getRoot(compactProof, elementCount, decommitments, opts)
 
     return MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot)
   }
 
-  static appendWithAppendProof(root: Buffer, appendElement: Buffer, appendElements: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): { root: Buffer, elementCount: number } {
-    if (!options.unbalanced) throw new Error('Append-Proofs not supported for balanced trees.')
+  static appendWithAppendProof(root: Buffer, appendElement: Buffer, appendElements: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer, elementCount: number } {
+    // if (!options.unbalanced) throw new Error('Append-Proofs not supported for balanced trees.')
 
     if (root.equals(to32ByteBuffer(0))) {
       const merkleTree = new MerkleTree(appendElements || [appendElement], options)
@@ -114,7 +118,7 @@ export class MerkleTree {
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
 
     const hashFunction = getHashFunction(options.sortedHash)
-    const opts = Object.assign({ hashFunction }, options)
+    const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
     const { root: recoveredRoot, newRoot, elementCount: recoveredElementCount } = appendElement?.length > 0
       ? AppendProofs.getNewRoot(hashNode(prefixBuffer, appendElement), compactProof, elementCount, decommitments, opts)
       : AppendProofs.getNewRoot(appendElements.map((element) => hashNode(prefixBuffer, element)), compactProof, elementCount, decommitments, opts)
@@ -125,8 +129,8 @@ export class MerkleTree {
     return { root: MerkleTree.computeMixedRoot(newElementCount, newRoot), elementCount: newElementCount }
   }
 
-  static appendWithCombinedProof(root: Buffer, element: Buffer, elements: Array<Buffer>, appendElement: Buffer, appendElements: Array<Buffer>, index: number, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, orders?: Array<1 | 0>, skips?: Array<1 | 0>, options: Common.treeOptions = Common.defaultTreeOptions): { root: Buffer, elementCount: number } {
-    if (!options.unbalanced) throw new Error('Combined-Proofs not supported for balanced trees.')
+  static appendWithCombinedProof(root: Buffer, element: Buffer, elements: Array<Buffer>, appendElement: Buffer, appendElements: Array<Buffer>, index: number, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, orders?: Array<1 | 0>, skips?: Array<1 | 0>, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer, elementCount: number } {
+    // if (!options.unbalanced) throw new Error('Combined-Proofs not supported for balanced trees.')
 
     if (root.equals(to32ByteBuffer(0))) {
       const merkleTree = new MerkleTree(appendElements || [appendElement], options)
@@ -138,12 +142,12 @@ export class MerkleTree {
     const leafs = elements.map((element) => hashNode(prefixBuffer, element))
 
     const hashFunction = getHashFunction(options.sortedHash)
-    const opts = Object.assign({ hashFunction }, options)
+    const opts = Object.assign({ hashFunction }, Common.defaultTreeOptions)
     const { root: recoveredRoot, elementCount: recoveredElementCount, appendDecommitments } = CombinedProofs.getRoot(leafs, leaf, index, compactProof, elementCount, flags, orders, skips, decommitments, opts)
 
     const newRoot = appendElement instanceof Buffer
-      ? AppendProofs.appendSingle(hashNode(prefixBuffer, appendElement), elementCount, decommitments, options)
-      : AppendProofs.appendMulti(appendElements.map((element) => hashNode(prefixBuffer, element)), elementCount, decommitments, options)
+      ? AppendProofs.appendSingle(hashNode(prefixBuffer, appendElement), elementCount, decommitments, opts)
+      : AppendProofs.appendMulti(appendElements.map((element) => hashNode(prefixBuffer, element)), elementCount, decommitments, opts)
     const newElementCount = elementCount + (appendElements?.length ?? 1)
 
     if (!MerkleTree.verifyMixedRoot(root, elementCount, recoveredRoot)) throw new Error('Invalid Proof.')
@@ -151,7 +155,7 @@ export class MerkleTree {
     return { root: MerkleTree.computeMixedRoot(newElementCount, newRoot), elementCount: newElementCount }
   }
 
-  static verifyCombinedProof(root: Buffer, elements?: Array<Buffer>, element?: Buffer, index?: number, compactProof?: Array<Buffer>, elementCount?: number, flags?: Array<1 | 0>, orders?: Array<1 | 0>, skips?: Array<1 | 0>, decommitments?: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): boolean {
+  static verifyCombinedProof(root: Buffer, elements?: Array<Buffer>, element?: Buffer, index?: number, compactProof?: Array<Buffer>, elementCount?: number, flags?: Array<1 | 0>, orders?: Array<1 | 0>, skips?: Array<1 | 0>, decommitments?: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): boolean {
     if (!options.unbalanced) throw new Error('Combined-Proofs not supported for balanced trees.')
 
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
@@ -170,7 +174,7 @@ export class MerkleTree {
     return MerkleTree.getMultiProofIndices(leafCount, compactProof, flags, skips, orders)
   }
 
-  static updateAndAppendWithCombinedProof(root: Buffer, element: Buffer, elements: Array<Buffer>, updateElement: Buffer, updateElements: Array<Buffer>, appendElement: Buffer, appendElements: Array<Buffer>, elementCount: number, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, decommitments?: Array<Buffer>, compactProof?: Array<Buffer>, index?: number, options: Common.treeOptions = Common.defaultTreeOptions): { root: Buffer, elementCount: number } {
+  static updateAndAppendWithCombinedProof(root: Buffer, element: Buffer, elements: Array<Buffer>, updateElement: Buffer, updateElements: Array<Buffer>, appendElement: Buffer, appendElements: Array<Buffer>, elementCount: number, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, decommitments?: Array<Buffer>, compactProof?: Array<Buffer>, index?: number, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer, elementCount: number } {
     if (!options.unbalanced) throw new Error('Combined-Proofs not supported for balanced trees.')
 
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
@@ -244,7 +248,7 @@ export class MerkleTree {
     return CombinedProofs.getMinimumIndex(this._elements.length)
   }
 
-  generateSingleProof(index: number, options: Common.treeOptions = Common.defaultTreeOptions): { root: Buffer, element: Buffer, index: number, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer> } {
+  generateSingleProof(index: number, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer, element: Buffer, index: number, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer> } {
     if (this._elements.length <= 0) throw new Error('Tree is empty.')
     if (index < 0 || index >= this._elements.length) throw new Error('Index out of range.')
 
@@ -254,13 +258,13 @@ export class MerkleTree {
     return Object.assign(base, proof)
   }
 
-  generateSingleUpdateProof(index: number, updateElement: Buffer, options: Common.treeOptions = Common.defaultTreeOptions): { root: Buffer, element: Buffer, updateElement: Buffer, index: number, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer> } {
+  generateSingleUpdateProof(index: number, updateElement: Buffer, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer, element: Buffer, updateElement: Buffer, index: number, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer> } {
     const base = { updateElement: Buffer.from(updateElement) }
 
     return Object.assign(base, this.generateSingleProof(index, options))
   }
 
-  updateSingle(index: number, updateElement: Buffer, options: Common.treeOptions = Common.defaultTreeOptions): { proof: { root: Buffer, element: Buffer, updateElement: Buffer, index: number, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer> }, newMerkleTree: MerkleTree } {
+  updateSingle(index: number, updateElement: Buffer, options: Common.proofOptions = Common.defaultProofOptions): { proof: { root: Buffer, element: Buffer, updateElement: Buffer, index: number, elementCount: number, compactProof: Array<Buffer>, decommitments: Array<Buffer> }, newMerkleTree: MerkleTree } {
     const newElements = this._elements.map((e, i) => (i === index ? updateElement : e))
 
     const opts = Object.assign({
@@ -275,7 +279,7 @@ export class MerkleTree {
     }
   }
 
-  generateMultiProof(indices: Array<number>, options: Common.treeOptions = Common.defaultTreeOptions): { root: Buffer, elements: Array<Buffer>, indices?: Array<number>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0> } {
+  generateMultiProof(indices: Array<number>, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer, elements: Array<Buffer>, indices?: Array<number>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0> } {
     if (this._elements.length <= 0) throw new Error('Tree is empty.')
     indices.forEach((index, i) => {
       if (index < 0 || index > this._elements.length) throw new Error('Index out of range.')
@@ -294,14 +298,14 @@ export class MerkleTree {
     return Object.assign(base, proof)
   }
 
-  generateMultiUpdateProof(indices: Array<number>, updateElements: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): { updateElements: Array<Buffer>, root: Buffer, elements: Array<Buffer>, indices?: Array<number>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0> } {
+  generateMultiUpdateProof(indices: Array<number>, updateElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { updateElements: Array<Buffer>, root: Buffer, elements: Array<Buffer>, indices?: Array<number>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0> } {
     if (indices.length !== updateElements.length) throw new Error('Indices and element count mismatch.')
     const base = { updateElements: updateElements.map(Buffer.from) }
 
     return Object.assign(base, this.generateMultiProof(indices, options))
   }
 
-  updateMulti(indices: Array<number>, updateElements: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): { proof: { updateElements: Array<Buffer>, root: Buffer, elements: Array<Buffer>, indices?: Array<number>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0> }, newMerkleTree: MerkleTree } {
+  updateMulti(indices: Array<number>, updateElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { proof: { updateElements: Array<Buffer>, root: Buffer, elements: Array<Buffer>, indices?: Array<number>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0> }, newMerkleTree: MerkleTree } {
     const newElements = this.elements.map((e, i) => {
       const index = indices.indexOf(i)
 
@@ -320,7 +324,7 @@ export class MerkleTree {
     }
   }
 
-  generateAppendProof(options: Common.treeOptions = Common.defaultTreeOptions): { root: Buffer, compactProof?: Array<Buffer>, elementCount?: number, decommitments?: Array<Buffer> } {
+  generateAppendProof(options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer, compactProof?: Array<Buffer>, elementCount?: number, decommitments?: Array<Buffer> } {
     if (!this._unbalanced) throw new Error('Can only generate Append-Proofs for unbalanced trees.')
     if (this._elements.length === 0) {
       return options.compact
@@ -332,20 +336,20 @@ export class MerkleTree {
     return Object.assign({ root: this.root }, proof)
   }
 
-  generateSingleAppendProof(appendElement: Buffer, options: Common.treeOptions = Common.defaultTreeOptions): { appendElement: Buffer, root: Buffer, compactProof?: Array<Buffer>, elementCount?: number, decommitments?: Array<Buffer> } {
+  generateSingleAppendProof(appendElement: Buffer, options: Common.proofOptions = Common.defaultProofOptions): { appendElement: Buffer, root: Buffer, compactProof?: Array<Buffer>, elementCount?: number, decommitments?: Array<Buffer> } {
     const base = { appendElement: Buffer.from(appendElement) }
 
     return Object.assign(base, this.generateAppendProof(options))
   }
 
-  generateMultiAppendProof(appendElements: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): { appendElements: Array<Buffer>, root: Buffer, compactProof?: Array<Buffer>, elementCount?: number, decommitments?: Array<Buffer> } {
+  generateMultiAppendProof(appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { appendElements: Array<Buffer>, root: Buffer, compactProof?: Array<Buffer>, elementCount?: number, decommitments?: Array<Buffer> } {
     if (appendElements.length <= 0) throw new Error('No elements provided.')
     const base = { appendElements: appendElements.map(Buffer.from) }
 
     return Object.assign(base, this.generateAppendProof(options))
   }
 
-  appendSingle(appendElement: Buffer, options: Common.treeOptions = Common.defaultTreeOptions): { proof: { appendElement: Buffer, root: Buffer, compactProof?: Array<Buffer>, elementCount?: number, decommitments?: Array<Buffer> }, newMerkleTree: MerkleTree } {
+  appendSingle(appendElement: Buffer, options: Common.proofOptions = Common.defaultProofOptions): { proof: { appendElement: Buffer, root: Buffer, compactProof?: Array<Buffer>, elementCount?: number, decommitments?: Array<Buffer> }, newMerkleTree: MerkleTree } {
     const newElements = this.elements.map((e) => e)
     newElements.push(appendElement)
 
@@ -360,7 +364,7 @@ export class MerkleTree {
     }
   }
 
-  appendMulti(appendElements: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): { proof: { appendElements: Array<Buffer>, root: Buffer, compactProof?: Array<Buffer>, elementCount?: number, decommitments?: Array<Buffer> }, newMerkleTree: MerkleTree } {
+  appendMulti(appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { proof: { appendElements: Array<Buffer>, root: Buffer, compactProof?: Array<Buffer>, elementCount?: number, decommitments?: Array<Buffer> }, newMerkleTree: MerkleTree } {
     const newElements = this.elements.concat(appendElements)
 
     const opts = Object.assign({
@@ -377,7 +381,7 @@ export class MerkleTree {
 
   // Todo: update the default options
   // Todo: Generalize error constants
-  generateCombinedProof(indices: Array<number> | number, options: Common.treeOptions = Common.defaultTreeOptions): { root: Buffer, element?: Buffer, elements?: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number } {
+  generateCombinedProof(indices: Array<number> | number, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer, element?: Buffer, elements?: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number } {
     if (this._elements.length <= 0) throw new Error('Tree is empty.')
 
     if (options.indexed) throw new Error('Indexed Combined-Proofs are not yet supported.')
@@ -418,7 +422,7 @@ export class MerkleTree {
     return Object.assign(base, proof)
   }
 
-  generateUpdateAppendProof(indices: Array<number>, updateElements: Array<Buffer>, appendElements: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): { updateElement?: Buffer, updateElements?: Array<Buffer>, appendElement?: Buffer, appendElements?: Array<Buffer>, root: Buffer, element?: Buffer, elements?: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number } {
+  generateUpdateAppendProof(indices: Array<number>, updateElements: Array<Buffer>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { updateElement?: Buffer, updateElements?: Array<Buffer>, appendElement?: Buffer, appendElements?: Array<Buffer>, root: Buffer, element?: Buffer, elements?: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number } {
     if (Array.isArray(indices) !== Array.isArray(updateElements)) throw new Error('Indices and update mismatch.')
     if (!Number.isInteger(indices) && indices.length <= 0) throw new Error('No elements provided to be proven')
     if (!Number.isInteger(indices) && indices.length !== updateElements.length) throw new Error('Indices and update element count mismatch.')
@@ -436,7 +440,7 @@ export class MerkleTree {
     return Object.assign(base, this.generateCombinedProof(indices, options))
   }
 
-  generateUseAppendProof(indices: Array<number>, appendElements: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): { appendElement?: Buffer, appendElements?: Array<Buffer>, root: Buffer, element?: Buffer, elements?: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number } {
+  generateUseAppendProof(indices: Array<number>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { appendElement?: Buffer, appendElements?: Array<Buffer>, root: Buffer, element?: Buffer, elements?: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number } {
     if (!Number.isInteger(indices) && indices.length <= 0) throw new Error('No elements provided to be proven')
     if (Array.isArray(appendElements) && appendElements.length <= 0) throw new Error('No elements provided to be appended.')
 
@@ -448,7 +452,7 @@ export class MerkleTree {
     return Object.assign(base, this.generateCombinedProof(indices, options))
   }
 
-  updateAndAppend(indices: Array<number>, updateElements: Array<Buffer>, appendElements: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): { proof: { updateElement?: Buffer, updateElements?: Array<Buffer>, appendElement?: Buffer, appendElements?: Array<Buffer>, root: Buffer, element?: Buffer, elements?: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number }, newMerkleTree: MerkleTree } {
+  updateAndAppend(indices: Array<number>, updateElements: Array<Buffer>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { proof: { updateElement?: Buffer, updateElements?: Array<Buffer>, appendElement?: Buffer, appendElements?: Array<Buffer>, root: Buffer, element?: Buffer, elements?: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number }, newMerkleTree: MerkleTree } {
     const index: number = Array.isArray(indices) ? null : indices
     const { newMerkleTree: updatedTree } = Array.isArray(updateElements)
       ? this.updateMulti(indices, updateElements, options)
@@ -464,7 +468,7 @@ export class MerkleTree {
     }
   }
 
-  useAndAppend(indices: Array<number>, appendElements: Array<Buffer>, options: Common.treeOptions = Common.defaultTreeOptions): { proof: { appendElement?: Buffer, appendElements?: Array<Buffer>, root: Buffer, element?: Buffer, elements?: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number }, newMerkleTree: MerkleTree } {
+  useAndAppend(indices: Array<number>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { proof: { appendElement?: Buffer, appendElements?: Array<Buffer>, root: Buffer, element?: Buffer, elements?: Array<Buffer>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number }, newMerkleTree: MerkleTree } {
     const { newMerkleTree } = Array.isArray(appendElements)
       ? this.appendMulti(appendElements, options)
       : this.appendSingle(appendElements, options)
@@ -475,7 +479,7 @@ export class MerkleTree {
     }
   }
 
-  generateSizeProof(options: Common.treeOptions = Common.defaultTreeOptions): { root: Buffer, elementCount: number, elementRoot?: Buffer, compactProof?: Array<Buffer>, decommitments?: Array<Buffer> } {
+  generateSizeProof(options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer, elementCount: number, elementRoot?: Buffer, compactProof?: Array<Buffer>, decommitments?: Array<Buffer> } {
     const elementCount = this._elements.length
 
     if (elementCount === 0) {

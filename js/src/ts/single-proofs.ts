@@ -1,8 +1,8 @@
-import { defaultTreeOptions, getBalancedLeafCount, treeOptions } from './common'
+import { defaultProofOptions, defaultTreeOptions, getBalancedLeafCount, proofOptions, treeOptions } from './common'
 import { to32ByteBuffer, from32ByteBuffer } from './utils'
 
 // Generates a set of decommitments to prove the existence of a leaf at a given index.
-export const generate = (tree: Array<Buffer>, elementCount: number, index: number, options: treeOptions = defaultTreeOptions): { index: number, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer> } => {
+export const generate = (tree: Array<Buffer>, elementCount: number, index: number, options: proofOptions = defaultProofOptions): { index: number, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer> } => {
   const decommitments = []
   const leafCount = tree.length >>> 1
 

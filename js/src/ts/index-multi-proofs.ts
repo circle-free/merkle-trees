@@ -1,11 +1,11 @@
-import { defaultTreeOptions, treeOptions } from './common'
+import { defaultProofOptions, defaultTreeOptions, proofOptions, treeOptions } from './common'
 import { to32ByteBuffer, from32ByteBuffer, roundUpToPowerOf2 } from './utils'
 
 // Generates a set of decommitments to prove the existence of leaves at a given indices.
 // Accomplishes this by tracking the indices of the leafs in the serialized tree, and
 // accumulates the decommitments if only one of the nodes, at any given level, would be
 // known (provided as leafs) at verify-time.
-export const generate = (tree: Array<Buffer>, elementCount: number, indices: Array<number>, options: treeOptions = defaultTreeOptions): { indices: Array<number>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer> } => {
+export const generate = (tree: Array<Buffer>, elementCount: number, indices: Array<number>, options: proofOptions = defaultProofOptions): { indices: Array<number>, compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer> } => {
   const known = Array(tree.length).fill(false)
   const decommitments = []
   const leafCount = tree.length >>> 1

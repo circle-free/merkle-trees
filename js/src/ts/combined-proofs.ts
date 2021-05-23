@@ -1,9 +1,9 @@
 import { bitCount32, from32ByteBuffer, bufferToBigInt } from './utils'
 import { generate as generateMulti } from './flag-multi-proofs'
 import { generate as generateSingle } from './single-proofs'
-import { defaultTreeOptions, treeOptions } from './common'
+import { defaultProofOptions, defaultTreeOptions, proofOptions, treeOptions } from './common'
 
-export const generate = (tree: Array<Buffer>, elementCount: number, indices?: Array<number>, index?: number, options: treeOptions = defaultTreeOptions): { compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number } => {
+export const generate = (tree: Array<Buffer>, elementCount: number, indices?: Array<number>, index?: number, options: proofOptions = defaultProofOptions): { compactProof: Array<Buffer>, elementCount: number, decommitments: Array<Buffer>, flags?: Array<1 | 0>, skips?: Array<1 | 0>, orders?: Array<1 | 0>, index?: number } => {
   return index == null
     ? generateMulti(tree, elementCount, indices, options)
     : generateSingle(tree, elementCount, index, options)

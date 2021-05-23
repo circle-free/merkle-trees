@@ -8,23 +8,33 @@ export const getBalancedLeafCount = (elementCount: number): number => {
   return roundUpToPowerOf2(elementCount)
 }
 
-export interface treeOptions {
+export interface proofOptions {
   compact: boolean,
   simple: boolean,
   indexed: boolean,
   unbalanced: boolean,
-  elementPrefix: string,
+  sortedHash: Buffer,
+  elementPrefix: string
+}
+
+export const defaultProofOptions: proofOptions = {
+  compact: false,
+  simple: false,
+  indexed: false,
+  unbalanced: true,
+  sortedHash: Buffer.from('0x00'),
+  elementPrefix: '00'
+}
+
+export interface treeOptions {
+  unbalanced: boolean,
   sortedHash: Buffer,
   hashFunction: (left: Buffer, right: Buffer) => Buffer
 }
 
 export const defaultTreeOptions: treeOptions = {
-  compact: false,
-  indexed: false,
-  simple: true,
-  sortedHash: Buffer.from('0x00'),
   unbalanced: true,
-  elementPrefix: '00',
+  sortedHash: Buffer.from('0x00'),
   hashFunction: hashNode
 }
 
