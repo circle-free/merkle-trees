@@ -9,7 +9,8 @@ export class PartialMerkleTree extends MerkleTree {
   _tree: Array<Buffer>
   _depth: number
 
-  constructor(elements: Array<Buffer>, tree: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions) {
+  constructor(elements: Array<Buffer>, tree: Array<Buffer>, options?: Common.proofOptions) {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (tree.length <= 1) throw new Error('Cannot create empty Partial Tree.')
     if (tree.length >> 1 !== Common.getBalancedLeafCount(elements.length)) throw new Error('Element and tree mismatch.')
 
@@ -20,7 +21,8 @@ export class PartialMerkleTree extends MerkleTree {
     this._tree[0] = MerkleTree.computeMixedRoot(elements.length, tree[1])
   }
 
-  static fromSingleProof(proof: Common.proof, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
+  static fromSingleProof(proof: Common.proof, options?: Common.proofOptions): PartialMerkleTree {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
     const leaf = hashNode(prefixBuffer, proof.element)
@@ -33,11 +35,13 @@ export class PartialMerkleTree extends MerkleTree {
     return new PartialMerkleTree(partialElements, tree, options)
   }
 
-  static fromSingleUpdateProof(proof: Common.updateProof, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
+  static fromSingleUpdateProof(proof: Common.updateProof, options?: Common.proofOptions): PartialMerkleTree {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     return PartialMerkleTree.fromSingleProof({ index: proof.index, element: proof.updateElement, elementCount: proof.elementCount, compactProof: proof.compactProof, decommitments: proof.decommitments }, options)
   }
 
-  static fromMultiProof(proof: Common.proof, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
+  static fromMultiProof(proof: Common.proof, options?: Common.proofOptions): PartialMerkleTree {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (proof.indices.length <= 0 && options.sortedHash) throw new Error('Cannot build sorted-hash Partial Tree from existence-only multi-proof.')
 
     proof.indices = proof.indices ?? super.getMultiProofIndices({ elementCount: proof.elementCount, compactProof: proof.compactProof, flags: proof.flags, skips: proof.skips, orders: proof.orders })
@@ -57,11 +61,13 @@ export class PartialMerkleTree extends MerkleTree {
     return new PartialMerkleTree(partialElements, tree, options)
   }
 
-  static fromMultiUpdateProof(proof: Common.updateProof, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
+  static fromMultiUpdateProof(proof: Common.updateProof, options?: Common.proofOptions): PartialMerkleTree {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     return PartialMerkleTree.fromMultiProof({ indices: proof.indices, elements: proof.updateElements, elementCount: proof.elementCount, compactProof: proof.compactProof, decommitments: proof.decommitments, flags: proof.flags, skips: proof.skips, orders: proof.orders }, options)
   }
 
-  static fromAppendProof(proof: Common.appendProof, options: Common.proofOptions = Common.defaultProofOptions): PartialMerkleTree {
+  static fromAppendProof(proof: Common.appendProof, options?: Common.proofOptions): PartialMerkleTree {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (!proof.appendElement && !proof.appendElements) throw new Error('Append elements required.')
 
     const index = proof.elementCount ?? from32ByteBuffer(proof.compactProof[0])
@@ -94,7 +100,8 @@ export class PartialMerkleTree extends MerkleTree {
     return this._elements.map((e) => e && Buffer.from(e))
   }
 
-  generateSingleProof(index: number, options: Common.proofOptions = Common.defaultProofOptions): Common.proof {
+  generateSingleProof(index: number, options?: Common.proofOptions): Common.proof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (this._elements.length <= 0) throw new Error('Tree has no known elements.')
     if (index < 0 || index >= this._elements.length) throw new Error('Index out of range.')
     if (!this._elements[index]) throw new Error('Partial tree does not have element.')
@@ -102,7 +109,8 @@ export class PartialMerkleTree extends MerkleTree {
     return super.generateSingleProof(index, options)
   }
 
-  generateSingleUpdateProof(index: number, updateElement: Buffer, options: Common.proofOptions = Common.defaultProofOptions): Common.updateProof {
+  generateSingleUpdateProof(index: number, updateElement: Buffer, options?: Common.proofOptions): Common.updateProof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (this._elements.length <= 0) throw new Error('Tree has no known elements.')
     if (index < 0 || index >= this._elements.length) throw new Error('Index out of range.')
     if (!this._elements[index]) throw new Error('Partial tree does not have element.')
@@ -110,14 +118,16 @@ export class PartialMerkleTree extends MerkleTree {
     return super.generateSingleUpdateProof(index, updateElement, options)
   }
 
-  updatePartialSingle(index: number, updateElement: Buffer, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.updateProof, newPartialTree: PartialMerkleTree } {
+  updatePartialSingle(index: number, updateElement: Buffer, options?: Common.proofOptions): { proof: Common.updateProof, newPartialTree: PartialMerkleTree } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     return {
       proof: this.generateSingleUpdateProof(index, updateElement, options),
       newPartialTree: this.set(index, updateElement),
     }
   }
 
-  generateMultiProof(indices: Array<number>, options: Common.proofOptions = Common.defaultProofOptions): Common.proof {
+  generateMultiProof(indices: Array<number>, options?: Common.proofOptions): Common.proof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (this._elements.length <= 0) throw new Error('Tree has no known elements.')
 
     indices.forEach((index) => {
@@ -128,7 +138,8 @@ export class PartialMerkleTree extends MerkleTree {
     return super.generateMultiProof(indices, options)
   }
 
-  generateMultiUpdateProof(indices: Array<number>, updateElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): Common.updateProof {
+  generateMultiUpdateProof(indices: Array<number>, updateElements: Array<Buffer>, options?: Common.proofOptions): Common.updateProof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (this._elements.length <= 0) throw new Error('Tree has no known elements.')
 
     indices.forEach((index) => {
@@ -139,40 +150,47 @@ export class PartialMerkleTree extends MerkleTree {
     return super.generateMultiUpdateProof(indices, updateElements, options)
   }
 
-  updatePartialMulti(indices: Array<number>, updateElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.updateProof, newPartialTree: PartialMerkleTree } {
+  updatePartialMulti(indices: Array<number>, updateElements: Array<Buffer>, options?: Common.proofOptions): { proof: Common.updateProof, newPartialTree: PartialMerkleTree } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     return {
       proof: this.generateMultiUpdateProof(indices, updateElements, options),
       newPartialTree: this.set(indices, updateElements),
     }
   }
 
-  generateAppendProof(options: Common.proofOptions = Common.defaultProofOptions): Common.proof {
+  generateAppendProof(options?: Common.proofOptions): Common.proof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     return super.generateAppendProof(options)
   }
 
-  generateSingleAppendProof(appendElement: Buffer, options: Common.proofOptions = Common.defaultProofOptions): Common.appendProof {
+  generateSingleAppendProof(appendElement: Buffer, options?: Common.proofOptions): Common.appendProof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     return super.generateSingleAppendProof(appendElement, options)
   }
 
-  generateMultiAppendProof(appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): Common.appendProof {
+  generateMultiAppendProof(appendElements: Array<Buffer>, options?: Common.proofOptions): Common.appendProof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     return super.generateMultiAppendProof(appendElements, options)
   }
 
-  appendPartialSingle(appendElement: Buffer, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.appendProof, newPartialTree: PartialMerkleTree } {
+  appendPartialSingle(appendElement: Buffer, options?: Common.proofOptions): { proof: Common.appendProof, newPartialTree: PartialMerkleTree } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     return {
       proof: this.generateSingleAppendProof(appendElement, options),
       newPartialTree: this.append(appendElement),
     }
   }
 
-  appendPartialMulti(appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.appendProof, newPartialTree: PartialMerkleTree } {
+  appendPartialMulti(appendElements: Array<Buffer>, options?: Common.proofOptions): { proof: Common.appendProof, newPartialTree: PartialMerkleTree } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     return {
       proof: this.generateMultiAppendProof(appendElements, options),
       newPartialTree: this.append(appendElements),
     }
   }
 
-  generateCombinedProof(indices: Array<number>, options: Common.proofOptions = Common.defaultProofOptions): Common.proof {
+  generateCombinedProof(indices: Array<number>, options?: Common.proofOptions): Common.proof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (this._elements.length < 0) throw new Error('Tree has no known elements.')
 
     if (!Array.isArray(indices)) {
@@ -188,7 +206,8 @@ export class PartialMerkleTree extends MerkleTree {
     return super.generateCombinedProof(indices, options)
   }
 
-  generatePartialUpdateAppendProof(indices: Array<number>, updateElements: Array<Buffer>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): Common.updateAndAppendProof {
+  generatePartialUpdateAppendProof(indices: Array<number>, updateElements: Array<Buffer>, appendElements: Array<Buffer>, options?: Common.proofOptions): Common.updateAndAppendProof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (this._elements.length <= 0) throw new Error('Tree has no known elements.')
 
     if (!Array.isArray(indices)) {
@@ -204,7 +223,8 @@ export class PartialMerkleTree extends MerkleTree {
     return super.generateUpdateAppendProof({ indices, updateElements, appendElements }, options)
   }
 
-  generatePartialUseAppendProof(indices: Array<number>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): Common.appendProof {
+  generatePartialUseAppendProof(indices: Array<number>, appendElements: Array<Buffer>, options?: Common.proofOptions): Common.appendProof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (this._elements.length <= 0) throw new Error('Tree has no known elements.')
 
     if (!Array.isArray(indices)) {
@@ -220,21 +240,24 @@ export class PartialMerkleTree extends MerkleTree {
     return super.generateUseAppendProof({ indices, appendElements }, options)
   }
 
-  updatePartialAndAppend(indices: Array<number>, updateElements: Array<Buffer>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.updateAndAppendProof, newPartialTree: PartialMerkleTree } {
+  updatePartialAndAppend(indices: Array<number>, updateElements: Array<Buffer>, appendElements: Array<Buffer>, options?: Common.proofOptions): { proof: Common.updateAndAppendProof, newPartialTree: PartialMerkleTree } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     return {
       proof: this.generateUpdateAppendProof({ indices, updateElements, appendElements }, options),
       newPartialTree: this.set(indices, updateElements).append(appendElements),
     }
   }
 
-  usePartialAndAppend(indices: Array<number>, appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.appendProof, newPartialTree: PartialMerkleTree } {
+  usePartialAndAppend(indices: Array<number>, appendElements: Array<Buffer>, options?: Common.proofOptions): { proof: Common.appendProof, newPartialTree: PartialMerkleTree } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     return {
       proof: this.generateUseAppendProof({ indices, appendElements }, options),
       newPartialTree: this.append(appendElements),
     }
   }
 
-  generateSizeProof(options: Common.proofOptions = Common.defaultProofOptions): Common.proof {
+  generateSizeProof(options?: Common.proofOptions): Common.proof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const { simple = true } = options
     if (!simple && this._elements.length <= 0) throw new Error('Tree has no known elements.')
     return super.generateSizeProof(options)

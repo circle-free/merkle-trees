@@ -15,7 +15,8 @@ export class MerkleTree {
   _elements: Array<Buffer>
   _tree: Array<Buffer>
 
-  constructor(elements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions) {
+  constructor(elements: Array<Buffer>, options?: Common.proofOptions) {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     this._elementPrefix = Buffer.from(options.elementPrefix, 'hex')
     this._sortedHash = options.sortedHash
     this._unbalanced = options.unbalanced
@@ -45,7 +46,8 @@ export class MerkleTree {
     this._tree[0] = MerkleTree.computeMixedRoot(this._elements.length, this._tree[1])
   }
 
-  static verifySingleProof(proof: Common.proof, options: Common.proofOptions = Common.defaultProofOptions): boolean {
+  static verifySingleProof(proof: Common.proof, options?: Common.proofOptions): boolean {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
     const leaf = hashNode(prefixBuffer, proof.element)
@@ -55,7 +57,8 @@ export class MerkleTree {
     return MerkleTree.verifyMixedRoot(proof.root, recoveredElementCount, recoveredRoot)
   }
 
-  static updateWithSingleProof(proof: Common.updateProof, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer } {
+  static updateWithSingleProof(proof: Common.updateProof, options?: Common.proofOptions): { root: Buffer } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
     const leaf = hashNode(prefixBuffer, proof.element)
@@ -67,7 +70,8 @@ export class MerkleTree {
     return { root: MerkleTree.computeMixedRoot(recoveredElementCount, newRoot) }
   }
 
-  static verifyMultiProof(proof: Common.proof, options: Common.proofOptions = Common.defaultProofOptions): boolean {
+  static verifyMultiProof(proof: Common.proof, options?: Common.proofOptions): boolean {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
     const leafs = proof.elements.map((element) => hashNode(prefixBuffer, element))
@@ -82,7 +86,8 @@ export class MerkleTree {
     return MultiFlagProofs.getIndices(proof).indices
   }
 
-  static updateWithMultiProof(proof: Common.updateProof, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer } {
+  static updateWithMultiProof(proof: Common.updateProof, options?: Common.proofOptions): { root: Buffer } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
     const hashFunction = getHashFunction(options.sortedHash)
     const leafs = proof.elements.map((element) => hashNode(prefixBuffer, element))
@@ -97,7 +102,8 @@ export class MerkleTree {
     return { root: MerkleTree.computeMixedRoot(recoveredElementCount, newRoot) }
   }
 
-  static verifyAppendProof(proof: Common.proof, options: Common.proofOptions = Common.defaultProofOptions): boolean {
+  static verifyAppendProof(proof: Common.proof, options?: Common.proofOptions): boolean {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     // if (!options.unbalanced) throw new Error('Append-Proofs not supported for balanced trees.')
     if (proof.root.equals(to32ByteBuffer(0))) return true
 
@@ -108,7 +114,8 @@ export class MerkleTree {
     return MerkleTree.verifyMixedRoot(proof.root, recoveredElementCount, recoveredRoot)
   }
 
-  static appendWithAppendProof(proof: Common.appendProof, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer, elementCount: number } {
+  static appendWithAppendProof(proof: Common.appendProof, options?: Common.proofOptions): { root: Buffer, elementCount: number } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     // if (!options.unbalanced) throw new Error('Append-Proofs not supported for balanced trees.')
 
     if (proof.root.equals(to32ByteBuffer(0))) {
@@ -130,7 +137,8 @@ export class MerkleTree {
     return { root: MerkleTree.computeMixedRoot(newElementCount, newRoot), elementCount: newElementCount }
   }
 
-  static appendWithCombinedProof(proof: Common.appendProof, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer, elementCount: number } {
+  static appendWithCombinedProof(proof: Common.appendProof, options?: Common.proofOptions): { root: Buffer, elementCount: number } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     // if (!options.unbalanced) throw new Error('Combined-Proofs not supported for balanced trees.')
 
     if (proof.root.equals(to32ByteBuffer(0))) {
@@ -156,7 +164,8 @@ export class MerkleTree {
     return { root: MerkleTree.computeMixedRoot(newElementCount, newRoot), elementCount: newElementCount }
   }
 
-  static verifyCombinedProof(proof: Common.proof, options: Common.proofOptions = Common.defaultProofOptions): boolean {
+  static verifyCombinedProof(proof: Common.proof, options?: Common.proofOptions): boolean {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (!options.unbalanced) throw new Error('Combined-Proofs not supported for balanced trees.')
 
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
@@ -175,7 +184,8 @@ export class MerkleTree {
     return MerkleTree.getMultiProofIndices({ elementCount: leafCount, compactProof, flags, skips, orders })
   }
 
-  static updateAndAppendWithCombinedProof(proof: Common.updateAndAppendProof, options: Common.proofOptions = Common.defaultProofOptions): { root: Buffer, elementCount: number } {
+  static updateAndAppendWithCombinedProof(proof: Common.updateAndAppendProof, options?: Common.proofOptions): { root: Buffer, elementCount: number } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (!options.unbalanced) throw new Error('Combined-Proofs not supported for balanced trees.')
 
     const prefixBuffer = Buffer.from(options.elementPrefix, 'hex')
@@ -212,7 +222,8 @@ export class MerkleTree {
     return MerkleTree.computeMixedRoot(elementCount, root).equals(mixedRoot)
   }
 
-  static verifySizeProof(proof: Common.proof, options: Common.proofOptions = Common.defaultProofOptions): boolean {
+  static verifySizeProof(proof: Common.proof, options?: Common.proofOptions): boolean {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const decommitments = proof.compactProof
 
     if (proof.root.equals(to32ByteBuffer(0)) && proof.elementCount === 0) return true
@@ -248,7 +259,8 @@ export class MerkleTree {
     return CombinedProofs.getMinimumIndex(this._elements.length)
   }
 
-  generateSingleProof(index: number, options: Common.proofOptions = Common.defaultProofOptions): Common.proof {
+  generateSingleProof(index: number, options?: Common.proofOptions): Common.proof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (this._elements.length <= 0) throw new Error('Tree is empty.')
     if (index < 0 || index >= this._elements.length) throw new Error('Index out of range.')
 
@@ -258,13 +270,15 @@ export class MerkleTree {
     return Object.assign(base, proof)
   }
 
-  generateSingleUpdateProof(index: number, updateElement: Buffer, options: Common.proofOptions = Common.defaultProofOptions): Common.updateProof {
+  generateSingleUpdateProof(index: number, updateElement: Buffer, options?: Common.proofOptions): Common.updateProof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const base = { updateElement: Buffer.from(updateElement) }
 
     return Object.assign(base, this.generateSingleProof(index, options))
   }
 
-  updateSingle(index: number, updateElement: Buffer, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.updateProof, newMerkleTree: MerkleTree } {
+  updateSingle(index: number, updateElement: Buffer, options?: Common.proofOptions): { proof: Common.updateProof, newMerkleTree: MerkleTree } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const newElements = this._elements.map((e, i) => (i === index ? updateElement : e))
 
     const opts = Object.assign({
@@ -279,7 +293,8 @@ export class MerkleTree {
     }
   }
 
-  generateMultiProof(indices: Array<number>, options: Common.proofOptions = Common.defaultProofOptions): Common.proof {
+  generateMultiProof(indices: Array<number>, options?: Common.proofOptions): Common.proof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (this._elements.length <= 0) throw new Error('Tree is empty.')
     indices.forEach((index, i) => {
       if (index < 0 || index > this._elements.length) throw new Error('Index out of range.')
@@ -298,14 +313,16 @@ export class MerkleTree {
     return Object.assign(base, proof)
   }
 
-  generateMultiUpdateProof(indices: Array<number>, updateElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): Common.updateProof {
+  generateMultiUpdateProof(indices: Array<number>, updateElements: Array<Buffer>, options?: Common.proofOptions): Common.updateProof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (indices.length !== updateElements.length) throw new Error('Indices and element count mismatch.')
     const base = { updateElements: updateElements.map(Buffer.from) }
 
     return Object.assign(base, this.generateMultiProof(indices, options))
   }
 
-  updateMulti(indices: Array<number>, updateElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.updateProof, newMerkleTree: MerkleTree } {
+  updateMulti(indices: Array<number>, updateElements: Array<Buffer>, options?: Common.proofOptions): { proof: Common.updateProof, newMerkleTree: MerkleTree } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const newElements = this.elements.map((e, i) => {
       const index = indices.indexOf(i)
 
@@ -324,7 +341,8 @@ export class MerkleTree {
     }
   }
 
-  generateAppendProof(options: Common.proofOptions = Common.defaultProofOptions): Common.proof {
+  generateAppendProof(options?: Common.proofOptions): Common.proof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (!this._unbalanced) throw new Error('Can only generate Append-Proofs for unbalanced trees.')
     if (this._elements.length === 0) {
       return options.compact
@@ -336,20 +354,23 @@ export class MerkleTree {
     return Object.assign({ root: this.root }, proof)
   }
 
-  generateSingleAppendProof(appendElement: Buffer, options: Common.proofOptions = Common.defaultProofOptions): Common.appendProof {
+  generateSingleAppendProof(appendElement: Buffer, options?: Common.proofOptions): Common.appendProof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const base = { appendElement: Buffer.from(appendElement) }
 
     return Object.assign(base, this.generateAppendProof(options))
   }
 
-  generateMultiAppendProof(appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): Common.appendProof {
+  generateMultiAppendProof(appendElements: Array<Buffer>, options?: Common.proofOptions): Common.appendProof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (appendElements.length <= 0) throw new Error('No elements provided.')
     const base = { appendElements: appendElements.map(Buffer.from) }
 
     return Object.assign(base, this.generateAppendProof(options))
   }
 
-  appendSingle(appendElement: Buffer, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.appendProof, newMerkleTree: MerkleTree } {
+  appendSingle(appendElement: Buffer, options?: Common.proofOptions): { proof: Common.appendProof, newMerkleTree: MerkleTree } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const newElements = this.elements.map((e) => e)
     newElements.push(appendElement)
 
@@ -364,7 +385,8 @@ export class MerkleTree {
     }
   }
 
-  appendMulti(appendElements: Array<Buffer>, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.appendProof, newMerkleTree: MerkleTree } {
+  appendMulti(appendElements: Array<Buffer>, options?: Common.proofOptions): { proof: Common.appendProof, newMerkleTree: MerkleTree } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const newElements = this.elements.concat(appendElements)
 
     const opts = Object.assign({
@@ -381,7 +403,8 @@ export class MerkleTree {
 
   // Todo: update the default options
   // Todo: Generalize error constants
-  generateCombinedProof(indices: Array<number> | number, options: Common.proofOptions = Common.defaultProofOptions): Common.proof {
+  generateCombinedProof(indices: Array<number> | number, options?: Common.proofOptions): Common.proof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (this._elements.length <= 0) throw new Error('Tree is empty.')
 
     if (options.indexed) throw new Error('Indexed Combined-Proofs are not yet supported.')
@@ -422,7 +445,8 @@ export class MerkleTree {
     return Object.assign(base, proof)
   }
 
-  generateUpdateAppendProof(proof: Common.updateAndAppendProof, options: Common.proofOptions = Common.defaultProofOptions): Common.updateAndAppendProof {
+  generateUpdateAppendProof(proof: Common.updateAndAppendProof, options?: Common.proofOptions): Common.updateAndAppendProof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (proof.indices.length > 0 && proof.updateElements.length <= 0) throw new Error('Indices and update mismatch.')
     if (proof.index == null && proof.indices.length <= 0) throw new Error('No elements provided to be proven')
     if (proof.index == null && proof.indices.length !== proof.updateElements.length) throw new Error('Indices and update element count mismatch.')
@@ -440,7 +464,8 @@ export class MerkleTree {
     return Object.assign(base, this.generateCombinedProof(proof.indices, options))
   }
 
-  generateUseAppendProof(proof: Common.appendProof, options: Common.proofOptions = Common.defaultProofOptions): Common.appendProof {
+  generateUseAppendProof(proof: Common.appendProof, options?: Common.proofOptions): Common.appendProof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     if (!Number.isInteger(proof.indices) && proof.indices.length <= 0) throw new Error('No elements provided to be proven')
     if (Array.isArray(proof.appendElements) && proof.appendElements.length <= 0) throw new Error('No elements provided to be appended.')
 
@@ -452,7 +477,8 @@ export class MerkleTree {
     return Object.assign(base, this.generateCombinedProof(proof.indices, options))
   }
 
-  updateAndAppend(proof: Common.updateAndAppendProof, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.updateAndAppendProof, newMerkleTree: MerkleTree } {
+  updateAndAppend(proof: Common.updateAndAppendProof, options?: Common.proofOptions): { proof: Common.updateAndAppendProof, newMerkleTree: MerkleTree } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const { newMerkleTree: updatedTree } = proof.updateElements?.length > 0
       ? this.updateMulti(proof.indices, proof.updateElements, options)
       : this.updateSingle(proof.index, proof.updateElement, options)
@@ -467,7 +493,8 @@ export class MerkleTree {
     }
   }
 
-  useAndAppend(indices: Array<number> | number, appendElements: Array<Buffer> | Buffer, options: Common.proofOptions = Common.defaultProofOptions): { proof: Common.appendProof, newMerkleTree: MerkleTree } {
+  useAndAppend(indices: Array<number> | number, appendElements: Array<Buffer> | Buffer, options?: Common.proofOptions): { proof: Common.appendProof, newMerkleTree: MerkleTree } {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     let proof: Common.appendProof
     if (!Array.isArray(indices)) {
       proof.index = indices
@@ -491,7 +518,8 @@ export class MerkleTree {
     }
   }
 
-  generateSizeProof(options: Common.proofOptions = Common.defaultProofOptions): Common.proof {
+  generateSizeProof(options?: Common.proofOptions): Common.proof {
+    options = Object.assign({}, Common.defaultProofOptions, options)
     const elementCount = this._elements.length
 
     if (elementCount === 0) {
