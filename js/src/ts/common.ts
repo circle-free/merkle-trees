@@ -1,13 +1,5 @@
 import { roundUpToPowerOf2, hashNode } from "./utils"
 
-export const getDepth = (elementCount: number): number => {
-  return Math.ceil(Math.log2(elementCount))
-}
-
-export const getBalancedLeafCount = (elementCount: number): number => {
-  return roundUpToPowerOf2(elementCount)
-}
-
 export interface proofOptions {
   compact: boolean,
   simple: boolean,
@@ -88,6 +80,14 @@ export interface updateAndAppendProof extends proof {
   appendElements?: Array<Buffer>,
 }
 
+
+export const getDepth = (elementCount: number): number => {
+  return Math.ceil(Math.log2(elementCount))
+}
+
+export const getBalancedLeafCount = (elementCount: number): number => {
+  return roundUpToPowerOf2(elementCount)
+}
 
 export const buildTree = (leafs: Array<Buffer>, options: treeOptions = defaultTreeOptions): { tree: Array<Buffer>, depth: number } => {
   const depth = getDepth(leafs.length)
